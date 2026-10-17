@@ -1,0 +1,7 @@
+plugins {
+    id 'application'
+}
+application {
+    mainClass = 'dev.julia.audit.cli.AuditMain'
+    applicationName = 'gl-audit'
+}
