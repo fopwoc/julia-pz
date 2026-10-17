@@ -1,0 +1,21 @@
+dependencies {
+    implementation project(':gl-audit')
+}
+
+tasks.named('jar') {
+    archiveBaseName = 'julia-agent'
+    archiveFileName = 'julia-agent.jar'
+    manifest {
+        attributes 'Premain-Class': 'dev.julia.agent.JuliaAgent',
+                'Implementation-Version': project.version
+    }
+    from(project(':gl-audit').sourceSets.main.output)
+}
+
+tasks.named('test') {
+    dependsOn tasks.named('jar')
+    inputs.file(tasks.named('jar').flatMap { it.archiveFile }).withPropertyName('agentJar')
+    doFirst {
+        systemProperty 'agent.jar', tasks.named('jar').get().archiveFile.get().asFile.absolutePath
+    }
+}

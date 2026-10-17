@@ -12,8 +12,19 @@ import java.lang.classfile.instruction.InvokeDynamicInstruction;
 import java.lang.classfile.instruction.InvokeInstruction;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 public final class GraphicsClassScanner {
+    private final Predicate<GraphicsSymbol> accepts;
+
+    public GraphicsClassScanner() {
+        this(GraphicsSymbol::isGraphicsBinding);
+    }
+
+    public GraphicsClassScanner(Predicate<GraphicsSymbol> accepts) {
+        this.accepts = java.util.Objects.requireNonNull(accepts);
+    }
+
     public List<GraphicsReference> scan(byte[] bytes) {
         var model = ClassFile.of().parse(bytes);
         String owner = model.thisClass().asInternalName();
@@ -52,12 +63,12 @@ public final class GraphicsClassScanner {
         return List.copyOf(references);
     }
 
-    private static void add(List<GraphicsReference> references, MemberRefEntry member, String caller,
+    private void add(List<GraphicsReference> references, MemberRefEntry member, String caller,
                             String method, String descriptor, GraphicsReference.Kind kind) {
         var symbol = new GraphicsSymbol(member instanceof FieldRefEntry
                 ? GraphicsSymbol.Kind.FIELD : GraphicsSymbol.Kind.METHOD,
                 member.owner().asInternalName(), member.name().stringValue(), member.type().stringValue());
-        if (symbol.isGraphicsBinding()) {
+        if (accepts.test(symbol)) {
             references.add(new GraphicsReference(symbol, caller, method, descriptor, kind));
         }
     }

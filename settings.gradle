@@ -1,3 +1,9 @@
 rootProject.name = 'julia-zomboid'
 include('gl-audit')
 project(':gl-audit').projectDir = file('modules/gl-audit')
+
+include('backend-probe')
+project(':backend-probe').projectDir = file('modules/backend-probe')
+
+include('agent')
+project(':agent').projectDir = file('modules/agent')

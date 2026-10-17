@@ -17,6 +17,16 @@ allprojects {
 
 subprojects {
     apply plugin: 'java-library'
+    dependencyLocking {
+        lockAllConfigurations()
+    }
+    tasks.withType(AbstractArchiveTask).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+    tasks.withType(org.gradle.jvm.application.tasks.CreateStartScripts).configureEach {
+        doLast { windowsScript.delete() }
+    }
     java {
         toolchain.languageVersion = JavaLanguageVersion.of(25)
         withSourcesJar()

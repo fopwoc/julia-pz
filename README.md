@@ -28,3 +28,32 @@ Reports contain archive SHA-256 identifiers and caller locations. They are stati
 See [the first audit](docs/graphics-audit.md) for the measured game/mod surface.
 
 Build identity comes from Git. macOS is the native development environment for the Metal integration. Tests and offline audits do not launch the game.
+
+## Modules
+
+- `gl-audit`: offline graphics bytecode inventory and report writer.
+- `agent`: startup Java agent; currently observes loaded `zombie/`, `viewpoint/`, and `imgui/` classes without rewriting them. Its report lists references in loaded classes, not calls proven to have executed. A separate-JVM smoke test verifies attachment and application behavior.
+- `backend-probe`: consumes the published Angelica dependency, checks class linkage, and tests the upstream redirector in memory.
+
+## Backend investigation
+
+```sh
+./gradlew :backend-probe:installDist
+modules/backend-probe/build/install/backend-probe/bin/backend-probe /path/to/projectzomboid.jar
+modules/backend-probe/build/install/backend-probe/bin/backend-probe \
+  --audit-redirects build/reports/redirects.tsv /path/to/projectzomboid.jar /path/to/Viewpoint.jar
+```
+
+The linkage probe currently exits with status 1 because integration types are missing. This is a measured compatibility result, not a successful renderer startup. See [the integration findings](docs/angelica-integration.md).
+
+## Audit agent
+
+```sh
+./gradlew :agent:jar
+LOG_LEVEL=info java -javaagent:modules/agent/build/libs/julia-agent.jar=/path/to/new-report.tsv \
+  -cp /path/to/application.jar example.Main
+```
+
+The report path is required and must not exist. Reports are written at normal JVM shutdown. The agent does not modify classes or choose a renderer. It has not been installed into or tested inside Zomboid. Default `LOG_LEVEL` is `error`; accepted overrides are `warn`, `info`, and `debug`. Agent logging only configures Julia's logger namespace.
+
+Dependency versions are locked. Refresh deliberately with Gradle's `--write-locks` option. Angelica remains a replaceable external dependency; see [third-party notices](THIRD_PARTY.md).

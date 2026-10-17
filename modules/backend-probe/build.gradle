@@ -1,0 +1,74 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    maven {
+        url = uri('https://libraries.minecraft.net/')
+        content { includeGroup 'com.mojang' }
+    }
+    maven {
+        url = uri('https://nexus.gtnewhorizons.com/repository/public/')
+        content {
+            includeGroup 'com.gtnewhorizons.angelica'
+            includeGroup 'com.github.GTNewHorizons'
+            includeGroup 'org.taumc'
+            includeGroup 'io.github.legacymoddingmc'
+        }
+    }
+    maven {
+        url = uri('https://maven.minecraftforge.net/')
+        content { includeGroup 'net.minecraftforge' }
+    }
+    maven {
+        url = uri('https://maven.taumc.org/releases/')
+        content { includeGroup 'org.taumc' }
+    }
+}
+
+def operatingSystem = System.getProperty('os.name')
+def architecture = System.getProperty('os.arch')
+if (!(architecture in ['aarch64', 'arm64', 'amd64', 'x86_64'])) {
+    throw new GradleException('The backend probe supports ARM64 and x86-64')
+}
+def nativeClassifier
+if (operatingSystem == 'Mac OS X') {
+    nativeClassifier = architecture in ['aarch64', 'arm64'] ? 'natives-macos-arm64' : 'natives-macos'
+} else if (operatingSystem == 'Linux') {
+    nativeClassifier = architecture in ['aarch64', 'arm64'] ? 'natives-linux-arm64' : 'natives-linux'
+} else {
+    throw new GradleException('The backend probe supports macOS and Linux')
+}
+
+dependencies {
+    // Angelica expects these to be supplied by its host application.
+    implementation 'org.ow2.asm:asm-tree:9.9.1'
+    implementation project(':gl-audit')
+    runtimeOnly 'org.joml:joml:1.10.8'
+    runtimeOnly 'it.unimi.dsi:fastutil:8.5.18'
+    runtimeOnly 'org.apache.logging.log4j:log4j-api:2.26.1'
+    runtimeOnly 'org.apache.logging.log4j:log4j-core:2.26.1'
+    runtimeOnly 'com.google.guava:guava:33.7.2-jre'
+    implementation('com.gtnewhorizons.angelica:sdl-gpu:2.2.34') {
+        // The upstream publication carries the publishing host's Linux natives.
+        exclude group: 'org.lwjgl'
+    }
+    for (module in ['lwjgl', 'lwjgl-sdl', 'lwjgl-shaderc', 'lwjgl-spvc']) {
+        runtimeOnly "org.lwjgl:${module}:3.4.2"
+        runtimeOnly "org.lwjgl:${module}:3.4.2:${nativeClassifier}"
+    }
+}
+
+application {
+    mainClass = 'dev.julia.probe.BackendProbe'
+    applicationName = 'backend-probe'
+}
+
+distributions {
+    main {
+        contents {
+            from(rootProject.file('THIRD_PARTY.md'))
+            from(rootProject.file('licenses')) { into 'licenses' }
+        }
+    }
+}
