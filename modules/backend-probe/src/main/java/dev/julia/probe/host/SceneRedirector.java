@@ -2,6 +2,7 @@ package dev.julia.probe.host;
 
 import com.gtnewhorizons.angelica.glsm.redirect.GLSMRedirector;
 import dev.julia.audit.scan.GraphicsClassScanner;
+import dev.julia.probe.redirect.UniformBindings;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
@@ -16,6 +17,7 @@ final class SceneRedirector {
         if (!new GLSMRedirector().transformClassNode(node.name.replace('/', '.'), node, true)) {
             throw new IllegalStateException("Controlled scene was not redirected");
         }
+        UniformBindings.adapt(node);
         var writer = new ClassWriter(0);
         node.accept(writer);
         byte[] transformed = writer.toByteArray();

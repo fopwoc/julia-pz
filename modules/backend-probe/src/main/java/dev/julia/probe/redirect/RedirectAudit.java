@@ -30,20 +30,24 @@ public final class RedirectAudit {
         if (args.length < 2) {
             throw new IllegalArgumentException("Usage: backend-probe --audit-redirects new-report.tsv game.jar [mod.jar ...]");
         }
-        Path output = Path.of(args[0]).toAbsolutePath();
+        boolean compatibility = args[0].equals("--compat");
+        int first = compatibility ? 1 : 0;
+        if (args.length < first + 2) throw new IllegalArgumentException("Expected report and input archives");
+        Path output = Path.of(args[first]).toAbsolutePath();
         Files.createDirectories(output.getParent());
         var redirector = new GLSMRedirector();
         var scanner = new GraphicsClassScanner(symbol -> symbol.isGraphicsBinding()
-                || symbol.owner().equals(STATE_MANAGER) || symbol.owner().equals(DEBUG_SHIM));
+                || symbol.owner().equals(STATE_MANAGER) || symbol.owner().equals(DEBUG_SHIM) || symbol.owner().equals(UniformBindings.OWNER));
         var targets = new HashMap<String, Set<String>>();
         targets.put(STATE_MANAGER, signatures(STATE_MANAGER));
         targets.put(DEBUG_SHIM, signatures(DEBUG_SHIM));
+        if (compatibility) targets.put(UniformBindings.OWNER, signatures(UniformBindings.OWNER));
         var counts = new HashMap<String, Integer>();
         int changed = 0;
         try (var writer = Files.newBufferedWriter(output, StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
             writer.write("archive\tclass\tmethod\tcaller_descriptor\tkind\towner\tname\tdescriptor\tstatus\n");
-            for (int index = 1; index < args.length; index++) {
+            for (int index = first + 1; index < args.length; index++) {
                 Path input = Path.of(args[index]);
                 try (var jar = new JarFile(input.toFile(), true, JarFile.OPEN_READ, Runtime.version())) {
                     for (var entry : jar.versionedStream().toList()) {
@@ -58,6 +62,7 @@ public final class RedirectAudit {
                         var node = new ClassNode();
                         new ClassReader(original).accept(node, 0);
                         if (redirector.transformClassNode(node.name.replace('/', '.'), node, true)) changed++;
+                        if (compatibility) UniformBindings.adapt(node);
                         var bytecode = new ClassWriter(0);
                         node.accept(bytecode);
                         for (var reference : scanner.scan(bytecode.toByteArray())) {
@@ -72,6 +77,7 @@ public final class RedirectAudit {
                 }
             }
         }
+        System.out.println("Uniform compatibility bridges: " + compatibility);
         System.out.println("Upstream redirector changed " + changed + " classes in memory");
         counts.entrySet().stream().sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> System.out.println(entry.getKey() + ": " + entry.getValue()));

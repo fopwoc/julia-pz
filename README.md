@@ -91,3 +91,5 @@ The first task initializes GLSM and the real SDL backend, redirects a controlled
 ## Experimental window presentation
 
 `-Djulia.probe=window` opts into a three-frame Metal presentation experiment using PZ's existing GLFW Cocoa window. The default remains `adapter`. The window path now passes a three-frame native test with 7,934,400 verified framebuffer pixels, followed by a normal full-size menu and working input. The full build passes 35 JVM tests. Gameplay still uses its original renderer. See [the window boundary](docs/window-presentation.md).
+
+To audit Julia's uniform compatibility bridges as well as upstream redirection, add `--compat` after `--audit-redirects`. Reports are created as new files. This remains an offline bytecode audit; it does not load game classes or enable live redirection. See [the uniform bridge checks](docs/uniform-bridges.md).

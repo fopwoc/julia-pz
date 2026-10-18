@@ -71,3 +71,7 @@ The real Angelica `Device` now initializes on Metal inside the PZ process and pa
 ## Post-probe native crash correction
 
 Process `70677` completed the GPU checks but then crashed when PZ used the fabricated native dispatch table. Safe coexistence is not yet established. The current source restores the host's native GL dispatch and releases the isolated GL provider; 35 offline tests pass, and the default-mode runtime retest passed with user-confirmed world rendering and controls. See [the crash evidence and fix](host-gl-crash.md). The opt-in borrowed-window probe subsequently presented three frames, verified 7,934,400 pixels, restored host state, and returned to a full-size menu with working input. See [the presentation result](window-presentation.md).
+
+## Julia uniform overloads
+
+Julia now bridges three of the four missing vanilla overloads. The compatibility audit reduces missing references from five to one; 37 JVM tests and the windowless 3,072-pixel Metal suite pass. The remaining overload takes a 3D texture upload pointer/PBO offset. See [uniform bridge evidence](uniform-bridges.md). These bridges are active in the controlled probe and optional offline audit, not in PZ gameplay.

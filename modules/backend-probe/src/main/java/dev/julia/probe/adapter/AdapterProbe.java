@@ -44,7 +44,7 @@ public final class AdapterProbe {
             AdapterDraw.run(output);
             result = "PASS\nbackend=" + backend.getName()
                     + "\nverified_pixels=1024\napi=redirected LWJGL OpenGL calls -> GLStateManager"
-                    + "\ndraw=sampled texture\nprocess_id=" + ProcessHandle.current().pid()
+                    + "\ndraw=sampled texture\nuniform_checks=float array,matrix array transpose,truncated reflection,buffer positions\nprocess_id=" + ProcessHandle.current().pid()
                     + "\nthread=" + Thread.currentThread().getName() + "\n";
         } finally {
             try {

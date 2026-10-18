@@ -68,13 +68,17 @@ public final class AdapterDraw {
             }
             program = glCreateProgram();
             attach(program, GL_VERTEX_SHADER, "/shaders/adapter.vert");
-            attach(program, GL_FRAGMENT_SHADER, "/shaders/texture.frag");
+            attach(program, GL_FRAGMENT_SHADER, "/shaders/adapter.frag");
             glLinkProgram(program);
             if (glGetProgrami(program, GL_LINK_STATUS) == 0) throw new IllegalStateException(glGetProgramInfoLog(program));
             glUseProgram(program);
             int sampler = glGetUniformLocation(program, "image");
             if (sampler < 0) throw new IllegalStateException("Sampler uniform is missing");
             glUniform1i(sampler, 0);
+            glUniform1fv(glGetUniformLocation(program, "weights"), new float[] {0.25f, 0.75f});
+            glUniformMatrix4fv(glGetUniformLocation(program, "transform"), true, new float[] {
+                    1, 0, 0, 0.25f, 0, 1, 0, -0.5f, 0, 0, 1, 0, 0, 0, 0, 1, 99, 98, 97});
+            verifyUniforms(program);
             long presents = DebugCounters.PRESENTS.sum();
             for (int frame = 0; frame < (window ? 3 : 1); frame++) {
                 if (frame != 0) {
@@ -123,6 +127,37 @@ public final class AdapterDraw {
             if (framebuffer != 0) glDeleteFramebuffers(framebuffer);
             if (source != 0) glDeleteTextures(source);
             if (target != 0) glDeleteTextures(target);
+        }
+    }
+
+    private static void verifyUniforms(int program) {
+        try (var stack = org.lwjgl.system.MemoryStack.stackPush()) {
+            var size = stack.callocInt(3);
+            var type = stack.callocInt(3);
+            size.put(0, -77).position(1);
+            type.put(0, -88).position(1);
+            boolean weights = false;
+            boolean transform = false;
+            int count = glGetProgrami(program, GL_ACTIVE_UNIFORMS);
+            for (int index = 0; index < count; index++) {
+                String name = glGetActiveUniform(program, index, 128, size, type);
+                if (name.equals("weights") || name.equals("weights[0]")) {
+                    weights = size.get(1) == 2 && type.get(1) == GL_FLOAT;
+                }
+                if (name.equals("transform")) transform = size.get(1) == 1 && type.get(1) == GL_FLOAT_MAT4;
+                if (!glGetActiveUniform(program, index, 0, size, type).isEmpty()
+                        || !glGetActiveUniform(program, index, 1, size, type).isEmpty()) {
+                    throw new IllegalStateException("Zero-capacity uniform names must be empty");
+                }
+                String truncated = glGetActiveUniform(program, index, 4, size, type);
+                if (!truncated.equals(name.substring(0, Math.min(3, name.length())))) {
+                    throw new IllegalStateException("Uniform name truncation mismatch: " + truncated);
+                }
+            }
+            if (!weights || !transform || size.position() != 1 || type.position() != 1
+                    || size.get(0) != -77 || type.get(0) != -88) {
+                throw new IllegalStateException("Uniform reflection or output buffer positions are incorrect");
+            }
         }
     }
 
