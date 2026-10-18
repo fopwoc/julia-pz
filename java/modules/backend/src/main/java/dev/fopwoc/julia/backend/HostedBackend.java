@@ -3,6 +3,7 @@ package dev.fopwoc.julia.backend;
 import static org.lwjgl.opengl.GL11.GL_INVALID_OPERATION;
 import static org.lwjgl.opengl.GL11.GL_RED;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL20.GL_ATTACHED_SHADERS;
 import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL43.GL_DEPTH_STENCIL_TEXTURE_MODE;
 
@@ -12,6 +13,7 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 import dev.fopwoc.julia.backend.shader.MatrixUniformUploads;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
+import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.texture.TextureViews;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -22,6 +24,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
     private static final System.Logger LOG = System.getLogger(HostedBackend.class.getName());
     private int error;
 
+    private final ShaderPrograms shaderPrograms = new ShaderPrograms();
     private final TextureViews textureViews = new TextureViews();
     private final ProgramResourceCache programResources = new ProgramResourceCache();
 
@@ -31,6 +34,101 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     public TextureViews textureViews() {
         return textureViews;
+    }
+
+    @Override
+    public int createShader(int type) {
+        int id = super.createShader(type);
+        shaderPrograms.created(id, type);
+        return id;
+    }
+
+    @Override
+    public int createProgram() {
+        int id = super.createProgram();
+        shaderPrograms.programCreated(id);
+        return id;
+    }
+
+    @Override
+    public void shaderSource(int shader, CharSequence source) {
+        shaderPrograms.source(shader, source);
+    }
+
+    @Override
+    public void compileShader(int shader) {
+        shaderPrograms.compile(shader);
+    }
+
+    @Override
+    public void deleteShader(int shader) {
+        shaderPrograms.delete(shader);
+    }
+
+    @Override
+    public void attachShader(int program, int shader) {
+        shaderPrograms.attach(program, shader);
+    }
+
+    @Override
+    public void detachShader(int program, int shader) {
+        shaderPrograms.detach(program, shader);
+    }
+
+    @Override
+    public void linkProgram(int program) {
+        if (shaderPrograms.link(program)) super.linkProgram(program);
+    }
+
+    @Override
+    public void deleteProgram(int program) {
+        super.deleteProgram(program);
+        shaderPrograms.programDeleted(program);
+    }
+
+    @Override
+    public void useProgram(int program) {
+        super.useProgram(program);
+        shaderPrograms.releaseDeletedPrograms();
+    }
+
+    @Override
+    public int getShaderi(int shader, int parameter) {
+        return shaderPrograms.contains(shader)
+                ? shaderPrograms.parameter(shader, parameter)
+                : super.getShaderi(shader, parameter);
+    }
+
+    @Override
+    public int getProgrami(int program, int parameter) {
+        return parameter == GL_ATTACHED_SHADERS
+                ? shaderPrograms.attached(program)
+                : super.getProgrami(program, parameter);
+    }
+
+    @Override
+    public void getAttachedShaders(int program, IntBuffer count, IntBuffer shaders) {
+        shaderPrograms.attached(program, count, shaders);
+    }
+
+    @Override
+    public String getShaderInfoLog(int shader, int maxLength) {
+        return ShaderPrograms.truncate(shaderPrograms.log(shader), maxLength);
+    }
+
+    @Override
+    public void getShaderInfoLog(int shader, IntBuffer length, ByteBuffer output) {
+        ShaderPrograms.write(shaderPrograms.log(shader), length, output);
+    }
+
+    @Override
+    public String getShaderSource(int shader, int maxLength) {
+        return ShaderPrograms.truncate(shaderPrograms.source(shader), maxLength);
+    }
+
+    @Override
+    public void getShaderSource(int shader, IntBuffer length, ByteBuffer output) {
+        ShaderPrograms.write(shaderPrograms.source(shader), length, output);
     }
 
     @Override
@@ -194,6 +292,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
         // The upstream relay is static and would otherwise retain the host callback after device shutdown.
         DebugMessageRelay.setListener(null, 0L, false);
         programResources.clear();
+        shaderPrograms.close();
         try {
             textureViews.close();
         } catch (RuntimeException | Error failure) {

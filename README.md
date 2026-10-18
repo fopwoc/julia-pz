@@ -67,13 +67,20 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
   Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
   Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
-- The current offline checks pass 125 JVM tests and verify 37,760 pixels on windowless Metal. The latest bridges have not
+- The current offline checks pass 125 JVM tests and verify 38,016 pixels on windowless Metal. The latest bridges have not
   been tested inside PZ.
 - ImGui draw handoffs stay on the game side, calling the prepared renderer and then freeing the owned draw data.
   The archive gate requires that renderer to be included and prepared. A separate windowless probe uses the supplied
   archive's actual ImGui JNI and GL renderer: 2,048 pixels verify font-atlas sampling, texture switching, clipping,
   2× framebuffer scale, repeated draws and caller-state restoration. Detached platform viewports and in-game startup
   lifecycle are not covered by this probe.
+- GL shader objects compile and link with the bundled glslang desktop frontend, including helper objects without
+  `main`. Immutable compile snapshots allow shared helpers and repeated links without sharing mutable native IR.
+  Multi-object stages and the observed min/max/clamp overrides regenerate one linked stage for Angelica's Vulkan
+  transform; user functions are renamed by SPIR-V function ID so builtin overloads keep their meaning. Ordinary
+  single-object translation keeps its existing resource layout and names. Windowless draws verify 256 pixels across
+  sharing, attachment order, macro scopes, deferred deletion and relinks. Regenerated stages with SSBOs explicitly
+  reject linking until resource-name preservation is implemented. In-game results await a retry.
 - Program-resource queries reflect linked SPIR-V storage blocks and buffer variables, recovering original GL bindings
   from Angelica's remapped descriptor tables. Checks cover struct arrays, matrix and array strides, cross-stage blocks,
   runtime arrays, compute read/write bindings, truncated outputs and cache invalidation after relinking. Only the three
@@ -93,7 +100,8 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   linking failures remain runtime blockers. Ranged indexed quads now use the existing quad conversion, with both triangle
   halves verified offscreen for every index width. Invalid matrix uploads return a GL error before touching staging,
   preventing the observed bone-palette overflow from aborting the renderer. A live retry no longer froze, but the map
-  was black and character/world views were black or flickering. Failed character shaders remain unresolved. An
+  was black and character/world views were black or flickering. These observations predate the separate-object shader
+  linker and its builtin-override fix; their live effects remain unverified. An
   additional world-entry exception came from a capability read on the game-logic thread. Capability flags now live in
   an immutable shared snapshot with backend-scoped publication; only GPU operations enter the render-thread dispatch.
   Cross-thread reads, lazy startup, revocation and GPU-thread enforcement pass offline; this fix awaits a live retry.

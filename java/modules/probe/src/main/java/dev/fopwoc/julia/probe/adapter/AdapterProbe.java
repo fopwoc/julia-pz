@@ -44,6 +44,8 @@ public final class AdapterProbe {
                 capability_checks=backend snapshot,absent vendor flag
                 view_checks=shared writes,nested views,parent deletion,independent state,256 stencil values,view FBO writes
                 verified_view_pixels=1152
+                verified_shader_link_pixels=256
+                shader_link_checks=separate objects,builtin scalar overrides and vector overloads,macro isolation,shared uniforms,compile snapshots,shared library deletion,detach,relink,syntax and unresolved-function failures
                 verified_quad_pixels=192
                 quad_checks=ranged indexed quads,all index widths,nonzero EBO offset,binding restoration
                 verified_program_resource_pixels=64

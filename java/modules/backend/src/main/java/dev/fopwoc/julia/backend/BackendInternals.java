@@ -32,6 +32,7 @@ public final class BackendInternals {
     private static final VarHandle FRAMES;
     private static final VarHandle CLEARS;
     private static final MethodHandle CONTEXT;
+    private static final MethodHandle RELEASE_SHADER_ATTACHMENT;
     private static final VarHandle UNSHRINKABLE;
     private static final MethodHandle DRAW_LOCK;
     private static final MethodHandle DRAW_UNLOCK;
@@ -46,6 +47,11 @@ public final class BackendInternals {
             var lookup = MethodHandles.privateLookupIn(SDLGPURenderBackend.class, MethodHandles.lookup());
             SUBMIT_PENDING_COMMANDS = lookup.findVirtual(
                     SDLGPURenderBackend.class, "flushAndSubmitMidFrame", MethodType.methodType(void.class));
+            RELEASE_SHADER_ATTACHMENT = MethodHandles.privateLookupIn(ShaderManager.class, MethodHandles.lookup())
+                    .findVirtual(
+                            ShaderManager.class,
+                            "releaseShaderAttachment",
+                            MethodType.methodType(void.class, int.class));
             SHADERS = lookup.findVarHandle(SDLGPURenderBackend.class, "shaderManager", ShaderManager.class);
             RESOURCES = lookup.findVarHandle(SDLGPURenderBackend.class, "resourceManager", ResourceManager.class);
             FRAMES = lookup.findVarHandle(SDLGPURenderBackend.class, "frameManager", FrameManager.class);
@@ -92,6 +98,23 @@ public final class BackendInternals {
 
     public static ShaderManager shaders() {
         return (ShaderManager) SHADERS.get(ownedBackend());
+    }
+
+    public static void detachShader(int program, int shader) {
+        var manager = shaders();
+        var object = manager.getProgram(program);
+        if (object.vertexShader == shader) object.vertexShader = 0;
+        else if (object.fragmentShader == shader) object.fragmentShader = 0;
+        else if (object.geometryShader == shader) object.geometryShader = 0;
+        else if (object.computeShader == shader) object.computeShader = 0;
+        else throw new IllegalStateException("Internal shader is not attached to its program");
+        try {
+            RELEASE_SHADER_ATTACHMENT.invokeExact(manager, shader);
+        } catch (RuntimeException | Error failure) {
+            throw failure;
+        } catch (Throwable failure) {
+            throw new IllegalStateException("Cannot release internal shader attachment", failure);
+        }
     }
 
     public static ResourceManager resources() {
