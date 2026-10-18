@@ -54,6 +54,13 @@ public final class ShaderPrograms implements AutoCloseable {
         shaders.get(id).source = text.endsWith("\0") ? text.substring(0, text.length() - 1) : text;
     }
 
+    public String preprocess(int type, String source) {
+        if (frontend == null) frontend = new ShaderFrontend();
+        var result = frontend.preprocess(type, source);
+        // Preserve the original text on failure so the normal compile call exposes the GLSL error.
+        return result.valid() ? result.source() : source;
+    }
+
     public void compile(int id) {
         var shader = shaders.get(id);
         if (frontend == null) frontend = new ShaderFrontend();

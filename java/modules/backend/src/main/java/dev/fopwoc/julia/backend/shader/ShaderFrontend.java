@@ -48,7 +48,17 @@ public final class ShaderFrontend implements AutoCloseable {
         }
     }
 
+    public Compiled preprocess(int type, String source) {
+        try (var parsed = process(type, source, false, false)) {
+            return new Compiled(type, parsed.source(), parsed.log(), parsed.valid());
+        }
+    }
+
     private Parsed parse(int type, String source, boolean spirv) {
+        return process(type, source, spirv, true);
+    }
+
+    private Parsed process(int type, String source, boolean spirv, boolean syntax) {
         var code = MemoryUtil.memUTF8(source);
         try (var stack = MemoryStack.stackPush()) {
             var input = GLSLangInput.calloc(stack)
@@ -69,7 +79,8 @@ public final class ShaderFrontend implements AutoCloseable {
                 if (spirv)
                     glslang_shader_set_options(
                             shader, GLSLANG_SHADER_AUTO_MAP_BINDINGS | GLSLANG_SHADER_AUTO_MAP_LOCATIONS);
-                boolean valid = glslang_shader_preprocess(shader, input) && glslang_shader_parse(shader, input);
+                boolean valid =
+                        glslang_shader_preprocess(shader, input) && (!syntax || glslang_shader_parse(shader, input));
                 String log = glslang_shader_get_info_log(shader);
                 String preprocessed = glslang_shader_get_preprocessed_code(shader);
                 return new Parsed(

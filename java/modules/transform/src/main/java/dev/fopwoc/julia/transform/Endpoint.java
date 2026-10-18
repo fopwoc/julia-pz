@@ -26,6 +26,7 @@ public enum Endpoint {
     TEXTURE_CLEAR_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureClearBridge", false),
     TEXTURE_VIEW_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureViewBridge", false),
     STENCIL_REFERENCE("dev/fopwoc/julia/backend/compat/StencilReference", false),
+    COMPAT_SHADER_INPUT("dev/fopwoc/julia/backend/compat/CompatShaderInput", false),
     SHADER_SOURCES("dev/fopwoc/julia/backend/compat/ShaderSources", false),
     TEXTURE_VIEW_HOOKS("dev/fopwoc/julia/backend/texture/TextureViewHooks", false),
     TEXTURE_COPY_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureCopyBridge", false);

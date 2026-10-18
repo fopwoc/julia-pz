@@ -87,7 +87,7 @@ final class ShaderLinkChecks {
             }
             // Replacing source must not replace the last compiled object until glCompileShader.
             glShaderSource(library, "not valid GLSL");
-            if (!glGetShaderSource(library, 64).endsWith("not valid GLSL")
+            if (!glGetShaderSource(library, 64).stripTrailing().endsWith("not valid GLSL")
                     || glGetShaderi(library, GL_COMPILE_STATUS) != GL_TRUE)
                 throw new IllegalStateException("Shader source replacement changed the compiled snapshot: source="
                         + glGetShaderSource(library, 1024) + "; status=" + glGetShaderi(library, GL_COMPILE_STATUS));

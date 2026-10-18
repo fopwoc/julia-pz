@@ -67,7 +67,7 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
   Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
   Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
-- The current offline checks pass 127 JVM tests and verify 38,034 pixels on windowless Metal. The client-pointer upload fix has not
+- The current offline checks pass 131 JVM tests and verify 38,098 pixels on windowless Metal. The latest shader-input fix has not
   been tested inside PZ.
 - ImGui draw handoffs stay on the game side, calling the prepared renderer and then freeing the owned draw data.
   The archive gate requires that renderer to be included and prepared. A separate windowless probe uses the supplied
@@ -97,7 +97,7 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
 - The startup agent preflights classpath archives, rejects changed or unplanned graphics consumers, opens its isolated
   backend on the first render-context call, and closes it before the host window is destroyed. Initialization uploads
   survive the first frame boundary. Live vanilla testing reaches the menu through Metal; the host's logical render size
-  is scaled to the Retina drawable. Full-size UI and aligned input are user-confirmed. Purple menu video and remaining
+  is scaled to the Retina drawable. Full-size UI, aligned input and animated menu video are user-confirmed. Remaining
   shader compilation failures are runtime blockers. Ranged indexed quads now use the existing quad conversion, with both triangle
   halves verified offscreen for every index width. Invalid matrix uploads return a GL error before touching staging,
   preventing the observed bone-palette overflow from aborting the renderer. The latest live retry reaches the world
@@ -106,7 +106,11 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   shared snapshot; only GPU operations enter render-thread dispatch. World entry no longer raises the prior
   capability-thread exception. These results establish partial rendering, not gameplay correctness.
 - Video-style CPU texture pointers now upload their pixels instead of being mistaken for PBO offsets. Windowless
-  checks cover RGBA, padded RGB, unpack skips and decoder-buffer reuse. The video fix awaits an in-game retry.
+  checks cover RGBA, padded RGB, unpack skips and decoder-buffer reuse. Animated menu video is now user-confirmed in PZ.
+- Conditional shader branches now resolve through glslang before Angelica builds its compatibility syntax tree.
+  Legacy sampler identifiers use its existing `texture` → `gtexture` lookup alias before texture-call modernization.
+  A native regression reproduces the prior missing-return error, then verifies 64 textured pixels and public uniform
+  lookup after the fix. Its in-game effect on the remaining shader failures awaits a retry.
 - Startup transformation excludes trusted shared-runtime classes by code source. Rejected consumers return nonempty
   invalid class bytes: empty arrays were ignored by JVMTI instead of preventing class definition.
 - Viewpoint and other mods that use modern OpenGL come after vanilla.

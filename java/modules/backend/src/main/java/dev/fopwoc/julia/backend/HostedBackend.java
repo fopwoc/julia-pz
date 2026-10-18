@@ -37,6 +37,10 @@ public final class HostedBackend extends SDLGPURenderBackend {
         return textureViews;
     }
 
+    public String preprocessShaderSource(int type, String source) {
+        return shaderPrograms.preprocess(type, source);
+    }
+
     @Override
     public int createShader(int type) {
         int id = super.createShader(type);

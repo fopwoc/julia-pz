@@ -46,6 +46,8 @@ public final class AdapterProbe {
                 verified_view_pixels=1152
                 verified_client_pointer_pixels=18
                 client_pointer_checks=RGBA video uploads,padded RGB rows,unpack row length and skips,caller memory reuse
+                verified_compatibility_pixels=64
+                compatibility_checks=conditional uniforms,conditional function returns,legacy sampler name,uniform lookup
                 verified_shader_link_pixels=256
                 shader_link_checks=separate objects,builtin scalar overrides and vector overloads,macro isolation,shared uniforms,compile snapshots,shared library deletion,detach,relink,syntax and unresolved-function failures
                 verified_quad_pixels=192
