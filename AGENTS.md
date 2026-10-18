@@ -1,6 +1,6 @@
 # Julia
 
-- Use Java 25 and Gradle Groovy DSL. Keep modules under `modules/` and organize Java packages by responsibility.
+- Use Java 25 and Gradle Kotlin DSL. Shared build logic lives in `buildSrc` (`julia.java-conventions`, Git-derived `BuildInfo`); versions live in `gradle/libs.versions.toml`. Keep modules under `modules/` and organize Java packages by responsibility.
 - Phase 1 is vanilla Project Zomboid on SDL-GPU/Metal. Phase 2 adds Viewpoint and other modern OpenGL mods.
 - Prefer the published Angelica graphics libraries. Record exact versions, source revisions, and verified integration limitations.
 - Keep game binaries, saves, Workshop files, extracted proprietary sources, and local machine paths out of Git.

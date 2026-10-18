@@ -1,0 +1,13 @@
+plugins {
+    id("julia.java-conventions")
+    application
+}
+
+dependencies {
+    implementation(project(":utils"))
+}
+
+application {
+    mainClass = "dev.julia.audit.cli.AuditMain"
+    applicationName = "gl-audit"
+}
