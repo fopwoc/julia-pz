@@ -21,6 +21,14 @@ public final class BackendProbe {
     private BackendProbe() { }
 
     public static void main(String[] args) throws Exception {
+        if (args.length == 2 && args[0].equals("--suite")) {
+            dev.julia.probe.host.AdapterLauncher.runSuite(Path.of(args[1]));
+            return;
+        }
+        if (args.length == 2 && args[0].equals("--adapter")) {
+            dev.julia.probe.host.AdapterLauncher.run(Path.of(args[1]));
+            return;
+        }
         if (args.length == 2 && args[0].equals("--render")) {
             OffscreenProbe.run(Path.of(args[1]));
             return;

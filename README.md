@@ -33,7 +33,7 @@ Build identity comes from Git. macOS is the native development environment for t
 
 - `gl-audit`: offline graphics bytecode inventory and report writer.
 - `agent`: startup Java agent; currently observes loaded `zombie/`, `viewpoint/`, and `imgui/` classes without rewriting them. Its report lists references in loaded classes, not calls proven to have executed. A separate-JVM smoke test verifies attachment and application behavior.
-- `backend-probe`: consumes the published Angelica dependency, checks class linkage, tests the upstream redirector in memory, and provides an explicit native Metal clear and translated textured-draw probe.
+- `backend-probe`: checks published Angelica linkage, audits redirection, and explicitly runs Metal device and full GLSM adapter probes.
 - `zomboid-mod`: packages Julia as a ZombieBuddy client mod with an isolated graphics runtime.
 
 ## Backend investigation
@@ -75,6 +75,15 @@ This explicit task initializes SDL video on the Cocoa main thread and creates An
 
 The installable package is `modules/zomboid-mod/build/distributions/Julia.zip`. Extract it into the PZ mods directory, enable Julia and ZombieBuddy, restart PZ, and approve Julia's JAR when ZombieBuddy asks.
 
-Julia schedules the same offscreen check on PZ's render context. Its JAR includes the probe dependencies as nested JARs; a platform-parent class loader and a separate native extraction path keep the probe's LWJGL runtime separate from the game's classes. Results are written to `<PZ cache>/julia/run-<pid>/` by default. `julia.modJar` and `julia.outputDir` JVM properties can specify the archive and output root for an isolated test launch.
+Julia schedules the device baseline and full adapter suite on PZ's render context. Its JAR includes the probe dependencies as nested JARs; a platform-parent class loader and a separate native extraction path keep the probe's LWJGL runtime separate from the game's classes. Results are written to `<PZ cache>/julia/run-<pid>/` by default. `julia.modJar` and `julia.outputDir` JVM properties can specify the archive and output root for an isolated test launch.
 
-This first mod does not replace the game renderer or transform game graphics calls. It tests the actual Angelica device, translated shaders, and texture sampling inside the game process. Full GLSM startup, presentation, and gameplay rendering remain separate milestones. See [the first in-game result](docs/metal-probe.md).
+This first mod does not replace the game renderer or transform game graphics calls. It tests the actual Angelica device, translated shaders, and texture sampling inside the game process. Full GLSM startup and an automatically redirected offscreen GL texture draw now pass standalone; the updated mod includes that probe. Presentation and gameplay rendering remain separate milestones. See [the adapter probe](docs/adapter-probe.md). See [the first in-game result](docs/metal-probe.md).
+
+## Full adapter probe
+
+```sh
+./gradlew :backend-probe:adapterProbe
+./gradlew :backend-probe:suiteProbe
+```
+
+The first task initializes GLSM and the real SDL backend, redirects a controlled scene's ordinary LWJGL GL calls, and verifies all 1,024 sampled-texture pixels. The suite additionally runs the device baseline in the same isolated native runtime. These tasks open no window and run only when explicitly requested. See [host adaptation and verification scope](docs/adapter-probe.md).

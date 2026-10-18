@@ -19,9 +19,13 @@ if (operatingSystem == 'Mac OS X') {
 dependencies {
     // Angelica expects these to be supplied by its host application.
     implementation 'org.ow2.asm:asm-tree:9.9.1'
+    implementation 'org.ow2.asm:asm-commons:9.9.1'
+    implementation('com.github.GTNewHorizons:lwjgl3ify:3.0.31:dev') { transitive = false }
+    runtimeOnly('com.gtnewhorizons.retrofuturabootstrap:RetroFuturaBootstrap:1.1.0') { transitive = false }
     implementation project(':gl-audit')
     // ShaderManager's debug-environment check references Launch.blackboard. Never launch it.
     runtimeOnly('net.minecraft:launchwrapper:1.12') { transitive = false }
+    runtimeOnly 'org.apache.commons:commons-lang3:3.21.0'
     runtimeOnly 'org.joml:joml:1.10.8'
     runtimeOnly 'it.unimi.dsi:fastutil:8.5.18'
     runtimeOnly 'org.apache.logging.log4j:log4j-api:2.26.1'
@@ -31,7 +35,7 @@ dependencies {
         // The upstream publication carries the publishing host's Linux natives.
         exclude group: 'org.lwjgl'
     }
-    for (module in ['lwjgl', 'lwjgl-sdl', 'lwjgl-shaderc', 'lwjgl-spvc']) {
+    for (module in ['lwjgl', 'lwjgl-sdl', 'lwjgl-shaderc', 'lwjgl-spvc', 'lwjgl-opengl']) {
         implementation "org.lwjgl:${module}:3.4.2"
         runtimeOnly "org.lwjgl:${module}:3.4.2:${nativeClassifier}"
     }
@@ -51,12 +55,18 @@ distributions {
     }
 }
 
-tasks.register('renderProbe', JavaExec) {
-    group = 'verification'
-    description = 'Runs the explicit native Metal clear and translated textured-draw probe without opening a window'
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'dev.julia.probe.BackendProbe'
-    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
-    jvmArgs '-XstartOnFirstThread', '--enable-native-access=ALL-UNNAMED'
-    args '--render', layout.buildDirectory.dir('reports/metal').get().asFile.absolutePath
+[
+    renderProbe: ['--render', 'metal', 'Runs the raw-device Metal clear and translated textured-draw probe'],
+    adapterProbe: ['--adapter', 'adapter', 'Runs redirected OpenGL draws through the full offscreen GLSM adapter'],
+    suiteProbe: ['--suite', 'suite', 'Runs the same native probe sequence as the ZombieBuddy mod']
+].each { taskName, probe ->
+    tasks.register(taskName, JavaExec) {
+        group = 'verification'
+        description = probe[2]
+        classpath = sourceSets.main.runtimeClasspath
+        mainClass = 'dev.julia.probe.BackendProbe'
+        javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
+        jvmArgs '-XstartOnFirstThread', '--enable-native-access=ALL-UNNAMED'
+        args probe[0], layout.buildDirectory.dir("reports/${probe[1]}").get().asFile.absolutePath
+    }
 }

@@ -20,19 +20,11 @@ import static org.lwjgl.sdl.SDLGPU.*;
 
 /** Uploads an asymmetric texture and draws it with Angelica-translated OpenGL shaders. */
 final class TexturedDraw {
-    private static final int EDGE = 4;
+    private static final int EDGE = TexturePattern.EDGE;
 
     private TexturedDraw() { }
 
-    static int expected(int x, int y, int size) {
-        int source = sourcePixel(x * EDGE / size, y * EDGE / size);
-        // The fragment shader swaps red and blue, proving execution beyond a texture copy.
-        return (source & 0xFF00FF00) | (source & 255) << 16 | (source >>> 16 & 255);
-    }
-
-    private static int sourcePixel(int x, int y) {
-        return 0xFF000000 | (19 + x * 61) << 16 | (13 + y * 67) << 8 | (7 + x * 11 + y * 17);
-    }
+    static int expected(int x, int y, int size) { return TexturePattern.expectedArgb(x, y, size); }
 
     static void render(Device owner, long commands, long target) throws IOException {
         long device = owner.getDevice();
@@ -52,7 +44,7 @@ final class TexturedDraw {
             try {
                 for (int y = 0; y < EDGE; y++) {
                     for (int x = 0; x < EDGE; x++) {
-                        int color = sourcePixel(x, y);
+                        int color = TexturePattern.sourceArgb(x, y);
                         mapped.put((byte) (color >>> 16)).put((byte) (color >>> 8))
                                 .put((byte) color).put((byte) 255);
                     }

@@ -64,13 +64,13 @@ public final class Main {
             try (var isolated = new URLClassLoader(urls.toArray(URL[]::new), ClassLoader.getPlatformClassLoader())) {
                 Thread.currentThread().setContextClassLoader(isolated);
                 try {
-                    Class.forName("dev.julia.probe.render.OffscreenProbe", true, isolated)
-                            .getMethod("run", Path.class).invoke(null, output);
+                    Class.forName("dev.julia.probe.host.AdapterLauncher", true, isolated)
+                            .getMethod("runSuite", Path.class).invoke(null, output);
                 } finally {
                     Thread.currentThread().setContextClassLoader(original);
                 }
             }
-            Files.writeString(output.resolve("status.txt"), "PASS: Metal offscreen probe completed inside Project Zomboid\n");
+            Files.writeString(output.resolve("status.txt"), "PASS: Metal baseline and full GLSM adapter probes completed inside Project Zomboid\n");
         } catch (Exception | LinkageError exception) {
             Throwable cause = exception instanceof InvocationTargetException invocation ? invocation.getCause() : exception;
             System.err.println("[Julia] Metal probe failed");

@@ -1,7 +1,7 @@
 name=Julia - Metal probe
 id=Julia
 require=\ZombieBuddy
-description=Angelica Metal device, translated OpenGL shaders, and textured draw/readback test. The current game renderer stays active.
+description=Angelica Metal baseline and full GLSM adapter with redirected OpenGL draw/readback tests. The current game renderer stays active.
 javaJarFile=media/java/client/Julia.jar
 javaPkgName=dev.julia.zomboid
 ZBVersionMin=2.3.4

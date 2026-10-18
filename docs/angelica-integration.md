@@ -13,7 +13,7 @@ The modules resolve outside the Minecraft build. GLSM still brings GTNHLib and r
 
 ASM, JOML, fastutil, Guava, and logging are host-provided dependencies that must be supplied separately. The probe declares them explicitly.
 
-## Headless linkage result
+## Initial headless linkage result (before host adaptation)
 
 The probe loads classes without initializing them, then resolves their declared signatures. It never opens a window, loads native graphics libraries, or initializes a render backend.
 
@@ -66,4 +66,4 @@ The `agent` module currently observes graphics references as scoped classes load
 
 ## First native execution
 
-The real Angelica `Device` now initializes on Metal inside the PZ process and passes a 1,024-pixel offscreen clear/readback check. The textured-draw probe also passes both standalone and inside PZ, verifying translated OpenGL GLSL 330 compilation/linking, Metal shader creation, texture upload/sampling, and full pixel verification. See [the native probe evidence](metal-probe.md). The full `GLStateManager` / `SDLGPURenderBackend` initialization and ABI issues above remain unresolved.
+The real Angelica `Device` now initializes on Metal inside the PZ process and passes a 1,024-pixel offscreen clear/readback check. The textured-draw probe also passes both standalone and inside PZ, verifying translated OpenGL GLSL 330 compilation/linking, Metal shader creation, texture upload/sampling, and full pixel verification. See [the native probe evidence](metal-probe.md). The next standalone milestone now initializes the full `GLStateManager` / `SDLGPURenderBackend` and verifies a texture draw made through automatically redirected LWJGL calls. See [the adapter probe](adapter-probe.md) for the host adaptation and remaining integration boundary. The earlier linkage table describes the initial unadapted runtime, not this adapted probe.
