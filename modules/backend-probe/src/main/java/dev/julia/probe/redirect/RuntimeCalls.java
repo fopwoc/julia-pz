@@ -24,7 +24,7 @@ public final class RuntimeCalls {
     static boolean target(String owner) {
         return owner.equals("com/gtnewhorizons/angelica/glsm/GLStateManager")
                 || owner.equals("com/gtnewhorizons/angelica/sdlgpu/compat/AwareGLDebugShim")
-                || owner.equals(UniformBindings.OWNER) || owner.equals(TextureAllocationBindings.OWNER);
+                || owner.equals(UniformBindings.OWNER) || owner.equals(TextureAllocationBindings.OWNER) || owner.equals(CapabilityBindings.OWNER);
     }
 
     public static int adapt(ClassNode node) {
@@ -71,7 +71,7 @@ public final class RuntimeCalls {
             helper.maxLocals = slot;
             helper.maxStack = Math.max(slot, result.getSize());
             helpers.add(helper);
-            return new Handle(Opcodes.H_INVOKESTATIC, node.name, name, handle.getDesc(), false);
+            return new Handle(Opcodes.H_INVOKESTATIC, node.name, name, handle.getDesc(), (node.access & Opcodes.ACC_INTERFACE) != 0);
         }
         if (value instanceof ConstantDynamic dynamic) {
             Object[] arguments = new Object[dynamic.getBootstrapMethodArgumentCount()];

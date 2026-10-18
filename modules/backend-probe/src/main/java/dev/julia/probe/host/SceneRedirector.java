@@ -4,6 +4,8 @@ import com.gtnewhorizons.angelica.glsm.redirect.GLSMRedirector;
 import dev.julia.audit.scan.GraphicsClassScanner;
 import dev.julia.probe.redirect.UniformBindings;
 import dev.julia.probe.redirect.RuntimeCalls;
+import dev.julia.probe.redirect.VanillaAliases;
+import dev.julia.probe.redirect.CapabilityBindings;
 import dev.julia.probe.redirect.TextureAllocationBindings;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -19,6 +21,8 @@ final class SceneRedirector {
         if (!new GLSMRedirector().transformClassNode(node.name.replace('/', '.'), node, true)) {
             throw new IllegalStateException("Controlled scene was not redirected");
         }
+        node = CapabilityBindings.adapt(node);
+        VanillaAliases.adapt(node);
         UniformBindings.adapt(node);
         TextureAllocationBindings.adapt(node);
         var writer = new ClassWriter(0);
@@ -29,7 +33,7 @@ final class SceneRedirector {
         var remaining = scanner.scan(transformed);
         if (!remaining.isEmpty()) throw new IllegalStateException("Unredirected scene calls: " + remaining);
         RuntimeCalls.adapt(node);
-        var routed = new ClassWriter(0);
+        var routed = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         node.accept(routed);
         return routed.toByteArray();
     }

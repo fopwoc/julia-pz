@@ -45,6 +45,13 @@ public final class AdapterDraw {
             } else {
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
             }
+            var capabilities = org.lwjgl.opengl.GL.getCapabilities();
+            if (!capabilities.OpenGL33 || !capabilities.GL_ARB_framebuffer_object || capabilities.GL_NVX_gpu_memory_info) {
+                throw new IllegalStateException("Backend capability snapshot mismatch");
+            }
+            org.lwjgl.opengl.GL43.glClearDepthf(0.25f);
+            if (glGetDouble(GL_DEPTH_CLEAR_VALUE) != 0.25) throw new IllegalStateException("Depth conversion mismatch");
+            org.lwjgl.opengl.GL43.glClearDepthf(1.0f);
             verifyArrayAllocation();
             glViewport(0, 0, width, height);
             glDisable(GL_DEPTH_TEST);
@@ -65,6 +72,12 @@ public final class AdapterDraw {
             } finally {
                 MemoryUtil.memFree(upload);
             }
+            int uploaded = source;
+            source = texture(TexturePattern.EDGE, TexturePattern.EDGE, null);
+            try {
+                org.lwjgl.opengl.GL44.glCopyImageSubData(uploaded, GL_TEXTURE_2D, 0, 0, 0, 0,
+                        source, GL_TEXTURE_2D, 0, 0, 0, 0, TexturePattern.EDGE, TexturePattern.EDGE, 1);
+            } finally { glDeleteTextures(uploaded); }
             program = glCreateProgram();
             attach(program, GL_VERTEX_SHADER, "/shaders/adapter.vert");
             attach(program, GL_FRAGMENT_SHADER, "/shaders/adapter.frag");
@@ -77,6 +90,11 @@ public final class AdapterDraw {
             glUniform1fv(glGetUniformLocation(program, "weights"), new float[] {0.25f, 0.75f});
             glUniformMatrix4fv(glGetUniformLocation(program, "transform"), true, new float[] {
                     1, 0, 0, 0.25f, 0, 1, 0, -0.5f, 0, 0, 1, 0, 0, 0, 0, 1, 99, 98, 97});
+            try (var stack = org.lwjgl.system.MemoryStack.stackPush()) {
+                var shift = stack.floats(99.0f, 0.25f, 0.5f);
+                shift.position(1);
+                org.lwjgl.opengl.GL43.glUniform2fv(glGetUniformLocation(program, "shift"), shift);
+            }
             verifyUniforms(program);
             long presents = DebugCounters.PRESENTS.sum();
             for (int frame = 0; frame < 3; frame++) {

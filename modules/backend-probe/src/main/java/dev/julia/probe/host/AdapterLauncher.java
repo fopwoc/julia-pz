@@ -57,7 +57,8 @@ public final class AdapterLauncher {
                      "com/gtnewhorizons/angelica/glsm/GLStateManager",
                      "com/gtnewhorizons/angelica/sdlgpu/compat/AwareGLDebugShim",
                      "dev/julia/probe/adapter/UniformBridge",
-                     "dev/julia/probe/adapter/TextureAllocationBridge")), probeFrames())) {
+                     "dev/julia/probe/adapter/TextureAllocationBridge",
+                     "dev/julia/probe/adapter/CapabilityBridge")), probeFrames())) {
             System.setProperty("angelica.sdlgpu.disablePresenterThread", "true");
             Thread.currentThread().setContextClassLoader(adapted);
             try {

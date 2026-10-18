@@ -34,3 +34,7 @@ Current verification: 55 JVM tests pass; the real typed-dispatch Metal suite sti
 The two reports answer different questions: signature presence counts the exact routed ABI, while runtime preparation also rejects capability objects, loader-specific callbacks, native passthrough calls, and the host ImGui renderer. No game launch or installed-mod update was performed.
 
 Pointer semantics checked against [Khronos's glTexImage3D reference](https://github.com/KhronosGroup/OpenGL-Refpages/blob/main/gl4/glTexImage3D.xml): a bound pixel-unpack buffer changes the pointer argument into a byte offset.
+
+## Capability and alias milestone
+
+The newer [capability routing checks](capability-routing.md) reduce the whole-archive report to 14 unique blockers: 174/182 structurally ready classes and 1,783 routed calls. 62 JVM tests and the updated 3,072-pixel windowless Metal suite pass. Live activation remains blocked. Earlier counts in this document record the preceding milestones.
