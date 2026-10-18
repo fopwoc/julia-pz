@@ -53,3 +53,7 @@ The corrected in-game retry (process 77384) passed:
 Installed JAR SHA-256: `5b513fd641ee0a856c71275ab585a442140d8c8ee2f1efa2c6488d7311eb998b`. The game remains open. This retry does not establish gameplay rendering on Metal.
 
 [SDL command-buffer lifetime and local state](https://wiki.libsdl.org/SDL3/SDL_GPUCommandBuffer) documents the ownership boundary used by this correction.
+
+## Later offline integration
+
+The runtime preparation milestone routes the native probe through a JDK-only typed dispatch session and adds a guarded storage-only bridge for PZ's literal-zero 3D allocation call. The signature audit now resolves all observed vanilla target references, while 34 broader activation blockers remain. See [current evidence and limits](runtime-preparation.md). General pointer/PBO uploads remain unsupported.

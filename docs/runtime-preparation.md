@@ -22,3 +22,15 @@ Run the built backend-probe CLI with `--prepare-runtime new-report.tsv /path/to/
 The startup agent remains audit-only. Automatic live activation and persistent Metal frame ownership are not installed. Existing probe entry points still own their frame lifecycle; their dispatch session intentionally rejects injected begin/present calls. Wiring a live session requires replacing the host swap behavior while retaining input, handling native capability queries and debug callbacks, and addressing remaining vanilla GL operations. The new ZombieBuddy artifact has not been tested inside PZ. No game was launched or live mod replaced during this work.
 
 Relevant API checks: [JDK transformer behavior](https://docs.oracle.com/en/java/javase/25/docs/api/java.instrument/java/lang/instrument/ClassFileTransformer.html) (transformer exceptions do not reliably stop loading, so throwing from a transformer alone is not an activation gate), and the published Angelica 2.2.34 redirector and backend binaries.
+
+## Storage-only texture allocation update
+
+Inspection of the single vanilla `glTexImage3D(..., long)` call found a literal zero pointer used to allocate a texture array. `TextureAllocationBindings` recognizes that local constant form and routes it to a narrow storage bridge. Other pointer expressions and method handles retain the unresolved target and remain preflight blockers. The bridge also checks its actual pointer and current pixel-unpack binding at runtime: nonzero pointers and all PBO offsets, including offset zero, are rejected explicitly. It does not implement general client-memory/PBO uploads or pixel-store layout conversion.
+
+The native suite allocates an 8×4 texture array with two layers, verifies the queried width and height, then binds an unpack buffer and confirms that zero is rejected. The published backend returns zero for a non-proxy `GL_TEXTURE_DEPTH` query, so depth metadata/layer rendering is not claimed as verified. This limitation was exposed by the first allocation test and remains an upstream integration issue.
+
+Current verification: 55 JVM tests pass; the real typed-dispatch Metal suite still verifies 3,072 pixels. Current vanilla preflight: 158/182 ready classes, 1,305 routed call sites, one frame anchor set, **34 unique blockers**. The signature-only compatibility audit now finds 1,922 present target references and no missing target reference at the observed vanilla call sites; it still reports 33 OpenGL calls left unchanged. Neither audit establishes runtime behavior.
+
+The two reports answer different questions: signature presence counts the exact routed ABI, while runtime preparation also rejects capability objects, loader-specific callbacks, native passthrough calls, and the host ImGui renderer. No game launch or installed-mod update was performed.
+
+Pointer semantics checked against [Khronos's glTexImage3D reference](https://github.com/KhronosGroup/OpenGL-Refpages/blob/main/gl4/glTexImage3D.xml): a bound pixel-unpack buffer changes the pointer argument into a byte offset.

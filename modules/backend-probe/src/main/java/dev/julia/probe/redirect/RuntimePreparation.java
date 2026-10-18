@@ -21,6 +21,7 @@ public final class RuntimePreparation {
         new ClassReader(original).accept(node, 0);
         if (upstream.shouldTransform(original)) upstream.transformClassNode(node.name.replace('/', '.'), node, true);
         UniformBindings.adapt(node);
+        TextureAllocationBindings.adapt(node);
         var snapshot = new ClassWriter(0);
         node.accept(snapshot);
         var blockers = new TreeSet<String>();

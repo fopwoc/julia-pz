@@ -45,6 +45,7 @@ public final class AdapterDraw {
             } else {
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
             }
+            verifyArrayAllocation();
             glViewport(0, 0, width, height);
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_BLEND);
@@ -129,6 +130,30 @@ public final class AdapterDraw {
             if (framebuffer != 0) glDeleteFramebuffers(framebuffer);
             if (source != 0) glDeleteTextures(source);
             if (target != 0) glDeleteTextures(target);
+        }
+    }
+
+    private static void verifyArrayAllocation() {
+        int texture = glGenTextures();
+        int buffer = org.lwjgl.opengl.GL15.glGenBuffers();
+        try {
+            glBindTexture(org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY, texture);
+            org.lwjgl.opengl.GL12.glTexImage3D(org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 8, 4, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0L);
+            if (glGetTexLevelParameteri(org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_WIDTH) != 8
+                    || glGetTexLevelParameteri(org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT) != 4) {
+                throw new IllegalStateException("Null-pointer array allocation dimensions mismatch");
+            }
+            org.lwjgl.opengl.GL15.glBindBuffer(org.lwjgl.opengl.GL21.GL_PIXEL_UNPACK_BUFFER, buffer);
+            boolean rejected = false;
+            try {
+                org.lwjgl.opengl.GL12.glTexImage3D(org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 8, 4, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0L);
+            } catch (UnsupportedOperationException expected) { rejected = true; }
+            if (!rejected) throw new IllegalStateException("PBO offset zero was mistaken for null client storage");
+        } finally {
+            org.lwjgl.opengl.GL15.glBindBuffer(org.lwjgl.opengl.GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+            glBindTexture(org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY, 0);
+            org.lwjgl.opengl.GL15.glDeleteBuffers(buffer);
+            glDeleteTextures(texture);
         }
     }
 

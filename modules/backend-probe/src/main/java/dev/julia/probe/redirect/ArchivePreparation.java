@@ -16,7 +16,7 @@ public final class ArchivePreparation {
 
     public static ArchivePlan inspect(List<Path> inputs) throws IOException {
         var preparation = new RuntimePreparation();
-        var graphics = new GraphicsClassScanner();
+        var graphics = new GraphicsClassScanner(symbol -> symbol.isGraphicsBinding() || RuntimeCalls.target(symbol.owner()));
         var entries = new ArrayList<ArchivePlan.Entry>();
         for (Path input : inputs) {
             try (var archive = new JarFile(input.toFile(), true, JarFile.OPEN_READ, Runtime.version())) {

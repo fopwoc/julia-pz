@@ -37,11 +37,14 @@ public final class RedirectAudit {
         Files.createDirectories(output.getParent());
         var redirector = new GLSMRedirector();
         var scanner = new GraphicsClassScanner(symbol -> symbol.isGraphicsBinding()
-                || symbol.owner().equals(STATE_MANAGER) || symbol.owner().equals(DEBUG_SHIM) || symbol.owner().equals(UniformBindings.OWNER));
+                || symbol.owner().equals(STATE_MANAGER) || symbol.owner().equals(DEBUG_SHIM) || symbol.owner().equals(UniformBindings.OWNER) || symbol.owner().equals(TextureAllocationBindings.OWNER));
         var targets = new HashMap<String, Set<String>>();
         targets.put(STATE_MANAGER, signatures(STATE_MANAGER));
         targets.put(DEBUG_SHIM, signatures(DEBUG_SHIM));
-        if (compatibility) targets.put(UniformBindings.OWNER, signatures(UniformBindings.OWNER));
+        if (compatibility) {
+            targets.put(UniformBindings.OWNER, signatures(UniformBindings.OWNER));
+            targets.put(TextureAllocationBindings.OWNER, signatures(TextureAllocationBindings.OWNER));
+        }
         var counts = new HashMap<String, Integer>();
         int changed = 0;
         try (var writer = Files.newBufferedWriter(output, StandardCharsets.UTF_8,
@@ -62,7 +65,7 @@ public final class RedirectAudit {
                         var node = new ClassNode();
                         new ClassReader(original).accept(node, 0);
                         if (redirector.transformClassNode(node.name.replace('/', '.'), node, true)) changed++;
-                        if (compatibility) UniformBindings.adapt(node);
+                        if (compatibility) { UniformBindings.adapt(node); TextureAllocationBindings.adapt(node); }
                         var bytecode = new ClassWriter(0);
                         node.accept(bytecode);
                         for (var reference : scanner.scan(bytecode.toByteArray())) {
@@ -77,7 +80,7 @@ public final class RedirectAudit {
                 }
             }
         }
-        System.out.println("Uniform compatibility bridges: " + compatibility);
+        System.out.println("Julia compatibility bridges: " + compatibility);
         System.out.println("Upstream redirector changed " + changed + " classes in memory");
         counts.entrySet().stream().sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> System.out.println(entry.getKey() + ": " + entry.getValue()));
