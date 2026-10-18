@@ -1,5 +1,7 @@
 # Julia
 
+<img src="common/poster.png" alt="Julia" width="160" align="right">
+
 Julia is a Project Zomboid (Build 42) client mod that takes the game's OpenGL renderer and runs it on native graphics
 APIs. It relies on [Angelica](https://github.com/GTNewHorizons/Angelica)'s GL state manager (GLSM) and its SDL3 GPU
 backend.
