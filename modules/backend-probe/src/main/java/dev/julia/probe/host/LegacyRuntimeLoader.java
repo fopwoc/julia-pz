@@ -9,6 +9,13 @@ final class LegacyRuntimeLoader extends URLClassLoader {
     LegacyRuntimeLoader(URL[] libraries) { super(libraries, ClassLoader.getPlatformClassLoader()); }
 
     @Override
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        // Only the JDK-only dispatch API is shared with the host. Native bindings stay isolated.
+        if (name.startsWith("dev.julia.runtime.")) return AdapterLauncher.class.getClassLoader().loadClass(name);
+        return super.loadClass(name, resolve);
+    }
+
+    @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         String resource = name.replace('.', '/') + ".class";
         URL location = findResource(resource);

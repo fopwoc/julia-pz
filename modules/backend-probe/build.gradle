@@ -23,6 +23,7 @@ dependencies {
     implementation('com.github.GTNewHorizons:lwjgl3ify:3.0.31:dev') { transitive = false }
     runtimeOnly('com.gtnewhorizons.retrofuturabootstrap:RetroFuturaBootstrap:1.1.0') { transitive = false }
     implementation project(':gl-audit')
+    implementation project(':render-runtime')
     // ShaderManager's debug-environment check references Launch.blackboard. Never launch it.
     runtimeOnly('net.minecraft:launchwrapper:1.12') { transitive = false }
     runtimeOnly 'org.apache.commons:commons-lang3:3.21.0'
@@ -69,4 +70,8 @@ distributions {
         jvmArgs '-XstartOnFirstThread', '--enable-native-access=ALL-UNNAMED'
         args probe[0], layout.buildDirectory.dir("reports/${probe[1]}").get().asFile.absolutePath
     }
+}
+
+tasks.named('test') {
+    doFirst { systemProperty 'fixture.classpath', sourceSets.test.runtimeClasspath.asPath }
 }

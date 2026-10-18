@@ -1,6 +1,9 @@
 package dev.julia.probe.host;
 
 import java.lang.reflect.InvocationTargetException;
+import dev.julia.runtime.IsolatedTargets;
+import dev.julia.runtime.RenderSession;
+import java.util.Set;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
@@ -28,6 +31,17 @@ public final class AdapterLauncher {
         runIsolated(entryPoint, output, 0);
     }
 
+    // Existing probe entry points own frame begin/end and backend cleanup themselves.
+    // This session exercises typed call isolation; injected game-frame hooks are tested separately.
+    private static RenderSession.Frames probeFrames() {
+        return new RenderSession.Frames() {
+            public void begin() { throw new IllegalStateException("Probe owns its frame lifecycle"); }
+            public void present() { throw new IllegalStateException("Probe owns its frame lifecycle"); }
+            public void abort() { }
+            public void close() { }
+        };
+    }
+
     private static void runIsolated(String entryPoint, Path output, long cocoaWindow) throws Exception {
         ClassLoader current = AdapterLauncher.class.getClassLoader();
         URL[] libraries = current instanceof URLClassLoader urls ? urls.getURLs()
@@ -38,7 +52,11 @@ public final class AdapterLauncher {
                     }).toArray(URL[]::new);
         ClassLoader context = Thread.currentThread().getContextClassLoader();
         String presenter = System.getProperty("angelica.sdlgpu.disablePresenterThread");
-        try (var adapted = new LegacyRuntimeLoader(libraries)) {
+        try (var adapted = new LegacyRuntimeLoader(libraries);
+             var _ = RenderSession.open(new IsolatedTargets(adapted, Set.of(
+                     "com/gtnewhorizons/angelica/glsm/GLStateManager",
+                     "com/gtnewhorizons/angelica/sdlgpu/compat/AwareGLDebugShim",
+                     "dev/julia/probe/adapter/UniformBridge")), probeFrames())) {
             System.setProperty("angelica.sdlgpu.disablePresenterThread", "true");
             Thread.currentThread().setContextClassLoader(adapted);
             try {

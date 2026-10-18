@@ -11,9 +11,14 @@ class SceneRedirectorTest {
     void routesRealLwjglCallsToGlsm() {
         byte[] transformed = SceneRedirector.adapt(scene(true, false));
         var references = new GraphicsClassScanner(symbol -> true).scan(transformed);
-        assertTrue(references.stream().anyMatch(reference -> reference.target().owner()
-                .equals("com/gtnewhorizons/angelica/glsm/GLStateManager")
-                && reference.target().name().equals("glClear")));
+        var node = new org.objectweb.asm.tree.ClassNode();
+        new org.objectweb.asm.ClassReader(transformed).accept(node, 0);
+        assertTrue(node.methods.stream().flatMap(method -> java.util.Arrays.stream(method.instructions.toArray()))
+                .filter(org.objectweb.asm.tree.InvokeDynamicInsnNode.class::isInstance)
+                .map(org.objectweb.asm.tree.InvokeDynamicInsnNode.class::cast)
+                .anyMatch(call -> call.bsm.getOwner().equals("dev/julia/runtime/RenderDispatch")
+                        && call.name.equals("glClear")
+                        && java.util.Arrays.asList(call.bsmArgs).contains("com/gtnewhorizons/angelica/glsm/GLStateManager")));
         assertFalse(references.stream().anyMatch(reference -> reference.target().owner().startsWith("org/lwjgl/opengl/")));
     }
 

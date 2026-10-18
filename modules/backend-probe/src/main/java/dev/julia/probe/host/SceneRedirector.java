@@ -3,6 +3,7 @@ package dev.julia.probe.host;
 import com.gtnewhorizons.angelica.glsm.redirect.GLSMRedirector;
 import dev.julia.audit.scan.GraphicsClassScanner;
 import dev.julia.probe.redirect.UniformBindings;
+import dev.julia.probe.redirect.RuntimeCalls;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
@@ -25,6 +26,9 @@ final class SceneRedirector {
                 || symbol.owner().startsWith("org/lwjglx/opengl/"));
         var remaining = scanner.scan(transformed);
         if (!remaining.isEmpty()) throw new IllegalStateException("Unredirected scene calls: " + remaining);
-        return transformed;
+        RuntimeCalls.adapt(node);
+        var routed = new ClassWriter(0);
+        node.accept(routed);
+        return routed.toByteArray();
     }
 }

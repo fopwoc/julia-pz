@@ -21,6 +21,10 @@ public final class BackendProbe {
     private BackendProbe() { }
 
     public static void main(String[] args) throws Exception {
+        if (args.length > 0 && args[0].equals("--prepare-runtime")) {
+            dev.julia.probe.redirect.PreparationAudit.main(java.util.Arrays.copyOfRange(args, 1, args.length));
+            return;
+        }
         if (args.length == 2 && args[0].equals("--suite")) {
             dev.julia.probe.host.AdapterLauncher.runSuite(Path.of(args[1]));
             return;

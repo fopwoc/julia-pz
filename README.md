@@ -95,3 +95,5 @@ The first task initializes GLSM and the real SDL backend, redirects a controlled
 To audit Julia's uniform compatibility bridges as well as upstream redirection, add `--compat` after `--audit-redirects`. Reports are created as new files. This remains an offline bytecode audit; it does not load game classes or enable live redirection. See [the uniform bridge checks](docs/uniform-bridges.md).
 
 The offscreen adapter now checks three frames with GPU-idle waits to exercise command-buffer reuse. Set JVM properties `julia.probe.width` / `julia.probe.height` for a different target size; they default to 32×32. The hosted backend invalidates its state mirror at frame start so reused native command-buffer handles cannot suppress required bindings.
+
+The [runtime preparation tool](docs/runtime-preparation.md) checks whole archives and prepares typed isolated calls plus PZ frame hooks entirely offline. It does not activate the game renderer.

@@ -10,3 +10,6 @@ project(':agent').projectDir = file('modules/agent')
 
 include('zomboid-mod')
 project(':zomboid-mod').projectDir = file('modules/zomboid-mod')
+
+include('render-runtime')
+project(':render-runtime').projectDir = file('modules/render-runtime')

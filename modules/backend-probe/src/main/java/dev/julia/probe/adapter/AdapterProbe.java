@@ -48,7 +48,7 @@ public final class AdapterProbe {
             GLStateManager.markSplashComplete("Julia adapter probe");
             AdapterDraw.run(output, width, height);
             result = "PASS\nbackend=" + backend.getName()
-                    + "\nsize=" + width + "x" + height + "\nframes_drawn=3\nverified_pixels=" + (long) width * height + "\napi=redirected LWJGL OpenGL calls -> GLStateManager"
+                    + "\nsize=" + width + "x" + height + "\nframes_drawn=3\nverified_pixels=" + (long) width * height + "\napi=LWJGL -> typed RenderDispatch -> isolated GLStateManager"
                     + "\ndraw=sampled texture\nuniform_checks=float array,matrix array transpose,truncated reflection,buffer positions\nprocess_id=" + ProcessHandle.current().pid()
                     + "\nthread=" + Thread.currentThread().getName() + "\n";
         } finally {
