@@ -19,6 +19,7 @@ public final class ProbeMain {
             "  " + PreparationAudit.USAGE,
             "  --render <dir>                      raw-device clear and translated draw (main thread)",
             "  --adapter <dir>                     full GLSM adapter in an isolated runtime",
+            "  --imgui-adapter <dir> <archive> <native-dir>  windowless archived ImGui renderer",
             "  --suite <dir>                       --render then --adapter, as the game mod runs them");
 
     private ProbeMain() {}
@@ -42,6 +43,11 @@ public final class ProbeMain {
             case "--prepare-runtime" -> PreparationAudit.run(rest, System.out);
             case "--render" -> OffscreenProbe.run(directory(rest));
             case "--adapter" -> ProbeLauncher.runAdapter(directory(rest));
+            case "--imgui-adapter" -> {
+                if (rest.length != 3)
+                    throw new IllegalArgumentException("Expected output, archive and native directory");
+                ProbeLauncher.runImGui(Path.of(rest[0]), Path.of(rest[1]), Path.of(rest[2]));
+            }
             case "--suite" -> ProbeLauncher.runSuite(directory(rest));
             default -> {
                 if (command.startsWith("--"))

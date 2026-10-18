@@ -60,15 +60,19 @@ Julia is in its integration stage and **does not replace the game renderer yet**
 - Inside the running game, the mod runs self-verifying probes on PZ's render thread: a Metal device baseline, the full
   GLSM adapter drawing through redirected OpenGL calls, and an experimental presentation into the game window. Each
   probe checks its output pixel by pixel and then restores the game's GL state.
-- Offline preparation of vanilla reports 181/182 graphics consumers structurally ready, 1,977 routed call sites and
-  one blocked entry point: host ImGui rendering. Structural
-  readiness does not establish rendering correctness; live activation remains disabled.
+- Offline preparation of vanilla reports 182/182 graphics consumers structurally ready, 1,993 routed call sites and
+  zero static blockers. Structural readiness does not establish rendering correctness; live activation remains disabled.
 - Debug callbacks now cross the isolated runtime through a typed Java method handle. Windowless checks verify SDL
   validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
   Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
   Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
-- The current offline checks pass 111 JVM tests and verify 37,568 pixels on windowless Metal. The latest bridges have not
+- The current offline checks pass 114 JVM tests and verify 37,568 pixels on windowless Metal. The latest bridges have not
   been tested inside PZ.
+- ImGui draw handoffs stay on the game side, calling the prepared renderer and then freeing the owned draw data.
+  The archive gate requires that renderer to be included and prepared. A separate windowless probe uses the supplied
+  archive's actual ImGui JNI and GL renderer: 2,048 pixels verify font-atlas sampling, texture switching, clipping,
+  2× framebuffer scale, repeated draws and caller-state restoration. Detached platform viewports and in-game startup
+  lifecycle are not covered by this probe.
 - Program-resource queries reflect linked SPIR-V storage blocks and buffer variables, recovering original GL bindings
   from Angelica's remapped descriptor tables. Checks cover struct arrays, matrix and array strides, cross-stage blocks,
   runtime arrays, compute read/write bindings, truncated outputs and cache invalidation after relinking. Only the three
@@ -108,6 +112,9 @@ These native probes run only when requested and open no window:
 ./gradlew :probe:renderProbe       # raw Metal device: clear + translated textured draw
 ./gradlew :probe:adapterProbe      # full GLSM adapter on redirected OpenGL calls
 ./gradlew :probe:suiteProbe        # both, in the same order as the mod
+./gradlew :probe:installDist       # standalone probe CLI; does not install the mod
+JAVA_OPTS="-XstartOnFirstThread --enable-native-access=ALL-UNNAMED" \
+  modules/probe/build/install/probe/bin/probe --imgui-adapter /tmp/imgui-probe /path/to/game.jar /path/to/natives
 ```
 
 These offline audits read JAR bytecode and never load game classes:

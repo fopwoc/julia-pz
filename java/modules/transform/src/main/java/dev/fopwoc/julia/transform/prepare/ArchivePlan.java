@@ -26,6 +26,9 @@ public final class ArchivePlan {
             if (!names.add(prepared.name())) failures.add("DUPLICATE_CLASS " + prepared.name());
             if (prepared.frameHooks()) frames++;
         }
+        for (var entry : entries)
+            for (String required : entry.prepared().requiredConsumers())
+                if (!names.contains(required)) failures.add("MISSING_CONSUMER " + required);
         if (frames != 1) failures.add("FRAME_COUNT expected=1 actual=" + frames);
         blockers = Collections.unmodifiableSortedSet(failures);
     }

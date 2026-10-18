@@ -8,6 +8,7 @@ import dev.fopwoc.julia.transform.TargetAbi;
 import dev.fopwoc.julia.transform.pass.BridgePipeline;
 import dev.fopwoc.julia.transform.pass.DispatchPass;
 import dev.fopwoc.julia.transform.pass.FramePass;
+import dev.fopwoc.julia.transform.pass.ImGuiPass;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.TreeSet;
@@ -53,7 +54,13 @@ public final class RuntimePreparation {
         int calls = blockers.isEmpty() ? DispatchPass.adapt(node) : 0;
         var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         node.accept(writer);
-        return new PreparedClass(node.name, writer.toByteArray(), new ArrayList<>(blockers), calls, frames);
+        return new PreparedClass(
+                node.name,
+                writer.toByteArray(),
+                new ArrayList<>(blockers),
+                calls,
+                frames,
+                ImGuiPass.requiredConsumers(node));
     }
 
     /** @return the blocker a remaining reference represents, or {@code null} when it is safe to route or keep */

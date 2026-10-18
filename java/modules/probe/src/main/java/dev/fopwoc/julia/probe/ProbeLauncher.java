@@ -40,6 +40,18 @@ public final class ProbeLauncher {
         runtime().invoke("dev.fopwoc.julia.probe.adapter.AdapterProbe", "run", OUTPUT, output);
     }
 
+    /** Prepared ImGui renderer and JNI from a supplied archive, with no window or game entry point. */
+    public static void runImGui(Path output, Path archive, Path natives) throws Exception {
+        runtime()
+                .invoke(
+                        "dev.fopwoc.julia.probe.imgui.ImGuiProbe",
+                        "run",
+                        MethodType.methodType(void.class, Path.class, Path.class, Path.class),
+                        output,
+                        archive,
+                        natives);
+    }
+
     /** Raw-device baseline followed by the full adapter. */
     public static void runSuite(Path output) throws Exception {
         runtime().invoke("dev.fopwoc.julia.probe.ProbeSuite", "run", OUTPUT, output);
