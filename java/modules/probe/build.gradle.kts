@@ -11,7 +11,7 @@ dependencies {
 }
 
 application {
-    mainClass = "dev.julia.probe.cli.ProbeMain"
+    mainClass = "dev.fopwoc.julia.probe.cli.ProbeMain"
     applicationName = "probe"
 }
 

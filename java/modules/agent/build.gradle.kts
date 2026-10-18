@@ -10,7 +10,7 @@ dependencies {
 tasks.jar {
     archiveFileName = "julia-agent.jar"
     manifest {
-        attributes("Premain-Class" to "dev.julia.agent.JuliaAgent", "Implementation-Version" to project.version)
+        attributes("Premain-Class" to "dev.fopwoc.julia.agent.JuliaAgent", "Implementation-Version" to project.version)
     }
     // A -javaagent JAR must be self-contained.
     for (path in listOf(":gl-audit", ":utils")) {

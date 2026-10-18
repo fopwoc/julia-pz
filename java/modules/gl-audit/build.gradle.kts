@@ -8,6 +8,6 @@ dependencies {
 }
 
 application {
-    mainClass = "dev.julia.audit.cli.AuditMain"
+    mainClass = "dev.fopwoc.julia.audit.cli.AuditMain"
     applicationName = "gl-audit"
 }

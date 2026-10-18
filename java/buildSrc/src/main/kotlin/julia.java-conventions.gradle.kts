@@ -7,7 +7,7 @@ plugins {
 
 val libs = the<VersionCatalogsExtension>().named("libs")
 
-group = "dev.julia"
+group = "dev.fopwoc.julia"
 version = BuildInfo.of(project).version
 
 java {

@@ -3,5 +3,5 @@ id=Julia
 require=\ZombieBuddy
 description=Metal baseline and full GLSM readback with host GL-state restoration. Window presentation is an optional experimental probe.
 javaJarFile=media/java/client/Julia.jar
-javaPkgName=dev.julia.zomboid
+javaPkgName=dev.fopwoc.julia.zomboid
 ZBVersionMin=2.3.4
