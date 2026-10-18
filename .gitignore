@@ -1,9 +1,12 @@
 .gradle/
+.kotlin/
 **/build/
 .idea/
 *.iml
 .DS_Store
 work/
 local.properties
-/modules/*/bin/
-.kotlin/
+/java/modules/*/bin/
+
+# Built by `./gradlew assemble` (81 MB with the bundled graphics runtime); releases ship it.
+/42/media/java/client/*.jar

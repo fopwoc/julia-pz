@@ -70,12 +70,16 @@ Julia is in its integration stage and **does not replace the game renderer yet**
 
 ## Building
 
-You need JDK 25. The build works on macOS and Linux only.
+The repository root is the mod folder (`common/`, `42/mod.info`). The Gradle build lives in `java/`. You need
+JDK 25, and the build works on macOS and Linux only.
 
 ```sh
+cd java
 ./gradlew check                    # tests; never launches the game or opens a window
-./gradlew :zomboid-mod:modZip      # → modules/zomboid-mod/build/distributions/Julia.zip
+./gradlew assemble                 # → ../42/media/java/client/Julia.jar, plus modules/zomboid-mod/build/distributions/Julia.zip
 ```
+
+After `assemble`, the repository folder is a complete mod. Symlink or copy it into the PZ `mods` directory as `Julia`.
 
 These native probes run only when requested and open no window:
 

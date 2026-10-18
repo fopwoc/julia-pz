@@ -5,4 +5,3 @@ description=Metal baseline and full GLSM readback with host GL-state restoration
 javaJarFile=media/java/client/Julia.jar
 javaPkgName=dev.julia.zomboid
 ZBVersionMin=2.3.4
-modversion=@version@

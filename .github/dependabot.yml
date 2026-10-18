@@ -1,11 +1,11 @@
 version: 2
 
 updates:
-  # Root build, buildSrc, the version catalog, and every module's gradle.lockfile.
+  # The Gradle build in java/: buildSrc, the version catalog, and every module's gradle.lockfile.
   - package-ecosystem: gradle
     directories:
-      - /
-      - /buildSrc
+      - /java
+      - /java/buildSrc
     schedule:
       interval: weekly
     groups:

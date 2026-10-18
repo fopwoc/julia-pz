@@ -1,0 +1,11 @@
+# Development files; the Workshop item is the mod folder only.
+# See https://github.com/zed-0xff/ZBetterWorkshopUpload
+.git
+.github
+.gitignore
+.workshopignore
+.DS_Store
+java
+AGENTS.md
+AI_USAGE.md
+README.md

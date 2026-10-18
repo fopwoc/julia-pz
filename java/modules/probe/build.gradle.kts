@@ -17,8 +17,9 @@ application {
 
 distributions.main {
     contents {
-        from(rootProject.file("THIRD_PARTY.md"))
-        from(rootProject.file("licenses")) { into("licenses") }
+        // Notices live in the mod folder at the repository root.
+        from(rootProject.file("../THIRD_PARTY.md"))
+        from(rootProject.file("../licenses")) { into("licenses") }
     }
 }
 

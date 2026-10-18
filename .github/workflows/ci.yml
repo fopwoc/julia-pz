@@ -21,6 +21,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    working-directory: java
+
 jobs:
   build:
     name: Check and package
@@ -42,6 +46,8 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
+        with:
+          build-root-directory: java
 
       - name: Check and build distributions
         run: >-
@@ -56,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: julia-mod
-          path: modules/zomboid-mod/build/distributions/Julia.zip
+          path: java/modules/zomboid-mod/build/distributions/Julia.zip
           retention-days: 7
           if-no-files-found: error
 
@@ -65,8 +71,8 @@ jobs:
         with:
           name: julia-tools
           path: |
-            modules/probe/build/distributions/*.zip
-            modules/gl-audit/build/distributions/*.zip
-            modules/agent/build/libs/julia-agent.jar
+            java/modules/probe/build/distributions/*.zip
+            java/modules/gl-audit/build/distributions/*.zip
+            java/modules/agent/build/libs/julia-agent.jar
           retention-days: 7
           if-no-files-found: error

@@ -1,6 +1,6 @@
 # Julia
 
-- Use Java 25 and Gradle Kotlin DSL. Shared build logic lives in `buildSrc` (`julia.java-conventions`, Git-derived `BuildInfo`); versions live in `gradle/libs.versions.toml`. Keep modules under `modules/` and organize Java packages by responsibility.
+- Use Java 25 and Gradle Kotlin DSL. The repository root is the PZ mod folder (`common/`, `42/`); the Gradle build lives in `java/`. Shared build logic lives in `java/buildSrc` (`julia.java-conventions`, Git-derived `BuildInfo`); versions live in `java/gradle/libs.versions.toml`. Keep modules under `java/modules/` and organize Java packages by responsibility.
 - Phase 1 is vanilla Project Zomboid on SDL-GPU/Metal. Phase 2 adds Viewpoint and other modern OpenGL mods.
 - Prefer the published Angelica graphics libraries. Record exact versions, source revisions, and verified integration limitations.
 - Keep game binaries, saves, Workshop files, extracted proprietary sources, and local machine paths out of Git.
