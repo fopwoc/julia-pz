@@ -60,8 +60,15 @@ Julia is in its integration stage and **does not replace the game renderer yet**
 - Inside the running game, the mod runs self-verifying probes on PZ's render thread: a Metal device baseline, the full
   GLSM adapter drawing through redirected OpenGL calls, and an experimental presentation into the game window. Each
   probe checks its output pixel by pixel and then restores the game's GL state.
-- Offline preparation of the vanilla game still reports a few unsupported call sites. Live activation stays off until
-  there are none.
+- Offline preparation of vanilla reports 178/182 graphics consumers structurally ready, 1,850 routed call sites and
+  five blocked entry points: three program-resource queries, texture views and host ImGui rendering. Structural
+  readiness does not establish rendering correctness; live activation remains disabled.
+- Debug callbacks now cross the isolated runtime through a typed Java method handle. Windowless checks verify SDL
+  validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
+  Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
+  Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
+- The current offline checks pass 93 JVM tests and verify 36,352 pixels on windowless Metal. The callback bridge has not
+  been tested inside PZ.
 - Viewpoint and other mods that use modern OpenGL come after vanilla.
 
 | Platform | GPU API | State |

@@ -112,6 +112,7 @@ public final class AdapterScene {
                 if (status != GL_FRAMEBUFFER_COMPLETE) throw new IllegalStateException("Incomplete FBO: " + status);
             }
             StateChecks.run();
+            DebugChecks.run();
 
             glViewport(0, 0, width, height);
             glDisable(GL_DEPTH_TEST);

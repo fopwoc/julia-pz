@@ -30,7 +30,9 @@ public final class AdapterProbe {
                 var session = GlsmSession.open(video, 0, () -> size, "Julia adapter probe")) {
             backend = session.backend().getName();
             AdapterScene.offscreen(output, size.width(), size.height());
+            DebugMessages.armShutdownCheck();
         }
+        DebugMessages.verifyShutdown();
         Files.writeString(output.resolve("result.txt"), """
                 PASS
                 backend=%s
@@ -40,6 +42,7 @@ public final class AdapterProbe {
                 api=LWJGL -> typed RenderDispatch -> isolated GLStateManager
                 verified_resource_pixels=%d
                 capability_checks=backend snapshot,absent vendor flag
+                debug_checks=registration,UTF8 relay delivery,replacement,unregistration,shutdown cleanup
                 alias_checks=depth conversion,vec2 buffer position,image copy
                 draw=sampled texture
                 uniform_checks=float array,matrix array transpose,truncated reflection,buffer positions

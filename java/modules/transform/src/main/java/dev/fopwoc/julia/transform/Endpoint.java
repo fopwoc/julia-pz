@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 public enum Endpoint {
     STATE_MANAGER("com/gtnewhorizons/angelica/glsm/GLStateManager", true),
     DEBUG_SHIM("com/gtnewhorizons/angelica/sdlgpu/compat/AwareGLDebugShim", true),
+    DEBUG_CALLBACK_BRIDGE("dev/fopwoc/julia/backend/bridge/DebugCallbackBridge", false),
     UNIFORM_BRIDGE("dev/fopwoc/julia/backend/bridge/UniformBridge", false),
     UNIFORM_QUERY_BRIDGE("dev/fopwoc/julia/backend/bridge/UniformQueryBridge", false),
     UNIFORM_UPLOAD_BRIDGE("dev/fopwoc/julia/backend/bridge/UniformUploadBridge", false),

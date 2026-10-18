@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import dev.fopwoc.julia.transform.load.LegacyNamespacePass;
 import dev.fopwoc.julia.transform.load.WindowQueryPass;
+import dev.fopwoc.julia.transform.pass.DebugCallbackPass;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -14,7 +15,10 @@ class EndpointTest {
     static Stream<String> targets() {
         return Stream.concat(
                 Stream.of(Endpoint.values()).map(Endpoint::owner),
-                Stream.of(LegacyNamespacePass.TESSELLATOR_STATE, WindowQueryPass.HOST_WINDOW));
+                Stream.of(
+                        LegacyNamespacePass.TESSELLATOR_STATE,
+                        WindowQueryPass.HOST_WINDOW,
+                        DebugCallbackPass.CALLBACK_BINDER));
     }
 
     @ParameterizedTest

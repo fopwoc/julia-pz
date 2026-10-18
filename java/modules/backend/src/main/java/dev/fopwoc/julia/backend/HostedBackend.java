@@ -3,6 +3,7 @@ package dev.fopwoc.julia.backend;
 import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
+import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 
 /** Selects the real SDL backend for an explicitly created device without Minecraft's display gate. */
 public final class HostedBackend extends SDLGPURenderBackend {
@@ -12,6 +13,13 @@ public final class HostedBackend extends SDLGPURenderBackend {
         // Rebuild cached encoder bindings rather than treating pointer equality as state continuity.
         invalidateStateMirror();
         super.onFrameBegin();
+    }
+
+    @Override
+    public void shutdown() {
+        // The upstream relay is static and would otherwise retain the host callback after device shutdown.
+        DebugMessageRelay.setListener(null, 0L, false);
+        super.shutdown();
     }
 
     @Override
