@@ -24,7 +24,7 @@ public final class RuntimeCalls {
     static boolean target(String owner) {
         return owner.equals("com/gtnewhorizons/angelica/glsm/GLStateManager")
                 || owner.equals("com/gtnewhorizons/angelica/sdlgpu/compat/AwareGLDebugShim")
-                || owner.equals(UniformBindings.OWNER) || owner.equals(TextureAllocationBindings.OWNER) || owner.equals(CapabilityBindings.OWNER) || owner.equals(UniformQueryBindings.OWNER) || owner.equals("dev/julia/probe/adapter/UniformUploadBridge");
+                || owner.equals(UniformBindings.OWNER) || owner.equals(TextureAllocationBindings.OWNER) || owner.equals(CapabilityBindings.OWNER) || owner.equals(UniformQueryBindings.OWNER) || owner.equals("dev/julia/probe/adapter/UniformUploadBridge") || owner.equals(ResourceBindings.BUFFER) || owner.equals(ResourceBindings.CLEAR) || owner.equals(ResourceBindings.COPY);
     }
 
     public static int adapt(ClassNode node) {

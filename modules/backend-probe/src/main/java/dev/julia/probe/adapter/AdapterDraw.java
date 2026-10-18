@@ -35,6 +35,10 @@ public final class AdapterDraw {
         try {
             backend.onFrameBegin();
             frameOpen = true;
+            java.nio.file.Files.deleteIfExists(output.resolve("resource-checks.txt"));
+            ResourceDraw.run();
+            java.nio.file.Files.writeString(output.resolve("resource-checks.txt"),
+                    "STAGE_PASS\nverified_resource_pixels=33280\nchecks=immutable buffer bytes,flags,bindings,reallocation rejection,tiled clears,array layers,null clear,array-plane copies\n");
             if (!window) {
                 target = texture(width, height, null);
                 framebuffer = glGenFramebuffers();

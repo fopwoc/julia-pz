@@ -22,7 +22,7 @@ final class LegacyRuntimeLoader extends URLClassLoader {
         if (location == null) throw new ClassNotFoundException(name);
         try (var stream = location.openStream()) {
             byte[] bytes = stream.readAllBytes();
-            if (name.equals("dev.julia.probe.adapter.AdapterDraw")) bytes = SceneRedirector.adapt(bytes);
+            if (name.equals("dev.julia.probe.adapter.AdapterDraw") || name.equals("dev.julia.probe.adapter.ResourceDraw")) bytes = SceneRedirector.adapt(bytes);
             bytes = LegacyBindings.adapt(name, bytes);
             bytes = WindowBindings.adapt(name, bytes);
             return defineClass(name, bytes, 0, bytes.length);

@@ -101,3 +101,5 @@ The [runtime preparation tool](docs/runtime-preparation.md) checks whole archive
 [Capability routing and exact vanilla aliases](docs/capability-routing.md) now reduce the offline activation report from 34 to 14 blockers. Backend-advertised feature flags remain distinct from verified operation coverage.
 
 [Tracked uniform readback and integer-array upload checks](docs/uniform-state.md) now leave eight static activation blockers. Indexed array locations, program-resource introspection, and other documented semantic limits remain separate work.
+
+[Resource writes and texture-layer checks](docs/resource-operations.md) now leave six static activation blockers. The windowless suite verifies 36,352 pixels and 73 JVM tests pass. Live activation remains disabled.

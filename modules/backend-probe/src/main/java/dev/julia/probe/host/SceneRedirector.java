@@ -4,6 +4,7 @@ import com.gtnewhorizons.angelica.glsm.redirect.GLSMRedirector;
 import dev.julia.audit.scan.GraphicsClassScanner;
 import dev.julia.probe.redirect.UniformBindings;
 import dev.julia.probe.redirect.RuntimeCalls;
+import dev.julia.probe.redirect.ResourceBindings;
 import dev.julia.probe.redirect.UniformQueryBindings;
 import dev.julia.probe.redirect.VanillaAliases;
 import dev.julia.probe.redirect.CapabilityBindings;
@@ -26,6 +27,7 @@ final class SceneRedirector {
         VanillaAliases.adapt(node);
         UniformBindings.adapt(node);
         UniformQueryBindings.adapt(node);
+        ResourceBindings.adapt(node);
         TextureAllocationBindings.adapt(node);
         var writer = new ClassWriter(0);
         node.accept(writer);

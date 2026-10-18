@@ -26,6 +26,7 @@ public final class RuntimePreparation {
         VanillaAliases.adapt(node);
         UniformBindings.adapt(node);
         UniformQueryBindings.adapt(node);
+        ResourceBindings.adapt(node);
         TextureAllocationBindings.adapt(node);
         var snapshot = new ClassWriter(0);
         node.accept(snapshot);

@@ -60,7 +60,10 @@ public final class AdapterLauncher {
                      "dev/julia/probe/adapter/TextureAllocationBridge",
                      "dev/julia/probe/adapter/CapabilityBridge",
                      "dev/julia/probe/adapter/UniformQueryBridge",
-                     "dev/julia/probe/adapter/UniformUploadBridge")), probeFrames())) {
+                     "dev/julia/probe/adapter/UniformUploadBridge",
+                     "dev/julia/probe/adapter/BufferStorageBridge",
+                     "dev/julia/probe/adapter/TextureClearBridge",
+                     "dev/julia/probe/adapter/TextureCopyBridge")), probeFrames())) {
             System.setProperty("angelica.sdlgpu.disablePresenterThread", "true");
             Thread.currentThread().setContextClassLoader(adapted);
             try {

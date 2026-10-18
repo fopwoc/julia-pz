@@ -42,3 +42,7 @@ The newer [capability routing checks](capability-routing.md) reduce the whole-ar
 ## Uniform-state milestone
 
 [Tracked uniform queries and integer uploads](uniform-state.md) reduce the report to 8 unique blockers: 175/182 structurally ready classes and 1,810 routed sites. 69 JVM tests and the updated 3,072-pixel windowless Metal suite pass. Ordinary readbacks use actual staged shader values; program-resource introspection and live activation remain blocked.
+
+## Resource-operation milestone
+
+[Resource writes and texture layers](resource-operations.md) reduce the report to six unique blockers: 177/182 structurally ready classes and 1,829 routed sites. 73 JVM tests and 36,352 pixels in the windowless Metal suite pass. Named buffer storage, bounded constant clears and array/2D copies are exercised; texture views, program-resource introspection, callbacks and ImGui remain blocked. Live activation remains disabled.

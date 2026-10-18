@@ -1,0 +1,23 @@
+package dev.julia.probe.adapter;
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+class ClearRegionTest {
+    @Test void validatesRegionsWithoutIntegerOverflow() {
+        new ClearRegion(0, 2, 1, 1, 3, 2, 1).validate(1, 8, 4, 2);
+        assertThrows(IllegalArgumentException.class, () -> new ClearRegion(0, Integer.MAX_VALUE, 0, 0, 3, 1, 1).validate(1, 8, 4, 2));
+        assertThrows(IllegalArgumentException.class, () -> new ClearRegion(1, 0, 0, 0, 1, 1, 1).validate(1, 8, 4, 2));
+        assertThrows(IllegalArgumentException.class, () -> new ClearRegion(0, 0, 0, 2, 1, 1, 1).validate(1, 8, 4, 2));
+        assertTrue(new ClearRegion(0, 0, 0, 0, 0, 1, 1).empty());
+    }
+
+    @Test void boundsTilesAndEncodesColorAccordingToStorageOrder() {
+        assertEquals(256, new ClearRegion(0, 0, 0, 0, 64, 260, 2).tileRows());
+        assertArrayEquals(new byte[] {(byte) 153, 102, 51, (byte) 255}, ClearRegion.color(new float[] {0.2f, 0.4f, 0.6f, 1}, true));
+        assertArrayEquals(new byte[] {0, (byte) 255, 0, (byte) 255}, ClearRegion.color(new float[] {-1, 2, 0, 1}, false));
+        assertArrayEquals(new byte[4], ClearRegion.color(null, false));
+        assertThrows(UnsupportedOperationException.class, () -> ClearRegion.color(new float[] {Float.NaN, 0, 0, 1}, false));
+        assertThrows(IllegalArgumentException.class, () -> ClearRegion.color(new float[] {1}, false));
+    }
+}
