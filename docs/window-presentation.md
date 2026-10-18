@@ -50,3 +50,7 @@ The user confirmed that the normal menu returned at its full size and mouse/keyb
 Julia.jar SHA-256: `4ffcfdf06e4f84cc9d17f90220fcb882ea07732a4a340409b5d74a55f158d51e`. The build passes 35 JVM tests. Native evidence consists of the stage result, `window-texture.png`, `host-gl-state.txt`, suite status, and console success line. The PNG is final-target readback; presentation proof is three successful upstream swapchain submissions, with user confirmation of normal rendering/input after detach.
 
 This validates the bounded presentation bridge. PZ gameplay still renders with its original OpenGL renderer. Automatic routing of its live scene calls and frame lifecycle remains future work.
+
+## Uniform-enabled retest
+
+The newer scene exposed a frame-cache issue on process 76964. Julia reproduced it offscreen with synchronous frame draining, added state-mirror invalidation to its hosted backend, and passed the window retry on process 77384: three presents, 7,934,400 pixels, host restoration, and user-confirmed full-size menu/input. See [the reproducer and evidence](uniform-bridges.md#window-retry-and-frame-cache-correction).

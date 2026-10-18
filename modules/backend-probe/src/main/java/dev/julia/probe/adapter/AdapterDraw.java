@@ -17,11 +17,9 @@ import static org.lwjgl.opengl.GL30.*;
 
 /** Ordinary LWJGL OpenGL calls; the isolated loader must redirect every call before this scene can run. */
 public final class AdapterDraw {
-    private static final int SIZE = 32;
-
     private AdapterDraw() { }
 
-    static void run(Path output) throws IOException { run(output, SIZE, SIZE, false); }
+    static void run(Path output, int width, int height) throws IOException { run(output, width, height, false); }
 
     public static void runWindow(Path output, int width, int height) throws IOException {
         run(output, width, height, true);
@@ -38,7 +36,7 @@ public final class AdapterDraw {
             backend.onFrameBegin();
             frameOpen = true;
             if (!window) {
-                target = texture(SIZE, null);
+                target = texture(width, height, null);
                 framebuffer = glGenFramebuffers();
                 glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
@@ -62,7 +60,7 @@ public final class AdapterDraw {
                     }
                 }
                 upload.flip();
-                source = texture(TexturePattern.EDGE, upload);
+                source = texture(TexturePattern.EDGE, TexturePattern.EDGE, upload);
             } finally {
                 MemoryUtil.memFree(upload);
             }
@@ -80,7 +78,7 @@ public final class AdapterDraw {
                     1, 0, 0, 0.25f, 0, 1, 0, -0.5f, 0, 0, 1, 0, 0, 0, 0, 1, 99, 98, 97});
             verifyUniforms(program);
             long presents = DebugCounters.PRESENTS.sum();
-            for (int frame = 0; frame < (window ? 3 : 1); frame++) {
+            for (int frame = 0; frame < 3; frame++) {
                 if (frame != 0) {
                     backend.onFrameBegin();
                     frameOpen = true;
@@ -89,6 +87,10 @@ public final class AdapterDraw {
                 glDrawArrays(GL_TRIANGLES, 0, 3);
                 backend.onFrameEnd();
                 frameOpen = false;
+                if (!window && !org.lwjgl.sdl.SDLGPU.SDL_WaitForGPUIdle(
+                        com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate.device().getDevice())) {
+                    throw new IllegalStateException("Cannot drain the offscreen frame");
+                }
             }
             if (window && DebugCounters.PRESENTS.sum() - presents != 3) {
                 throw new IllegalStateException("Expected three successful swapchain submissions; got "
@@ -161,14 +163,14 @@ public final class AdapterDraw {
         }
     }
 
-    private static int texture(int size, ByteBuffer pixels) {
+    private static int texture(int width, int height, ByteBuffer pixels) {
         int id = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
         return id;
     }
 
