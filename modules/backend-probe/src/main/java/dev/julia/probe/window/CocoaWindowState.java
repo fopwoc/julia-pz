@@ -15,6 +15,7 @@ final class CocoaWindowState {
     private final long touchTypes;
     private final boolean releasedWhenClosed;
     private final boolean oneShot;
+    private final boolean highResolution;
 
     CocoaWindowState(long window) {
         if (window == 0) throw new IllegalArgumentException("Cocoa window is null");
@@ -28,6 +29,7 @@ final class CocoaWindowState {
         touchTypes = object(view, "allowedTouchTypes");
         releasedWhenClosed = flag(window, "isReleasedWhenClosed");
         oneShot = flag(window, "isOneShot");
+        highResolution = flag(view, "wantsBestResolutionOpenGLSurface");
     }
 
     void restore() {
@@ -39,13 +41,15 @@ final class CocoaWindowState {
         setObject(view, "setAllowedTouchTypes:", touchTypes);
         setFlag(window, "setReleasedWhenClosed:", releasedWhenClosed);
         setFlag(window, "setOneShot:", oneShot);
+        setFlag(view, "setWantsBestResolutionOpenGLSurface:", highResolution);
     }
 
     void verify() {
         if (object(window, "contentView") != view || object(window, "delegate") != delegate
                 || object(window, "nextResponder") != windowResponder || object(view, "nextResponder") != viewResponder
                 || flag(window, "acceptsMouseMovedEvents") != mouseMoved || object(view, "allowedTouchTypes") != touchTypes
-                || flag(window, "isReleasedWhenClosed") != releasedWhenClosed || flag(window, "isOneShot") != oneShot) {
+                || flag(window, "isReleasedWhenClosed") != releasedWhenClosed || flag(window, "isOneShot") != oneShot
+                || flag(view, "wantsBestResolutionOpenGLSurface") != highResolution) {
             throw new IllegalStateException("GLFW Cocoa ownership was not restored");
         }
     }

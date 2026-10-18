@@ -18,7 +18,11 @@ A host `GL_TEXTURE_BINDING_2D` query is captured before the probe and repeated a
 
 The build passes 34 JVM tests. Four restoration tests use independent synthetic binding class loaders with distinct Java capability objects and a shared dispatch slot, reproducing the important condition: the host Java capability object still looks correct while native dispatch has changed. They verify restoration, exceptional exit, original-thread ownership, and rejection of a missing host context. Another test verifies clearing probe capabilities before destroying its provider. These tests load no real GL context or display.
 
-The current fixed artifact has not been retested in PZ. No game, display probe, or computer-use tool was run during the code-only follow-up while the user was away with the lid closed.
+The fix was built and JVM-tested during the code-only follow-up while the user was away. No game, display probe, or computer-use tool ran during that follow-up.
+
+After the user returned and requested an in-game test, build `bebc979` passed the adapter suite in PZ process `75670`. `host-gl-state.txt` confirms that the original capabilities were republished and the native binding query matched the pre-probe value. The game remained alive past probe completion, and the user confirmed that the normal menu opened. The user also created a new game and confirmed working controls and ordinary world rendering.
+
+Tested Julia.jar SHA-256: `9ec93dd60f2efd1b5a4f17af542f5775e049f8879aea9ae0be6c2fcd52f17e9b`.
 
 ## Probe modes
 

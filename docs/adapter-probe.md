@@ -15,7 +15,7 @@ The adapter passes on Metal / Apple M4 Max. The complete native suite also passe
 
 Results live under `modules/backend-probe/build/reports/adapter/` and `reports/suite/adapter/`. The ZombieBuddy JAR runs the same suite; its adapter evidence is under `<PZ cache>/julia/run-<pid>/adapter/`.
 
-The same PZ process subsequently crashed at Angelica's dummy GL address when ordinary game rendering resumed. The GPU checks remain valid, but safe coexistence was not established. See [the host-dispatch correction](host-gl-crash.md); the fix is built and JVM-tested, with runtime validation deferred.
+The same PZ process subsequently crashed at Angelica's dummy GL address when ordinary game rendering resumed. The GPU checks remain valid, but safe coexistence was not established. See [the host-dispatch correction](host-gl-crash.md); the fix is now JVM-tested and has passed a default-mode retest: host native GL queries work again, and the user reports that PZ reaches its menu.
 
 ## Host adaptation
 

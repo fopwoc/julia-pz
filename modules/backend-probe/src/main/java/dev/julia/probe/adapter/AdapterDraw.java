@@ -100,8 +100,8 @@ public final class AdapterDraw {
                         int actual = (pixels.get(offset + 3) & 255) << 24 | (pixels.get(offset) & 255) << 16
                                 | (pixels.get(offset + 1) & 255) << 8 | pixels.get(offset + 2) & 255;
                         int expected = TexturePattern.expectedArgb(x, y, width, height);
-                        if (actual != expected) throw new IllegalStateException("GLSM pixel " + x + "," + y
-                                + " expected " + Integer.toHexString(expected) + ", got " + Integer.toHexString(actual));
+                        if (!TexturePattern.matchesArgb(actual, x, y, width, height)) throw new IllegalStateException("GLSM pixel " + x + "," + y
+                                + " in " + width + "x" + height + " expected " + Integer.toHexString(expected) + ", got " + Integer.toHexString(actual));
                         // glReadPixels uses a bottom-left origin; PNG uses a top-left origin.
                         image.setRGB(x, height - 1 - y, actual);
                     }

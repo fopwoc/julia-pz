@@ -32,3 +32,11 @@ This does not redirect PZ gameplay, bridge live frame boundaries, or validate in
 - https://www.glfw.org/docs/latest/group__native.html
 
 AppKit selector signatures were checked against the installed SDK headers. No proprietary game source or binaries are committed.
+
+## First native attempt and DPI correction
+
+Build `bebc979` presented three frames in process `75920`, then rejected a readback pixel at `(0,545)`. The user reported a quarter-sized menu in the lower-left corner; ordinary gameplay still rendered with working controls. SDL's exact Cocoa source shows that foreign-window creation sets `wantsBestResolutionOpenGLSurface`, which was missing from the captured state. The snapshot now restores and verifies this flag too.
+
+The reported readback boundary is consistent with a 2× Retina target: at height 2,182, row 545's center lies exactly on a quarter-texture boundary. The oracle now accepts either immediately adjacent texel only at exact mathematical boundaries, with exact channel checks everywhere. A regression test rejects non-adjacent colors and even one-bit channel corruption. This is not a broad color tolerance.
+
+The corrected build passes 35 offline tests. The next native run will validate the DPI restoration and boundary handling.

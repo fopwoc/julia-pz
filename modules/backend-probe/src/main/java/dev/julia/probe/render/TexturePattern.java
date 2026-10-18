@@ -19,4 +19,22 @@ public final class TexturePattern {
                 (int) ((2L * y + 1) * EDGE / (2L * height)));
         return (source & 0xFF00FF00) | (source & 255) << 16 | (source >>> 16 & 255);
     }
+
+    public static boolean matchesArgb(int actual, int x, int y, int width, int height) {
+        long scaledX = (2L * x + 1) * EDGE;
+        long scaledY = (2L * y + 1) * EDGE;
+        int sx = (int) (scaledX / (2L * width));
+        int sy = (int) (scaledY / (2L * height));
+        int firstX = sx > 0 && scaledX % (2L * width) == 0 ? sx - 1 : sx;
+        int firstY = sy > 0 && scaledY % (2L * height) == 0 ? sy - 1 : sy;
+        for (int ty = firstY; ty <= sy; ty++) {
+            for (int tx = firstX; tx <= sx; tx++) {
+                int source = sourceArgb(tx, ty);
+                int expected = (source & 0xFF00FF00) | (source & 255) << 16 | (source >>> 16 & 255);
+                if (actual == expected) return true;
+            }
+        }
+        return false;
+    }
+
 }
