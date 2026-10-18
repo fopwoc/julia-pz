@@ -101,6 +101,7 @@ public final class AdapterScene {
             ResourceChecks.run();
             ViewChecks.run();
             ProgramResourceChecks.run();
+            QuadChecks.run();
             Files.writeString(output.resolve("resource-checks.txt"), ResourceChecks.REPORT);
 
             if (window) {

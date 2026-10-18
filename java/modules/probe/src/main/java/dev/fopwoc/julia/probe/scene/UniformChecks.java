@@ -1,6 +1,9 @@
 package dev.fopwoc.julia.probe.scene;
 
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
+import static org.lwjgl.opengl.GL11.GL_INVALID_OPERATION;
+import static org.lwjgl.opengl.GL11.GL_NO_ERROR;
+import static org.lwjgl.opengl.GL11.glGetError;
 import static org.lwjgl.opengl.GL20.GL_ACTIVE_UNIFORMS;
 import static org.lwjgl.opengl.GL20.GL_FLOAT_MAT4;
 import static org.lwjgl.opengl.GL20.glGetActiveUniform;
@@ -24,8 +27,22 @@ final class UniformChecks {
 
     static void run(int program) {
         upload(program);
+        invalidUpload(program);
         verifyReflection(program);
         verifyValues(program);
+    }
+
+    private static void invalidUpload(int program) {
+        try (var stack = MemoryStack.stackPush()) {
+            var palette = stack.callocFloat(35 * 16 + 1);
+            palette.position(1);
+            glUniformMatrix4fv(location(program, "transform"), false, palette);
+            if (glGetError() != GL_INVALID_OPERATION || glGetError() != GL_NO_ERROR || palette.position() != 1)
+                throw new IllegalStateException("Invalid matrix upload did not produce a single GL error");
+            glUniformMatrix4fv(-1, false, palette);
+            if (glGetError() != GL_NO_ERROR)
+                throw new IllegalStateException("Ignored matrix location produced an error");
+        }
     }
 
     private static void upload(int program) {

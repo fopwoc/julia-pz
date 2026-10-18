@@ -1,5 +1,6 @@
 package dev.fopwoc.julia.backend;
 
+import static org.lwjgl.opengl.GL11.GL_INVALID_OPERATION;
 import static org.lwjgl.opengl.GL11.GL_RED;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
 import static org.lwjgl.opengl.GL30.GL_R8;
@@ -9,13 +10,18 @@ import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
+import dev.fopwoc.julia.backend.shader.MatrixUniformUploads;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.texture.TextureViews;
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 /** Selects the real SDL backend for an explicitly created device without Minecraft's display gate. */
 public final class HostedBackend extends SDLGPURenderBackend {
+    private static final System.Logger LOG = System.getLogger(HostedBackend.class.getName());
+    private int error;
+
     private final TextureViews textureViews = new TextureViews();
     private final ProgramResourceCache programResources = new ProgramResourceCache();
 
@@ -133,6 +139,46 @@ public final class HostedBackend extends SDLGPURenderBackend {
     public void dispatchComputeIndirect(long offset) {
         textureViews.beforeCompute();
         super.dispatchComputeIndirect(offset);
+    }
+
+    @Override
+    public int getError() {
+        int result = error;
+        error = 0;
+        return result != 0 ? result : super.getError();
+    }
+
+    @Override
+    public void uniformMatrix2(int location, boolean transpose, FloatBuffer value) {
+        var checked = matrixUpload(location, value, 2);
+        if (checked != null) super.uniformMatrix2(location, transpose, checked);
+    }
+
+    @Override
+    public void uniformMatrix3(int location, boolean transpose, FloatBuffer value) {
+        var checked = matrixUpload(location, value, 3);
+        if (checked != null) super.uniformMatrix3(location, transpose, checked);
+    }
+
+    @Override
+    public void uniformMatrix4(int location, boolean transpose, FloatBuffer value) {
+        var checked = matrixUpload(location, value, 4);
+        if (checked != null) super.uniformMatrix4(location, transpose, checked);
+    }
+
+    private FloatBuffer matrixUpload(int location, FloatBuffer value, int size) {
+        if (location == -1) return null;
+        try {
+            return MatrixUniformUploads.prepare(BackendInternals.context().boundProgramObj, location, size, value);
+        } catch (IllegalArgumentException invalid) {
+            if (error == 0) error = GL_INVALID_OPERATION;
+            LOG.log(
+                    System.Logger.Level.DEBUG,
+                    "Rejected matrix uniform upload at location {0}: {1}",
+                    location,
+                    invalid.getMessage());
+            return null;
+        }
     }
 
     @Override
