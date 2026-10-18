@@ -77,7 +77,7 @@ The installable package is `modules/zomboid-mod/build/distributions/Julia.zip`. 
 
 Julia schedules the device baseline and full adapter suite on PZ's render context. Its JAR includes the probe dependencies as nested JARs; a platform-parent class loader and a separate native extraction path keep the probe's LWJGL runtime separate from the game's classes. Results are written to `<PZ cache>/julia/run-<pid>/` by default. `julia.modJar` and `julia.outputDir` JVM properties can specify the archive and output root for an isolated test launch.
 
-This first mod does not replace the game renderer or transform game graphics calls. It tests the actual Angelica device, translated shaders, and texture sampling inside the game process. Full GLSM startup and an automatically redirected offscreen GL texture draw now pass standalone; the updated mod includes that probe. Presentation and gameplay rendering remain separate milestones. See [the adapter probe](docs/adapter-probe.md). See [the first in-game result](docs/metal-probe.md).
+This first mod does not replace the game renderer or transform game graphics calls. It tests the actual Angelica device, translated shaders, and texture sampling inside the game process. Full GLSM startup and an automatically redirected offscreen GL texture draw now pass both standalone and inside PZ; the mod includes that probe. Presentation and gameplay rendering remain separate milestones. See [the adapter probe](docs/adapter-probe.md). See [the first in-game result](docs/metal-probe.md).
 
 ## Full adapter probe
 

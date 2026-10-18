@@ -1,6 +1,6 @@
 # Full graphics-adapter probe — 18 October 2026
 
-## Verified standalone result
+## Verified standalone and in-game result
 
 Julia initializes the real Angelica `GLStateManager` and `SDLGPURenderBackend`, then executes a controlled scene compiled against ordinary LWJGL OpenGL APIs. Angelica's published `GLSMRedirector` rewrites the scene before class definition. Julia rejects the scene if any native OpenGL reference remains.
 
@@ -36,7 +36,11 @@ Each stage releases its device before the next stage starts. The adapter writes 
 
 ## Verification boundary
 
-The updated in-game build is ready for the next user-approved restart; this full-adapter result is currently standalone proof.
+The updated ZombieBuddy mod passed inside Project Zomboid 42.21.0 after the user closed the previous instance and approved the changed JAR. The native launcher process was `70677`; both stages ran on the Cocoa `main` thread. The adapter reported `backend=SDL GPU (metal)`, `verified_pixels=1024`, and `api=redirected LWJGL OpenGL calls -> GLStateManager`. The baseline verified another 2,048 pixels, and the suite status file confirmed completion. No duplicate-SDL Objective-C diagnostics appeared in this run.
+
+Tested build: `55d6549`. Julia.jar SHA-256: `de77043490baa7af4cc9ced6e98b592c76e550d801bab7444f99bbba4340164e`.
+
+The full build passes 22 tests. The separate native suite passes both standalone and inside the PZ process. The in-game PNG is GPU readback evidence, not a screen capture.
 
 This is a controlled offscreen scene, not redirected PZ gameplay. Remaining work includes exact vanilla GL overloads and reachable passthrough calls, capability assumptions, PZ's window/input/event loop, presentation, thread/context ownership, and frame lifecycle. The existing audit agent remains observational. Viewpoint remains phase 2.
 
