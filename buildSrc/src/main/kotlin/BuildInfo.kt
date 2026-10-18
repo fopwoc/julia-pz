@@ -1,24 +1,37 @@
+import java.io.File
 import org.gradle.api.Project
 
 /**
- * Build identity derived from Git, resolved once per build so every module reports the same version.
+ * Build identity derived from Git, resolved once per build so every module and artifact reports the same values.
  *
- * `git describe --always --dirty` yields the nearest tag or the abbreviated commit, suffixed when the tree is dirty.
+ * A commit tagged `1.2.3` builds as version `1.2.3`; any other commit builds as `<commit date>-<short hash>`,
+ * e.g. `20261018-5e098e5a`. The build number is the commit count at that revision.
  */
-class BuildInfo private constructor(val version: String) {
+data class BuildInfo(val version: String, val buildNumber: Int, val commitHash: String) {
+    val isRelease: Boolean = RELEASE.matches(version)
+
     companion object {
-        @Volatile private var cached: BuildInfo? = null
+        private val RELEASE = Regex("""\d+\.\d+\.\d+""")
+        private val resolved = mutableMapOf<File, BuildInfo>()
 
-        fun of(project: Project): BuildInfo =
-            cached ?: synchronized(this) { cached ?: resolve(project.rootProject).also { cached = it } }
-
-        private fun resolve(root: Project): BuildInfo {
-            val described = root.providers.exec {
-                commandLine("git", "describe", "--always", "--dirty")
-                workingDir(root.rootDir)
-                isIgnoreExitValue = true
-            }.standardOutput.asText.get().trim()
-            return BuildInfo(described.ifEmpty { "unversioned" })
+        fun of(project: Project): BuildInfo = synchronized(resolved) {
+            val repository = project.rootDir.canonicalFile
+            resolved.getOrPut(repository) { project.resolve(repository) }
         }
+
+        private fun Project.resolve(repository: File): BuildInfo {
+            val hash = git(repository, "rev-parse", "--short=8", "HEAD")
+            val tag = git(repository, "tag", "--points-at", "HEAD", "--sort=-version:refname")
+                .lineSequence()
+                .firstOrNull(RELEASE::matches)
+            val version = tag ?: "${git(repository, "show", "-s", "--format=%cs", "HEAD").replace("-", "")}-$hash"
+            return BuildInfo(version, git(repository, "rev-list", "--count", "HEAD").toInt(), hash)
+        }
+
+        private fun Project.git(repository: File, vararg arguments: String): String =
+            providers.exec {
+                workingDir(repository)
+                commandLine("git", *arguments)
+            }.standardOutput.asText.get().trim()
     }
 }

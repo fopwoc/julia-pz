@@ -25,7 +25,10 @@ tasks.jar {
 val modZip by tasks.registering(Zip::class) {
     archiveFileName = "Julia.zip"
     destinationDirectory = layout.buildDirectory.dir("distributions")
-    from("src/mod")
+    from("src/mod") {
+        val version = project.version.toString()
+        filesMatching("**/mod.info") { filter { line -> line.replace("@version@", version) } }
+    }
     from(tasks.jar) { into("Julia/42/media/java/client") }
     from(rootProject.file("THIRD_PARTY.md")) { into("Julia") }
     from(rootProject.file("licenses")) { into("Julia/licenses") }

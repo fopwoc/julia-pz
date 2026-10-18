@@ -13,7 +13,7 @@ Copies of LGPL v3 and GPL v3 are in `licenses/`. Both the `probe` distribution a
 
 The isolated runtime also includes Mojang's unmodified LaunchWrapper 1.12 solely because Angelica's shader debug-environment check references `Launch.blackboard`. Julia does not invoke the Minecraft launcher. Source: https://github.com/Mojang/LegacyLauncher
 
-Other dependencies retain their own licenses and notices in their published artifacts. This notice describes dependency licensing; it does not assign Julia's original source a project license.
+Other dependencies retain their own licenses and notices in their published artifacts. Julia's own source is licensed under WTFNMFPL (see `COPYRIGHT`); that license does not extend to the libraries above.
 
 The isolated runtime also supplies unmodified LWJGL3ify 3.0.31 and RetroFuturaBootstrap 1.1.0 as host compatibility libraries. Both projects use LGPL v3; their sources and notices are available upstream:
 

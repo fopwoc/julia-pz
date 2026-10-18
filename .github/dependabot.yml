@@ -1,0 +1,35 @@
+version: 2
+
+updates:
+  # Root build, buildSrc, the version catalog, and every module's gradle.lockfile.
+  - package-ecosystem: gradle
+    directories:
+      - /
+      - /buildSrc
+    schedule:
+      interval: weekly
+    groups:
+      angelica:
+        patterns:
+          - "com.gtnewhorizons*"
+          - "com.github.GTNewHorizons*"
+      lwjgl:
+        patterns:
+          - "org.lwjgl*"
+      build-tooling:
+        patterns:
+          - "com.diffplug.spotless*"
+          - "com.palantir.javaformat*"
+          - "org.junit*"
+      libraries:
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"

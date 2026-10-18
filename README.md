@@ -121,4 +121,7 @@ Approve `Julia.jar` when ZombieBuddy asks. Results go to `<PZ cache>/julia/run-<
 
 ## License
 
-Third-party notices are in [THIRD_PARTY.md](THIRD_PARTY.md). Angelica, LWJGL3ify, and RetroFuturaBootstrap are LGPL v3.
+Julia's own code is [WTFNMFPL](LICENSE). The mod bundles Angelica, LWJGL3ify, and RetroFuturaBootstrap under LGPL v3. See [THIRD_PARTY.md](THIRD_PARTY.md).
+
+> [!NOTE]
+> This project contains AI-generated code. See [AI_USAGE.md](AI_USAGE.md) for details.

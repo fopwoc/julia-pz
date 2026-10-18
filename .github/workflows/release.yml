@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags: ["*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source and tags
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify release tag and branch reachability
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Set up Temurin 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+
+      - name: Check and build release artifacts
+        run: >-
+          ./gradlew
+          check
+          :zomboid-mod:modZip
+          :probe:distZip
+          :gl-audit:distZip
+          :agent:jar
+
+      - name: Package release artifacts
+        run: |
+          mkdir -p release
+          cp modules/zomboid-mod/build/distributions/Julia.zip "release/julia-$GITHUB_REF_NAME-mod-macos-arm64.zip"
+          cp modules/probe/build/distributions/probe-*.zip "release/julia-$GITHUB_REF_NAME-probe-macos-arm64.zip"
+          cp modules/gl-audit/build/distributions/gl-audit-*.zip "release/julia-$GITHUB_REF_NAME-gl-audit.zip"
+          cp modules/agent/build/libs/julia-agent.jar "release/julia-$GITHUB_REF_NAME-agent.jar"
+
+      - name: Write concise release notes
+        run: |
+          previous_tag="$(git describe --tags --abbrev=0 "$GITHUB_SHA^" --match '*.*.*' 2>/dev/null || true)"
+          if [[ -n "$previous_tag" ]]; then
+            git log --format='- %s (%h)' "$previous_tag..$GITHUB_SHA" > release-notes.md
+          else
+            git log --format='- %s (%h)' "$GITHUB_SHA" > release-notes.md
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          release/*
+          --verify-tag
+          --title "$GITHUB_REF_NAME"
+          --notes-file release-notes.md
