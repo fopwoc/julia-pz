@@ -4,6 +4,7 @@ import static java.lang.classfile.ClassFile.ACC_STATIC;
 import static java.lang.constant.ConstantDescs.CD_void;
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
@@ -49,7 +50,7 @@ class GraphicsArchiveScannerTest {
             jar.write(new byte[] {0, 1});
             jar.closeEntry();
         }
-        var error = assertThrows(java.io.IOException.class, () -> new GraphicsArchiveScanner().scan(path));
+        var error = assertThrows(IOException.class, () -> new GraphicsArchiveScanner().scan(path));
         assertTrue(error.getMessage().endsWith("!broken/Renderer.class"));
     }
 

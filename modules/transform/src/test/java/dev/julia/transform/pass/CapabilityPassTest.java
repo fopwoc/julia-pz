@@ -7,6 +7,7 @@ import dev.julia.transform.Endpoint;
 import dev.julia.transform.TestFrames;
 import dev.julia.transform.prepare.RuntimePreparation;
 import java.lang.invoke.MethodHandles;
+import java.util.Objects;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Opcodes;
@@ -20,7 +21,7 @@ class CapabilityPassTest {
     void queriesBackendSnapshotAndVerifiesRemappedLocalsAcrossBranches() throws Exception {
         byte[] original;
         try (var input = getClass().getResourceAsStream("/zombie/CapabilityFixture.class")) {
-            original = java.util.Objects.requireNonNull(input).readAllBytes();
+            original = Objects.requireNonNull(input).readAllBytes();
         }
         var result = new RuntimePreparation().prepare(original);
         assertTrue(result.ready(), result.blockers().toString());

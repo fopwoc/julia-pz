@@ -2,6 +2,7 @@ package dev.julia.backend.bridge;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
 
 class BufferStorageBridgeTest {
@@ -9,10 +10,10 @@ class BufferStorageBridgeTest {
     void rejectsUnsafeOrEmptyInputBeforeBackendAccess() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> BufferStorageBridge.glNamedBufferStorage(1, java.nio.ByteBuffer.allocate(8), 0));
+                () -> BufferStorageBridge.glNamedBufferStorage(1, ByteBuffer.allocate(8), 0));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> BufferStorageBridge.glNamedBufferStorage(1, java.nio.ByteBuffer.allocateDirect(0), 0));
+                () -> BufferStorageBridge.glNamedBufferStorage(1, ByteBuffer.allocateDirect(0), 0));
     }
 
     @Test

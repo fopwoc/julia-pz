@@ -13,6 +13,8 @@ import me.eigenraven.lwjgl3ify.api.GLCapabilitiesOverride;
 
 /** GLSM running on Julia's hosted SDL backend, from device creation to backend shutdown. */
 public final class GlsmSession implements AutoCloseable {
+    private static final System.Logger LOG = System.getLogger(GlsmSession.class.getName());
+
     /** Drawable size in pixels; bounded so readback buffers stay addressable. */
     public record Size(int width, int height) {
         public Size {
@@ -61,6 +63,7 @@ public final class GlsmSession implements AutoCloseable {
         if (!driver.equalsIgnoreCase(device.getDriverName())) {
             throw new IllegalStateException("Expected " + driver + " device, got " + device.getDriverName());
         }
+        LOG.log(System.Logger.Level.INFO, "Created {0} device on {1}", device.getDriverName(), device.getDeviceName());
         if (window != 0) device.claimWindow(window);
         backend = BackendManager.RENDER_BACKEND;
         if (!(backend instanceof HostedBackend))
@@ -73,6 +76,13 @@ public final class GlsmSession implements AutoCloseable {
                 .build());
         GLStateManager.setRunningSplash(false);
         GLStateManager.markSplashComplete(label);
+        LOG.log(
+                System.Logger.Level.INFO,
+                "GLSM ready on {0} at {1}x{2} ({3})",
+                backend.getName(),
+                size.width(),
+                size.height(),
+                window == 0 ? "offscreen" : "windowed");
     }
 
     public Device device() {

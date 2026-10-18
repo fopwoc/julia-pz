@@ -6,9 +6,19 @@ import dev.julia.runtime.RenderSession;
 import dev.julia.transform.TestFrames;
 import dev.julia.transform.pass.DispatchPass;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
+import java.util.function.IntSupplier;
 import org.junit.jupiter.api.Test;
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
 class RuntimePreparationTest {
     @Test
@@ -35,8 +45,7 @@ class RuntimePreparationTest {
             session.close();
         }
         var error = assertThrows(
-                java.lang.reflect.InvocationTargetException.class,
-                () -> type.getMethod("draw").invoke(null));
+                InvocationTargetException.class, () -> type.getMethod("draw").invoke(null));
         assertInstanceOf(IllegalStateException.class, error.getCause());
     }
 
@@ -50,10 +59,10 @@ class RuntimePreparationTest {
 
     @Test
     void rejectsNonJdkTypesAcrossLoaderBoundary() {
-        var node = new org.objectweb.asm.tree.ClassNode();
-        var method = new org.objectweb.asm.tree.MethodNode();
+        var node = new ClassNode();
+        var method = new MethodNode();
         node.methods.add(method);
-        method.instructions.add(new org.objectweb.asm.tree.MethodInsnNode(
+        method.instructions.add(new MethodInsnNode(
                 Opcodes.INVOKESTATIC,
                 "com/gtnewhorizons/angelica/glsm/GLStateManager",
                 "callback",
@@ -65,13 +74,13 @@ class RuntimePreparationTest {
     @Test
     void blocksNativeCapabilityFunctionPointers() throws Exception {
         byte[] bytes = fixture("glGetError", "()I");
-        var node = new org.objectweb.asm.tree.ClassNode();
-        new org.objectweb.asm.ClassReader(bytes).accept(node, 0);
+        var node = new ClassNode();
+        new ClassReader(bytes).accept(node, 0);
         var method = node.methods.getFirst();
-        method.instructions.insert(new org.objectweb.asm.tree.InsnNode(Opcodes.POP2));
-        method.instructions.insert(new org.objectweb.asm.tree.FieldInsnNode(
-                Opcodes.GETFIELD, "org/lwjgl/opengl/GLCapabilities", "glGenTextures", "J"));
-        method.instructions.insert(new org.objectweb.asm.tree.MethodInsnNode(
+        method.instructions.insert(new InsnNode(Opcodes.POP2));
+        method.instructions.insert(
+                new FieldInsnNode(Opcodes.GETFIELD, "org/lwjgl/opengl/GLCapabilities", "glGenTextures", "J"));
+        method.instructions.insert(new MethodInsnNode(
                 Opcodes.INVOKESTATIC,
                 "org/lwjgl/opengl/GL",
                 "getCapabilities",
@@ -100,20 +109,20 @@ class RuntimePreparationTest {
         method.visitInvokeDynamicInsn(
                 "getAsInt",
                 "()Ljava/util/function/IntSupplier;",
-                new org.objectweb.asm.Handle(
+                new Handle(
                         Opcodes.H_INVOKESTATIC,
                         "java/lang/invoke/LambdaMetafactory",
                         "metafactory",
                         "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
                         false),
-                org.objectweb.asm.Type.getMethodType("()I"),
-                new org.objectweb.asm.Handle(
+                Type.getMethodType("()I"),
+                new Handle(
                         Opcodes.H_INVOKESTATIC,
                         "com/gtnewhorizons/angelica/glsm/GLStateManager",
                         "glGetError",
                         "()I",
                         false),
-                org.objectweb.asm.Type.getMethodType("()I"));
+                Type.getMethodType("()I"));
         method.visitInsn(Opcodes.ARETURN);
         method.visitMaxs(1, 0);
         method.visitEnd();
@@ -129,8 +138,7 @@ class RuntimePreparationTest {
         var session = RenderSession.open(
                 (owner, name, signature) -> MethodHandles.constant(int.class, 77), TestFrames.idle());
         try {
-            var supplier =
-                    (java.util.function.IntSupplier) type.getMethod("supplier").invoke(null);
+            var supplier = (IntSupplier) type.getMethod("supplier").invoke(null);
             assertEquals(77, supplier.getAsInt());
         } finally {
             session.close();

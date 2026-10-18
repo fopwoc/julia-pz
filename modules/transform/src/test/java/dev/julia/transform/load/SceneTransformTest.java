@@ -3,25 +3,28 @@ package dev.julia.transform.load;
 import static org.junit.jupiter.api.Assertions.*;
 
 import dev.julia.audit.scan.GraphicsClassScanner;
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 
 class SceneTransformTest {
     @Test
     void routesRealLwjglCallsToGlsm() {
         byte[] transformed = SceneTransform.adapt(scene(true, false));
         var references = new GraphicsClassScanner(symbol -> true).scan(transformed);
-        var node = new org.objectweb.asm.tree.ClassNode();
-        new org.objectweb.asm.ClassReader(transformed).accept(node, 0);
+        var node = new ClassNode();
+        new ClassReader(transformed).accept(node, 0);
         assertTrue(node.methods.stream()
-                .flatMap(method -> java.util.Arrays.stream(method.instructions.toArray()))
-                .filter(org.objectweb.asm.tree.InvokeDynamicInsnNode.class::isInstance)
-                .map(org.objectweb.asm.tree.InvokeDynamicInsnNode.class::cast)
+                .flatMap(method -> Arrays.stream(method.instructions.toArray()))
+                .filter(InvokeDynamicInsnNode.class::isInstance)
+                .map(InvokeDynamicInsnNode.class::cast)
                 .anyMatch(call -> call.bsm.getOwner().equals("dev/julia/runtime/RenderDispatch")
                         && call.name.equals("glClear")
-                        && java.util.Arrays.asList(call.bsmArgs)
-                                .contains("com/gtnewhorizons/angelica/glsm/GLStateManager")));
+                        && Arrays.asList(call.bsmArgs).contains("com/gtnewhorizons/angelica/glsm/GLStateManager")));
         assertFalse(references.stream()
                 .anyMatch(reference -> reference.target().owner().startsWith("org/lwjgl/opengl/")));
     }

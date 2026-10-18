@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +25,7 @@ class RenderSessionTest {
         FrameHooks.begin();
         session.close();
         session.close();
-        assertEquals(java.util.List.of("begin", "present", "begin", "abort", "close"), events);
+        assertEquals(List.of("begin", "present", "begin", "abort", "close"), events);
         assertThrows(IllegalStateException.class, FrameHooks::begin);
     }
 
@@ -56,7 +57,7 @@ class RenderSessionTest {
         assertArrayEquals(new Throwable[] {cleanup}, failure.getSuppressed());
         assertThrows(IllegalStateException.class, FrameHooks::begin);
         session.close();
-        assertEquals(java.util.List.of("begin", "abort", "close"), events);
+        assertEquals(List.of("begin", "abort", "close"), events);
         RenderSession.open(NO_TARGETS, frames(new ArrayList<>())).close();
     }
 

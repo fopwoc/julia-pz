@@ -5,11 +5,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import dev.julia.runtime.RenderSession;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.lwjglx.opengl.Display;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
+import zombie.core.SpriteRenderer;
 
 class FramePassTest {
     @Test
@@ -17,15 +20,15 @@ class FramePassTest {
         var type = load(fixture(true));
         var events = new ArrayList<String>();
         var session = session(events);
-        zombie.core.SpriteRenderer.fail = false;
-        int before = org.lwjglx.opengl.Display.updates;
+        SpriteRenderer.fail = false;
+        int before = Display.updates;
         try {
             assertEquals(true, type.getMethod("lockStepRenderStep").invoke(null));
         } finally {
             session.close();
         }
-        assertEquals(java.util.List.of("begin", "present", "close"), events);
-        assertEquals(before + 1, org.lwjglx.opengl.Display.updates);
+        assertEquals(List.of("begin", "present", "close"), events);
+        assertEquals(before + 1, Display.updates);
     }
 
     @Test
@@ -33,8 +36,8 @@ class FramePassTest {
         var type = load(fixture(true));
         var events = new ArrayList<String>();
         var session = session(events);
-        zombie.core.SpriteRenderer.fail = true;
-        int before = org.lwjglx.opengl.Display.updates;
+        SpriteRenderer.fail = true;
+        int before = Display.updates;
         try {
             var failure = assertThrows(
                     InvocationTargetException.class,
@@ -42,10 +45,10 @@ class FramePassTest {
             assertEquals("synthetic draw failure", failure.getCause().getMessage());
         } finally {
             session.close();
-            zombie.core.SpriteRenderer.fail = false;
+            SpriteRenderer.fail = false;
         }
-        assertEquals(java.util.List.of("begin", "abort", "close"), events);
-        assertEquals(before, org.lwjglx.opengl.Display.updates);
+        assertEquals(List.of("begin", "abort", "close"), events);
+        assertEquals(before, Display.updates);
     }
 
     @Test

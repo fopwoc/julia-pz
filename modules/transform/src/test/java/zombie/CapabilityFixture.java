@@ -1,13 +1,14 @@
 package zombie;
 
 import org.lwjgl.opengl.GL;
+import org.lwjglx.opengl.Display;
 
 /** Local capability objects survive branches through transformed stack-map frames. */
 public final class CapabilityFixture {
     private CapabilityFixture() {}
 
     public static boolean displayFlag() {
-        return org.lwjglx.opengl.Display.capabilities.GL_ARB_texture_compression;
+        return Display.capabilities.GL_ARB_texture_compression;
     }
 
     public static int flags(boolean branch) {

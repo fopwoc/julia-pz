@@ -1,5 +1,6 @@
 package dev.julia.transform.load;
 
+import java.util.List;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -45,7 +46,7 @@ public final class LegacyNamespacePass {
         return annotated(node.visibleAnnotations) || annotated(node.invisibleAnnotations);
     }
 
-    private static boolean annotated(java.util.List<AnnotationNode> annotations) {
+    private static boolean annotated(List<AnnotationNode> annotations) {
         return annotations != null && annotations.stream().anyMatch(annotation -> annotation.desc.equals(AWARE));
     }
 }

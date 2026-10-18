@@ -11,6 +11,7 @@ import org.lwjgl.system.Configuration;
  * is left as it was before the runtime started.
  */
 public final class HostedVideo implements AutoCloseable {
+    private static final System.Logger LOG = System.getLogger(HostedVideo.class.getName());
     private final Platform platform;
 
     private HostedVideo(Platform platform) {
@@ -23,6 +24,7 @@ public final class HostedVideo implements AutoCloseable {
         Configuration.OPENGL_EXPLICIT_INIT.set(true);
         BackendOptions.latch(true, platform.gpuDriver(), 0);
         Sdl.require(SDLInit.SDL_Init(SDLInit.SDL_INIT_VIDEO), "Initialize SDL video");
+        LOG.log(System.Logger.Level.INFO, "SDL video initialized for {0} ({1})", platform, platform.gpuDriver());
         return new HostedVideo(platform);
     }
 
@@ -36,6 +38,7 @@ public final class HostedVideo implements AutoCloseable {
             GlDispatch.release();
         } finally {
             SDLInit.SDL_Quit();
+            LOG.log(System.Logger.Level.INFO, "SDL video shut down; isolated GL dispatch released");
         }
     }
 }

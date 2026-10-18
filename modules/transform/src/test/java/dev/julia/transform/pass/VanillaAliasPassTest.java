@@ -9,9 +9,14 @@ import dev.julia.transform.prepare.RuntimePreparation;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 
 class VanillaAliasesTest {
     private static final ArrayList<Double> DEPTHS = new ArrayList<>();
@@ -45,7 +50,7 @@ class VanillaAliasesTest {
         } finally {
             session.close();
         }
-        assertEquals(java.util.List.of((double) 0.1f), DEPTHS);
+        assertEquals(List.of((double) 0.1f), DEPTHS);
     }
 
     @Test
@@ -70,14 +75,13 @@ class VanillaAliasesTest {
         writer.visitEnd();
         var prepared = new RuntimePreparation().prepare(writer.toByteArray());
         assertTrue(prepared.ready(), prepared.blockers().toString());
-        var node = new org.objectweb.asm.tree.ClassNode();
-        new org.objectweb.asm.ClassReader(prepared.requireBytecode()).accept(node, 0);
+        var node = new ClassNode();
+        new ClassReader(prepared.requireBytecode()).accept(node, 0);
         assertTrue(node.methods.stream()
-                .flatMap(m -> java.util.Arrays.stream(m.instructions.toArray()))
-                .filter(org.objectweb.asm.tree.InvokeDynamicInsnNode.class::isInstance)
-                .map(org.objectweb.asm.tree.InvokeDynamicInsnNode.class::cast)
-                .anyMatch(
-                        call -> java.util.Arrays.asList(call.bsmArgs).contains(Endpoint.UNIFORM_QUERY_BRIDGE.owner())));
+                .flatMap(m -> Arrays.stream(m.instructions.toArray()))
+                .filter(InvokeDynamicInsnNode.class::isInstance)
+                .map(InvokeDynamicInsnNode.class::cast)
+                .anyMatch(call -> Arrays.asList(call.bsmArgs).contains(Endpoint.UNIFORM_QUERY_BRIDGE.owner())));
     }
 
     static void depth(double value) {

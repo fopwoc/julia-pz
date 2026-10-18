@@ -2,6 +2,7 @@ package dev.julia.transform.prepare;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
@@ -41,7 +42,7 @@ class RuntimeProcessTest {
     private static String read(Path path) {
         try {
             return Files.readString(path);
-        } catch (java.io.IOException failure) {
+        } catch (IOException failure) {
             return failure.toString();
         }
     }
