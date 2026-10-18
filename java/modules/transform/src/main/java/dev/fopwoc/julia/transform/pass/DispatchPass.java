@@ -17,7 +17,8 @@ import org.objectweb.asm.tree.VarInsnNode;
 
 /**
  * Replaces endpoint calls and method handles with typed {@code invokedynamic} call sites, so transformed consumers
- * never link against the isolated runtime's classes.
+ * never link against the isolated runtime's classes. The immutable capability snapshot lives in the shared runtime
+ * and stays callable from game-logic threads without a render session.
  */
 public final class DispatchPass {
     private static final Handle BOOTSTRAP = new Handle(
@@ -37,7 +38,9 @@ public final class DispatchPass {
         int count = 0;
         for (var method : node.methods) {
             for (var instruction : method.instructions.toArray()) {
-                if (instruction instanceof MethodInsnNode call && Endpoint.contains(call.owner)) {
+                if (instruction instanceof MethodInsnNode call
+                        && Endpoint.contains(call.owner)
+                        && !Endpoint.CAPABILITY_BRIDGE.is(call.owner)) {
                     if (call.getOpcode() != Opcodes.INVOKESTATIC)
                         throw new IllegalArgumentException("Nonstatic backend call");
                     checkDescriptor(call.desc);
@@ -77,7 +80,9 @@ public final class DispatchPass {
     }
 
     private static Object constant(ClassNode node, List<MethodNode> helpers, Object value) {
-        if (value instanceof Handle handle && Endpoint.contains(handle.getOwner())) {
+        if (value instanceof Handle handle
+                && Endpoint.contains(handle.getOwner())
+                && !Endpoint.CAPABILITY_BRIDGE.is(handle.getOwner())) {
             return helperHandle(node, helpers, handle);
         }
         if (value instanceof ConstantDynamic dynamic) {

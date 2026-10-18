@@ -2,13 +2,11 @@ package dev.fopwoc.julia.transform.pass;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import dev.fopwoc.julia.runtime.RenderSession;
-import dev.fopwoc.julia.transform.Endpoint;
-import dev.fopwoc.julia.transform.TestFrames;
+import dev.fopwoc.julia.runtime.CapabilitySnapshot;
 import dev.fopwoc.julia.transform.prepare.RuntimePreparation;
-import java.lang.invoke.MethodHandles;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
@@ -31,20 +29,20 @@ class CapabilityPassTest {
                 return defineClass(null, bytes, 0, bytes.length);
             }
         }.define();
-        var session = RenderSession.open(
-                (owner, name, signature) -> {
-                    assertEquals(Endpoint.CAPABILITY_BRIDGE.owner(), owner);
-                    assertEquals("current", name);
-                    return MethodHandles.constant(
-                            Set.class, Set.of("OpenGL33", "GL_ARB_framebuffer_object", "GL_ARB_texture_compression"));
-                },
-                TestFrames.idle());
-        try {
+        var snapshot = CapabilitySnapshot.publish(
+                Set.of("OpenGL33", "GL_ARB_framebuffer_object", "GL_ARB_texture_compression"));
+        try (snapshot) {
             assertEquals(11, type.getMethod("flags", boolean.class).invoke(null, true));
             assertEquals(10, type.getMethod("flags", boolean.class).invoke(null, false));
             assertEquals(true, type.getMethod("displayFlag").invoke(null));
-        } finally {
-            session.close();
+            var flags = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return type.getMethod("flags", boolean.class).invoke(null, true);
+                } catch (ReflectiveOperationException failure) {
+                    throw new IllegalStateException(failure);
+                }
+            });
+            assertEquals(11, flags.get());
         }
     }
 

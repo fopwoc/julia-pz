@@ -8,6 +8,7 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.device.Device;
 import dev.fopwoc.julia.backend.HostedBackend;
+import dev.fopwoc.julia.runtime.CapabilitySnapshot;
 import java.util.function.Supplier;
 import me.eigenraven.lwjgl3ify.api.GLCapabilitiesOverride;
 
@@ -31,6 +32,7 @@ public final class GlsmSession implements AutoCloseable {
     private final Device device;
     private RenderBackend backend;
     private Size size;
+    private CapabilitySnapshot capabilities;
 
     private GlsmSession(Device device) {
         this.device = device;
@@ -76,6 +78,7 @@ public final class GlsmSession implements AutoCloseable {
                 .build());
         GLStateManager.setRunningSplash(false);
         GLStateManager.markSplashComplete(label);
+        capabilities = CapabilitySnapshot.publish(SDLGPURenderBackend.advertisedCapabilities());
         LOG.log(
                 System.Logger.Level.INFO,
                 "GLSM ready on {0} at {1}x{2} ({3})",
@@ -100,7 +103,11 @@ public final class GlsmSession implements AutoCloseable {
     @Override
     public void close() {
         // Once the backend exists it owns the device and its shutdown destroys both.
-        if (backend != null) BackendManager.shutdown();
-        else device.destroyDevice();
+        try {
+            if (backend != null) BackendManager.shutdown();
+            else device.destroyDevice();
+        } finally {
+            if (capabilities != null) capabilities.close();
+        }
     }
 }

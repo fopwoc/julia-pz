@@ -61,13 +61,13 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
 - Inside the running game, the mod runs self-verifying probes on PZ's render thread: a Metal device baseline, the full
   GLSM adapter drawing through redirected OpenGL calls, and an experimental presentation into the game window. Each
   probe checks its output pixel by pixel and then restores the game's GL state.
-- Offline preparation of vanilla reports 182/182 graphics consumers structurally ready, 1,993 routed call sites and
+- Offline preparation of vanilla reports 182/182 graphics consumers structurally ready and
   zero static blockers. Structural readiness does not establish rendering correctness; startup activation is explicit.
 - Debug callbacks now cross the isolated runtime through a typed Java method handle. Windowless checks verify SDL
   validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
   Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
   Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
-- The current offline checks pass 123 JVM tests and verify 37,760 pixels on windowless Metal. The latest bridges have not
+- The current offline checks pass 125 JVM tests and verify 37,760 pixels on windowless Metal. The latest bridges have not
   been tested inside PZ.
 - ImGui draw handoffs stay on the game side, calling the prepared renderer and then freeing the owned draw data.
   The archive gate requires that renderer to be included and prepared. A separate windowless probe uses the supplied
@@ -92,8 +92,12 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   is scaled to the Retina drawable. Full-size UI and aligned input are user-confirmed. Purple menu video, modular-shader
   linking failures remain runtime blockers. Ranged indexed quads now use the existing quad conversion, with both triangle
   halves verified offscreen for every index width. Invalid matrix uploads return a GL error before touching staging,
-  preventing the observed bone-palette overflow from aborting the renderer. These two fixes await a live retry; they
-  do not resolve the failed character shaders. No gameplay claim is made.
+  preventing the observed bone-palette overflow from aborting the renderer. A live retry no longer froze, but the map
+  was black and character/world views were black or flickering. Failed character shaders remain unresolved. An
+  additional world-entry exception came from a capability read on the game-logic thread. Capability flags now live in
+  an immutable shared snapshot with backend-scoped publication; only GPU operations enter the render-thread dispatch.
+  Cross-thread reads, lazy startup, revocation and GPU-thread enforcement pass offline; this fix awaits a live retry.
+  No gameplay claim is made.
 - Viewpoint and other mods that use modern OpenGL come after vanilla.
 
 | Platform | GPU API | State |
