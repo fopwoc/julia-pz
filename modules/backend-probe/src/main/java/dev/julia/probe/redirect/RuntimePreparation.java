@@ -25,6 +25,7 @@ public final class RuntimePreparation {
         catch (IllegalArgumentException failure) { blockers.add("CAPABILITY_BOUNDARY " + failure.getMessage()); }
         VanillaAliases.adapt(node);
         UniformBindings.adapt(node);
+        UniformQueryBindings.adapt(node);
         TextureAllocationBindings.adapt(node);
         var snapshot = new ClassWriter(0);
         node.accept(snapshot);

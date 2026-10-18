@@ -99,3 +99,5 @@ The offscreen adapter now checks three frames with GPU-idle waits to exercise co
 The [runtime preparation tool](docs/runtime-preparation.md) checks whole archives and prepares typed isolated calls plus PZ frame hooks entirely offline. It does not activate the game renderer.
 
 [Capability routing and exact vanilla aliases](docs/capability-routing.md) now reduce the offline activation report from 34 to 14 blockers. Backend-advertised feature flags remain distinct from verified operation coverage.
+
+[Tracked uniform readback and integer-array upload checks](docs/uniform-state.md) now leave eight static activation blockers. Indexed array locations, program-resource introspection, and other documented semantic limits remain separate work.

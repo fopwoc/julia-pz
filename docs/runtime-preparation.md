@@ -38,3 +38,7 @@ Pointer semantics checked against [Khronos's glTexImage3D reference](https://git
 ## Capability and alias milestone
 
 The newer [capability routing checks](capability-routing.md) reduce the whole-archive report to 14 unique blockers: 174/182 structurally ready classes and 1,783 routed calls. 62 JVM tests and the updated 3,072-pixel windowless Metal suite pass. Live activation remains blocked. Earlier counts in this document record the preceding milestones.
+
+## Uniform-state milestone
+
+[Tracked uniform queries and integer uploads](uniform-state.md) reduce the report to 8 unique blockers: 175/182 structurally ready classes and 1,810 routed sites. 69 JVM tests and the updated 3,072-pixel windowless Metal suite pass. Ordinary readbacks use actual staged shader values; program-resource introspection and live activation remain blocked.

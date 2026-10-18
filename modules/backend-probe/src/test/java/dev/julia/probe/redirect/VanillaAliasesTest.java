@@ -37,7 +37,7 @@ class VanillaAliasesTest {
         assertEquals(java.util.List.of((double) 0.1f), DEPTHS);
     }
 
-    @Test void refusesTheInheritedEmptyUniformReadImplementation() throws Exception {
+    @Test void bypassesTheInheritedEmptyUniformReadImplementation() throws Exception {
         var writer = new ClassWriter(0);
         writer.visit(Opcodes.V25, Opcodes.ACC_PUBLIC, "zombie/UniformReadFixture", null, "java/lang/Object", null);
         var method = writer.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "read", "(IILjava/nio/FloatBuffer;)V", null, null);
@@ -51,9 +51,13 @@ class VanillaAliasesTest {
         method.visitEnd();
         writer.visitEnd();
         var prepared = new RuntimePreparation().prepare(writer.toByteArray());
-        assertFalse(prepared.ready());
-        assertTrue(prepared.blockers().stream().anyMatch(s -> s.startsWith("UNIMPLEMENTED_BACKEND")), prepared.blockers().toString());
-        assertThrows(IllegalStateException.class, prepared::requireBytecode);
+        assertTrue(prepared.ready(), prepared.blockers().toString());
+        var node = new org.objectweb.asm.tree.ClassNode();
+        new org.objectweb.asm.ClassReader(prepared.requireBytecode()).accept(node, 0);
+        assertTrue(node.methods.stream().flatMap(m -> java.util.Arrays.stream(m.instructions.toArray()))
+                .filter(org.objectweb.asm.tree.InvokeDynamicInsnNode.class::isInstance)
+                .map(org.objectweb.asm.tree.InvokeDynamicInsnNode.class::cast)
+                .anyMatch(call -> java.util.Arrays.asList(call.bsmArgs).contains(UniformQueryBindings.OWNER)));
     }
 
     static void depth(double value) { DEPTHS.add(value); }
