@@ -3,6 +3,7 @@ package dev.fopwoc.julia.transform.load;
 import java.util.Set;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 
@@ -27,7 +28,16 @@ public final class WindowQueryPass {
         new ClassReader(bytes).accept(node, 0);
         boolean changed = false;
         for (var method : node.methods) {
-            for (var instruction : method.instructions) {
+            for (var instruction : method.instructions.toArray()) {
+                if (className.equals(ROOT + "device.Device")
+                        && method.name.equals("getWindowSizeInPixels")
+                        && method.desc.equals("()J")
+                        && instruction.getOpcode() == Opcodes.LRETURN) {
+                    method.instructions.insertBefore(
+                            instruction,
+                            new MethodInsnNode(Opcodes.INVOKESTATIC, HOST_WINDOW, "renderSize", "(J)J", false));
+                    changed = true;
+                }
                 if (instruction instanceof MethodInsnNode call
                         && call.owner.equals(DISPLAY)
                         && QUERIES.contains(call.name + call.desc)) {

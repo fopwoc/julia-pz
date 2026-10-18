@@ -50,6 +50,19 @@ class HostWindowTest {
     }
 
     @Test
+    void logicalRenderingKeepsHostCoordinatesAndLeavesNativeProbeResolutionUnchanged() {
+        long pixels = ((long) 1280 << 32) | 960;
+        try (var binding = HostWindow.bind(42, 640, 480)) {
+            assertEquals(pixels, HostWindow.renderSize(pixels));
+            binding.useLogicalResolution();
+            assertEquals(((long) 640 << 32) | 480, HostWindow.renderSize(pixels));
+            binding.dimensions(801, 601);
+            assertEquals(((long) 801 << 32) | 601, HostWindow.renderSize(pixels));
+            assertEquals(0, HostWindow.renderSize(0));
+        }
+    }
+
+    @Test
     void rejectsNullHandlesAndInvalidDimensions() {
         assertThrows(IllegalArgumentException.class, () -> HostWindow.bind(0, 640, 480));
         assertThrows(IllegalArgumentException.class, () -> HostWindow.bind(42, 0, 480));

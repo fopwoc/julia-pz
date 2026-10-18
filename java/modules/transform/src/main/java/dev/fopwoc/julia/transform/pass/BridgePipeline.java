@@ -28,6 +28,7 @@ public final class BridgePipeline {
         DebugCallbackPass.adapt(node);
         TextureAllocationPass.adapt(node);
         ImGuiPass.adapt(node);
+        ShutdownPass.adapt(node);
         return node;
     }
 }

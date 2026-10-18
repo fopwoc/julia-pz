@@ -8,6 +8,7 @@ public final class HostWindow implements AutoCloseable {
     private int width;
     private int height;
     private boolean resized = true;
+    private boolean logicalRendering;
 
     private HostWindow(long handle, int width, int height) {
         this.handle = handle;
@@ -35,6 +36,18 @@ public final class HostWindow implements AutoCloseable {
 
     public static int getHeight() {
         return require().height;
+    }
+
+    /** Render in the host's GL coordinate space; the final present scales to the native drawable. */
+    public void useLogicalResolution() {
+        requireOwner();
+        logicalRendering = true;
+    }
+
+    public static long renderSize(long nativePixels) {
+        if (nativePixels == 0) return 0;
+        var window = require();
+        return window.logicalRendering ? ((long) window.width << 32) | (window.height & 0xffffffffL) : nativePixels;
     }
 
     public static boolean wasResized() {

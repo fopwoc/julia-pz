@@ -13,6 +13,8 @@ public final class RenderSession implements AutoCloseable {
     }
 
     public interface Frames {
+        default void beforeCall() {}
+
         void begin();
 
         void present();
@@ -52,6 +54,10 @@ public final class RenderSession implements AutoCloseable {
 
     static RenderSession current() {
         var session = CURRENT.get();
+        if (session == null) {
+            StartupHooks.ensure();
+            session = CURRENT.get();
+        }
         if (session == null)
             throw new IllegalStateException(
                     "No render session on thread " + Thread.currentThread().getName());
@@ -61,6 +67,7 @@ public final class RenderSession implements AutoCloseable {
 
     MethodHandle target(String owner, String name, MethodType type) throws ReflectiveOperationException {
         requireUsable();
+        frames.beforeCall();
         var symbol = new Symbol(owner, name, type);
         var method = methods.get(symbol);
         if (method == null) {

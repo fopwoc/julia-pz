@@ -55,18 +55,19 @@ sequenceDiagram
 
 ## Status
 
-Julia is in its integration stage and **does not replace the game renderer yet**. What works today:
+Julia is in its integration stage. An **experimental startup agent** redirects vanilla rendering to Metal; the normal
+ZombieBuddy mod entry still runs probes. The startup path is not ready for gameplay. What works today:
 
 - Inside the running game, the mod runs self-verifying probes on PZ's render thread: a Metal device baseline, the full
   GLSM adapter drawing through redirected OpenGL calls, and an experimental presentation into the game window. Each
   probe checks its output pixel by pixel and then restores the game's GL state.
 - Offline preparation of vanilla reports 182/182 graphics consumers structurally ready, 1,993 routed call sites and
-  zero static blockers. Structural readiness does not establish rendering correctness; live activation remains disabled.
+  zero static blockers. Structural readiness does not establish rendering correctness; startup activation is explicit.
 - Debug callbacks now cross the isolated runtime through a typed Java method handle. Windowless checks verify SDL
   validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
   Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
   Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
-- The current offline checks pass 114 JVM tests and verify 37,568 pixels on windowless Metal. The latest bridges have not
+- The current offline checks pass 119 JVM tests and verify 37,568 pixels on windowless Metal. The latest bridges have not
   been tested inside PZ.
 - ImGui draw handoffs stay on the game side, calling the prepared renderer and then freeing the owned draw data.
   The archive gate requires that renderer to be included and prepared. A separate windowless probe uses the supplied
@@ -85,6 +86,11 @@ Julia is in its integration stage and **does not replace the game renderer yet**
   subsets, format reinterpretation and compute dispatch with bound stencil-aspect textures are explicitly rejected.
   Julia also replaces GLSM's Minecraft texture-shrinking deletion workaround and loads the bundled backend shaders
   without Minecraft. Native calls zero-extend stencil references to preserve values 128–255 on macOS ARM64.
+- The startup agent preflights classpath archives, rejects changed or unplanned graphics consumers, opens its isolated
+  backend on the first render-context call, and closes it before the host window is destroyed. Initialization uploads
+  survive the first frame boundary. Live vanilla testing reaches the menu through Metal; the host's logical render size
+  is scaled to the Retina drawable. Full-size UI and aligned input are user-confirmed. Purple menu video, modular-shader
+  linking failures, broken map triangles and a character-preview abort remain runtime blockers. No gameplay claim is made.
 - Viewpoint and other mods that use modern OpenGL come after vanilla.
 
 | Platform | GPU API | State |
@@ -144,3 +150,12 @@ See [THIRD_PARTY.md](THIRD_PARTY.md).
 
 > [!NOTE]
 > This project contains AI-generated code. See [AI_USAGE.md](AI_USAGE.md) for details.
+
+### Experimental startup test
+
+Build `./gradlew :agent:jar`. Launch the game with
+`-javaagent:/absolute/path/julia-agent.jar=activate=/absolute/path/new-report-directory`, using a separate game profile.
+The agent keeps its graphics libraries nested and does not add its LWJGL to the game classpath. Test with an explicit
+vanilla classpath: the standard launcher may also include separate tools such as ZombieBuddy's native ImGui approval UI,
+which appropriately fail whole-input preparation. This experimental path refuses startup when preparation is blocked.
+Do not load it alongside the ZombieBuddy probe mod or use an existing save for validation.

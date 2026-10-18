@@ -42,6 +42,24 @@ class WindowQueryPassTest {
         }
     }
 
+    @Test
+    void remapsFinalTargetSizeAtEveryDeviceReturn() {
+        var writer = new ClassWriter(0);
+        writer.visit(Opcodes.V25, Opcodes.ACC_PUBLIC, DEVICE.replace('.', '/'), null, "java/lang/Object", null);
+        var method = writer.visitMethod(Opcodes.ACC_PUBLIC, "getWindowSizeInPixels", "()J", null, null);
+        method.visitCode();
+        method.visitInsn(Opcodes.LCONST_0);
+        method.visitInsn(Opcodes.LRETURN);
+        method.visitMaxs(2, 1);
+        method.visitEnd();
+        var node = new ClassNode();
+        new ClassReader(WindowQueryPass.adapt(DEVICE, writer.toByteArray())).accept(node, 0);
+        var call = (MethodInsnNode) node.methods.getFirst().instructions.get(1);
+        assertEquals(WindowQueryPass.HOST_WINDOW, call.owner);
+        assertEquals("renderSize", call.name);
+        assertEquals("(J)J", call.desc);
+    }
+
     private static byte[] fixture() {
         var writer = new ClassWriter(0);
         writer.visit(Opcodes.V25, Opcodes.ACC_PUBLIC, DEVICE.replace('.', '/'), null, "java/lang/Object", null);

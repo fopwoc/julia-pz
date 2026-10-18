@@ -1,5 +1,8 @@
 package dev.fopwoc.julia.backend;
 
+import static org.lwjgl.opengl.GL11.GL_RED;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL43.GL_DEPTH_STENCIL_TEXTURE_MODE;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
@@ -8,6 +11,7 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.texture.TextureViews;
+import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
 /** Selects the real SDL backend for an explicitly created device without Minecraft's display gate. */
@@ -39,6 +43,29 @@ public final class HostedBackend extends SDLGPURenderBackend {
     public void bindTexture(int target, int name) {
         textureViews.bound(name);
         super.bindTexture(target, name);
+    }
+
+    @Override
+    public void texImage2D(
+            int target,
+            int level,
+            int format,
+            int width,
+            int height,
+            int border,
+            int pixelFormat,
+            int type,
+            ByteBuffer data) {
+        super.texImage2D(
+                target,
+                level,
+                format == GL_RED && type == GL_UNSIGNED_BYTE ? GL_R8 : format,
+                width,
+                height,
+                border,
+                pixelFormat,
+                type,
+                data);
     }
 
     @Override

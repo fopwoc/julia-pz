@@ -6,4 +6,7 @@ plugins {
 dependencies {
     api(project(":render-runtime"))
     implementation(project(":transform"))
+    implementation(project(":gl-audit"))
+    implementation(project(":utils"))
+    testImplementation(libs.asm.tree)
 }
