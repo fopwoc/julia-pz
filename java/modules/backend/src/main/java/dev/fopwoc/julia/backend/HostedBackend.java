@@ -6,12 +6,18 @@ import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
+import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.texture.TextureViews;
 import java.nio.IntBuffer;
 
 /** Selects the real SDL backend for an explicitly created device without Minecraft's display gate. */
 public final class HostedBackend extends SDLGPURenderBackend {
     private final TextureViews textureViews = new TextureViews();
+    private final ProgramResourceCache programResources = new ProgramResourceCache();
+
+    public ProgramResourceCache programResources() {
+        return programResources;
+    }
 
     public TextureViews textureViews() {
         return textureViews;
@@ -114,6 +120,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
     public void shutdown() {
         // The upstream relay is static and would otherwise retain the host callback after device shutdown.
         DebugMessageRelay.setListener(null, 0L, false);
+        programResources.clear();
         try {
             textureViews.close();
         } catch (RuntimeException | Error failure) {

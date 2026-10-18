@@ -8,6 +8,7 @@ import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FBOClearTracker;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
+import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.texture.TextureViews;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -38,10 +39,13 @@ public final class BackendInternals {
     private static final VarHandle TEXTURE_METAS;
     private static final VarHandle RESOURCE_LOCK;
     private static final MethodHandle FLUSH_TEXTURE_REFERENCES;
+    private static final MethodHandle SUBMIT_PENDING_COMMANDS;
 
     static {
         try {
             var lookup = MethodHandles.privateLookupIn(SDLGPURenderBackend.class, MethodHandles.lookup());
+            SUBMIT_PENDING_COMMANDS = lookup.findVirtual(
+                    SDLGPURenderBackend.class, "flushAndSubmitMidFrame", MethodType.methodType(void.class));
             SHADERS = lookup.findVarHandle(SDLGPURenderBackend.class, "shaderManager", ShaderManager.class);
             RESOURCES = lookup.findVarHandle(SDLGPURenderBackend.class, "resourceManager", ResourceManager.class);
             FRAMES = lookup.findVarHandle(SDLGPURenderBackend.class, "frameManager", FrameManager.class);
@@ -102,6 +106,10 @@ public final class BackendInternals {
         return (FBOClearTracker) CLEARS.get(ownedBackend());
     }
 
+    public static ProgramResourceCache programResources() {
+        return ownedBackend().programResources();
+    }
+
     public static TextureViews views() {
         return ownedBackend().textureViews();
     }
@@ -159,6 +167,17 @@ public final class BackendInternals {
             while (iterator.hasNext()) if (!seen.add(iterator.next().getLongValue())) iterator.remove();
         } finally {
             lock.unlock();
+        }
+    }
+
+    /** Submit queued uploads before the consuming commands, including when a diagnostic ends a frame early. */
+    public static void submitPendingCommands() {
+        try {
+            SUBMIT_PENDING_COMMANDS.invokeExact((SDLGPURenderBackend) ownedBackend());
+        } catch (RuntimeException | Error failure) {
+            throw failure;
+        } catch (Throwable failure) {
+            throw new IllegalStateException("Cannot submit pending SDL commands", failure);
         }
     }
 

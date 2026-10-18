@@ -60,15 +60,20 @@ Julia is in its integration stage and **does not replace the game renderer yet**
 - Inside the running game, the mod runs self-verifying probes on PZ's render thread: a Metal device baseline, the full
   GLSM adapter drawing through redirected OpenGL calls, and an experimental presentation into the game window. Each
   probe checks its output pixel by pixel and then restores the game's GL state.
-- Offline preparation of vanilla reports 179/182 graphics consumers structurally ready, 1,895 routed call sites and
-  four blocked entry points: three program-resource queries and host ImGui rendering. Structural
+- Offline preparation of vanilla reports 181/182 graphics consumers structurally ready, 1,977 routed call sites and
+  one blocked entry point: host ImGui rendering. Structural
   readiness does not establish rendering correctness; live activation remains disabled.
 - Debug callbacks now cross the isolated runtime through a typed Java method handle. Windowless checks verify SDL
   validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
   Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
   Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
-- The current offline checks pass 103 JVM tests and verify 37,504 pixels on windowless Metal. The latest bridges have not
+- The current offline checks pass 111 JVM tests and verify 37,568 pixels on windowless Metal. The latest bridges have not
   been tested inside PZ.
+- Program-resource queries reflect linked SPIR-V storage blocks and buffer variables, recovering original GL bindings
+  from Angelica's remapped descriptor tables. Checks cover struct arrays, matrix and array strides, cross-stage blocks,
+  runtime arrays, compute read/write bindings, truncated outputs and cache invalidation after relinking. Only the three
+  observed query overloads and these two interfaces are bridged. Geometry stages, block instance arrays,
+  multidimensional/specialization arrays and nested arrays of structs are explicitly rejected.
 - Texture views support the full-image, same-format 2D path used by PZ: names share storage, sampler and aspect state
   stay independent, and deleting a parent preserves surviving views. Shader sampling of the stencil aspect uses a GPU
   extraction fallback, verified for all 256 values and after writes through a view. This correctness-first path records

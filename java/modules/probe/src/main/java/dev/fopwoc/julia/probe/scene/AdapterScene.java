@@ -100,6 +100,7 @@ public final class AdapterScene {
             Files.deleteIfExists(output.resolve("resource-checks.txt"));
             ResourceChecks.run();
             ViewChecks.run();
+            ProgramResourceChecks.run();
             Files.writeString(output.resolve("resource-checks.txt"), ResourceChecks.REPORT);
 
             if (window) {

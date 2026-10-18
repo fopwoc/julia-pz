@@ -44,6 +44,8 @@ public final class AdapterProbe {
                 capability_checks=backend snapshot,absent vendor flag
                 view_checks=shared writes,nested views,parent deletion,independent state,256 stencil values,view FBO writes
                 verified_view_pixels=1152
+                verified_program_resource_pixels=64
+                program_resource_checks=block layout,struct arrays,matrix stride,name/property truncation,cross-stage merge,original bindings,relink invalidation,compute RO/RW bindings,row-major matrix,runtime array
                 debug_checks=registration,UTF8 relay delivery,replacement,unregistration,shutdown cleanup
                 alias_checks=depth conversion,vec2 buffer position,image copy
                 draw=sampled texture

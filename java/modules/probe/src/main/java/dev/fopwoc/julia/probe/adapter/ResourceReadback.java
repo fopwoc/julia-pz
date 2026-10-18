@@ -48,7 +48,7 @@ public final class ResourceReadback {
                                 .transfer_buffer(download)
                                 .pixels_per_row(meta.width())
                                 .rows_per_layer(meta.height()));
-                frames.submitMidFrame();
+                BackendInternals.submitPendingCommands();
                 if (!SDL_WaitForGPUIdle(device)) throw new IllegalStateException("Cannot drain diagnostic download");
                 var state = BackendInternals.context();
                 int drawFbo = state.boundFboId, readFbo = state.boundReadFboId;
