@@ -8,6 +8,7 @@ human control.
 
 ## Models
 
+- OpenAI GPT-6.1 sol
 - Anthropic Claude Opus 5.5
 
 This describes development provenance and does not imply AI authorship or copyright ownership.
