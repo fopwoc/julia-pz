@@ -99,6 +99,7 @@ public final class AdapterScene {
             frameOpen = true;
             Files.deleteIfExists(output.resolve("resource-checks.txt"));
             ResourceChecks.run();
+            ClientPointerChecks.run();
             ViewChecks.run();
             ProgramResourceChecks.run();
             QuadChecks.run();

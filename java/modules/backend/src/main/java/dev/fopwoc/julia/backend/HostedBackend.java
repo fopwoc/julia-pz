@@ -14,6 +14,7 @@ import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 import dev.fopwoc.julia.backend.shader.MatrixUniformUploads;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
+import dev.fopwoc.julia.backend.texture.ClientPixels;
 import dev.fopwoc.julia.backend.texture.TextureViews;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -170,6 +171,27 @@ public final class HostedBackend extends SDLGPURenderBackend {
                 pixelFormat,
                 type,
                 data);
+    }
+
+    @Override
+    public void texImage2D(
+            int target,
+            int level,
+            int format,
+            int width,
+            int height,
+            int border,
+            int pixelFormat,
+            int type,
+            long pixels) {
+        var state = BackendInternals.context();
+        if (state.boundPixelUnpackBuffer != 0 || pixels == 0) {
+            super.texImage2D(target, level, format, width, height, border, pixelFormat, type, pixels);
+            return;
+        }
+        try (var client = ClientPixels.borrow(pixels, width, height, pixelFormat, type, state.pixelStore)) {
+            texImage2D(target, level, format, width, height, border, client.format(), type, client.data());
+        }
     }
 
     @Override
