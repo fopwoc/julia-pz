@@ -38,7 +38,6 @@ val modZip by tasks.registering(Zip::class) {
     destinationDirectory = layout.buildDirectory.dir("distributions")
     from(modRoot) {
         include("common/**", "42/**", "licenses/**", "LICENSE", "COPYRIGHT", "THIRD_PARTY.md")
-        exclude("**/*.pxd")
         into("Julia")
     }
 }
