@@ -22,6 +22,10 @@ public enum Endpoint {
     TEXTURE_ALLOCATION_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureAllocationBridge", false),
     BUFFER_STORAGE_BRIDGE("dev/fopwoc/julia/backend/bridge/BufferStorageBridge", false),
     TEXTURE_CLEAR_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureClearBridge", false),
+    TEXTURE_VIEW_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureViewBridge", false),
+    STENCIL_REFERENCE("dev/fopwoc/julia/backend/compat/StencilReference", false),
+    SHADER_SOURCES("dev/fopwoc/julia/backend/compat/ShaderSources", false),
+    TEXTURE_VIEW_HOOKS("dev/fopwoc/julia/backend/texture/TextureViewHooks", false),
     TEXTURE_COPY_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureCopyBridge", false);
 
     private static final Map<String, Endpoint> BY_OWNER =

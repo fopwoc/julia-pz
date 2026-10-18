@@ -50,7 +50,11 @@ public final class ResourceReadback {
                                 .rows_per_layer(meta.height()));
                 frames.submitMidFrame();
                 if (!SDL_WaitForGPUIdle(device)) throw new IllegalStateException("Cannot drain diagnostic download");
+                var state = BackendInternals.context();
+                int drawFbo = state.boundFboId, readFbo = state.boundReadFboId;
                 BackendManager.RENDER_BACKEND.invalidateStateMirror();
+                state.boundFboId = drawFbo;
+                state.boundReadFboId = readFbo;
                 var mapped = SDL_MapGPUTransferBuffer(device, download, false, bytes);
                 if (mapped == null) throw new IllegalStateException("Cannot map diagnostic download");
                 try {

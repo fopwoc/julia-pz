@@ -99,6 +99,7 @@ public final class AdapterScene {
             frameOpen = true;
             Files.deleteIfExists(output.resolve("resource-checks.txt"));
             ResourceChecks.run();
+            ViewChecks.run();
             Files.writeString(output.resolve("resource-checks.txt"), ResourceChecks.REPORT);
 
             if (window) {

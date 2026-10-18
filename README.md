@@ -60,15 +60,22 @@ Julia is in its integration stage and **does not replace the game renderer yet**
 - Inside the running game, the mod runs self-verifying probes on PZ's render thread: a Metal device baseline, the full
   GLSM adapter drawing through redirected OpenGL calls, and an experimental presentation into the game window. Each
   probe checks its output pixel by pixel and then restores the game's GL state.
-- Offline preparation of vanilla reports 178/182 graphics consumers structurally ready, 1,850 routed call sites and
-  five blocked entry points: three program-resource queries, texture views and host ImGui rendering. Structural
+- Offline preparation of vanilla reports 179/182 graphics consumers structurally ready, 1,895 routed call sites and
+  four blocked entry points: three program-resource queries and host ImGui rendering. Structural
   readiness does not establish rendering correctness; live activation remains disabled.
 - Debug callbacks now cross the isolated runtime through a typed Java method handle. Windowless checks verify SDL
   validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
   Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
   Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
-- The current offline checks pass 93 JVM tests and verify 36,352 pixels on windowless Metal. The callback bridge has not
+- The current offline checks pass 103 JVM tests and verify 37,504 pixels on windowless Metal. The latest bridges have not
   been tested inside PZ.
+- Texture views support the full-image, same-format 2D path used by PZ: names share storage, sampler and aspect state
+  stay independent, and deleting a parent preserves surviving views. Shader sampling of the stencil aspect uses a GPU
+  extraction fallback, verified for all 256 values and after writes through a view. This correctness-first path records
+  256 extraction draws per consumed source texture per draw; it is not a performance-ready implementation. Mip/layer
+  subsets, format reinterpretation and compute dispatch with bound stencil-aspect textures are explicitly rejected.
+  Julia also replaces GLSM's Minecraft texture-shrinking deletion workaround and loads the bundled backend shaders
+  without Minecraft. Native calls zero-extend stencil references to preserve values 128–255 on macOS ARM64.
 - Viewpoint and other mods that use modern OpenGL come after vanilla.
 
 | Platform | GPU API | State |

@@ -2,6 +2,9 @@ package dev.fopwoc.julia.host;
 
 import dev.fopwoc.julia.transform.load.LegacyNamespacePass;
 import dev.fopwoc.julia.transform.load.SceneTransform;
+import dev.fopwoc.julia.transform.load.ShaderSourcePass;
+import dev.fopwoc.julia.transform.load.StencilReferencePass;
+import dev.fopwoc.julia.transform.load.TextureViewPass;
 import dev.fopwoc.julia.transform.load.WindowQueryPass;
 import java.io.IOException;
 import java.net.URL;
@@ -46,6 +49,9 @@ final class RuntimeLoader extends URLClassLoader {
             }
             bytes = LegacyNamespacePass.adapt(name, bytes);
             bytes = WindowQueryPass.adapt(name, bytes);
+            bytes = TextureViewPass.adapt(name, bytes);
+            bytes = ShaderSourcePass.adapt(name, bytes);
+            bytes = StencilReferencePass.adapt(name, bytes);
             return defineClass(name, bytes, 0, bytes.length);
         } catch (IOException | RuntimeException failure) {
             throw new ClassNotFoundException(name, failure);
