@@ -1,23 +1,29 @@
-# Third-party graphics libraries
+# Third-party notices
 
-Julia's graphics backend consumes the unmodified Angelica `sdl-gpu` and `glsm` 2.2.34 artifacts. No Angelica implementation source is vendored in Julia. Julia's isolated runtime remaps selected legacy binding and host-state references in memory as classes load; the published JARs remain intact on disk.
+Julia's own code is WTFNMFPL (see `COPYRIGHT`). The libraries below ship with it and keep their own licenses.
 
-Angelica is developed by GTNewHorizons and its contributors and is licensed under GNU LGPL version 3. Its upstream license also preserves credits for daxnitro, id_miner, and karyonix. Additional upstream file-specific notices remain applicable.
+| Library | Version | License | Why it is bundled |
+| --- | --- | --- | --- |
+| [Angelica](https://github.com/GTNewHorizons/Angelica) `glsm`, `sdl-gpu` | 2.2.34 | LGPL v3 | GL state manager and SDL3 GPU backend that Julia renders through |
+| [LWJGL3ify](https://github.com/GTNewHorizons/lwjgl3ify) | 3.0.31 | LGPL v3 | Legacy LWJGL namespace and capability API that Angelica expects from its host |
+| [RetroFuturaBootstrap](https://github.com/GTNewHorizons/RetroFuturaBootstrap) | 1.1.0 | LGPL v3 | Runtime classes Angelica expects from its host |
+| [LaunchWrapper](https://github.com/Mojang/LegacyLauncher) | 1.12 | Mojang | Angelica's shader debug check reads `Launch.blackboard`; Julia never starts the launcher |
 
-- Project: https://github.com/GTNewHorizons/Angelica
-- License and credits: https://github.com/GTNewHorizons/Angelica/blob/master/LICENSE
-- SDL-GPU source artifact: https://nexus.gtnewhorizons.com/repository/releases/com/gtnewhorizons/angelica/sdl-gpu/2.2.34/sdl-gpu-2.2.34-sources.jar
-- GLSM source artifact: https://nexus.gtnewhorizons.com/repository/releases/com/gtnewhorizons/angelica/glsm/2.2.34/glsm-2.2.34-sources.jar
+Other runtime dependencies (LWJGL, ASM, Guava, Log4j, …) carry their notices inside their own JARs.
 
-Copies of LGPL v3 and GPL v3 are in `licenses/`. Both the `probe` distribution and the mod's `Julia.jar` keep dependencies as separate JAR files under `lib/`, so interface-compatible library replacements can be supplied there.
+## LGPL v3 compliance
 
-The isolated runtime also includes Mojang's unmodified LaunchWrapper 1.12 solely because Angelica's shader debug-environment check references `Launch.blackboard`. Julia does not invoke the Minecraft launcher. Source: https://github.com/Mojang/LegacyLauncher
+- Every library is the unmodified published artifact, shipped as a separate JAR under `lib/` in both `Julia.zip` and
+  the `probe` distribution, so you can drop in an interface-compatible replacement.
+- Julia adapts some library classes **in memory as they load**: it remaps legacy LWJGL package names following
+  LWJGL3ify's `@Lwjgl3Aware` rule, and points SDL display queries at the borrowed game window. The files on disk are
+  never changed.
+- Angelica's sources are published next to its binaries:
+  [glsm](https://nexus.gtnewhorizons.com/repository/releases/com/gtnewhorizons/angelica/glsm/2.2.34/glsm-2.2.34-sources.jar),
+  [sdl-gpu](https://nexus.gtnewhorizons.com/repository/releases/com/gtnewhorizons/angelica/sdl-gpu/2.2.34/sdl-gpu-2.2.34-sources.jar).
+  Its [license](https://github.com/GTNewHorizons/Angelica/blob/master/LICENSE) also credits daxnitro, id_miner, and
+  karyonix, and per-file upstream notices still apply.
+- The full GPL v3 and LGPL v3 texts are in `licenses/` and ship with every distribution.
 
-Other dependencies retain their own licenses and notices in their published artifacts. Julia's own source is licensed under WTFNMFPL (see `COPYRIGHT`); that license does not extend to the libraries above.
-
-The isolated runtime also supplies unmodified LWJGL3ify 3.0.31 and RetroFuturaBootstrap 1.1.0 as host compatibility libraries. Both projects use LGPL v3; their sources and notices are available upstream:
-
-- https://github.com/GTNewHorizons/lwjgl3ify
-- https://github.com/GTNewHorizons/RetroFuturaBootstrap
-
-Julia's host adaptation follows LWJGL3ify's documented namespace and `@Lwjgl3Aware` rules. Its tessellator state class implements only a host-side inherited API shape, with explicit failures for unsupported base rendering operations.
+`TessellatorState` only reproduces the fields that GTNHLib's tessellator inherits. It contains no Minecraft code and
+throws on any rendering call.

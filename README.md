@@ -1,127 +1,114 @@
 # Julia
 
-Julia is a Project Zomboid (Build 42) client mod. It runs the game's OpenGL rendering through
-[Angelica](https://github.com/GTNewHorizons/Angelica)'s GL state manager (GLSM) and its SDL3 GPU backend, so the
-game can draw with native graphics APIs instead of the platform's OpenGL driver.
+Julia is a Project Zomboid (Build 42) client mod that takes the game's OpenGL renderer and runs it on native graphics
+APIs. It relies on [Angelica](https://github.com/GTNewHorizons/Angelica)'s GL state manager (GLSM) and its SDL3 GPU
+backend.
 
-**Metal on macOS comes first.** Direct3D 12 / Vulkan on Windows and Linux are planned; the platform seams already exist.
-
-> **Status: integration stage.** Julia does not replace the game renderer yet. The mod currently runs
-> self-verifying probes inside the game process: a Metal device baseline, the full GLSM adapter on redirected
-> OpenGL calls, and an experimental presentation into the game window. All of them check their output
-> pixel-by-pixel and restore the game's GL state afterwards.
+Game code and mods keep calling plain LWJGL OpenGL. Julia rewrites those calls as classes load, so frames are drawn
+with **Metal** on macOS and, later, **Direct3D 12** on Windows and **Vulkan** on Linux. No OpenGL driver is involved.
 
 ## How it works
 
-Game classes keep calling ordinary LWJGL OpenGL. Julia rewrites those call sites as the classes load. Each call
-then reaches Angelica inside an **isolated runtime**: a separate class loader with its own LWJGL 3.4, SDL3, and
-Angelica. Nothing native is shared with the game's LWJGL.
+### Startup: all or nothing
 
 ```mermaid
-flowchart LR
-    subgraph game["Game class loader"]
-        pz["PZ class<br/>GL11.glDrawArrays(...)"]
-        rd["RenderDispatch<br/>(invokedynamic, JDK types only)"]
-    end
-    subgraph isolated["Isolated runtime class loader"]
-        glsm["Angelica GLStateManager"]
-        bridges["Julia GL bridges<br/>(overloads GLSM lacks)"]
-        backend["HostedBackend<br/>(Angelica SDL GPU)"]
-    end
-    gpu["SDL3 GPU → Metal"]
-
-    pz -- "rewritten at load" --> rd
-    rd --> glsm
-    rd --> bridges
-    bridges --> glsm
-    glsm --> backend --> gpu
+flowchart TD
+    start(["Game starts with Julia"]) --> scan["Scan the game and enabled mods for graphics calls"]
+    scan --> prepare["Prepare each graphics class in memory:<br/>redirect GL → GLSM, apply Julia bridges,<br/>turn backend calls into typed invokedynamic"]
+    prepare --> gate{"Every class ready,<br/>exactly one frame owner?"}
+    gate -- yes --> runtime["Start the isolated runtime:<br/>own LWJGL 3.4 + SDL3 + Angelica,<br/>GPU device, borrowed game window"]
+    runtime --> load["Game classes load already rewritten"]
+    gate -- no --> vanilla["Leave the game on its own OpenGL renderer<br/>and report why"]
 ```
 
-The bytecode pipeline for a game class:
+Julia never rewrites part of the game. A single unsupported call, an ambiguous frame anchor, or a class that would
+pass native types across the boundary keeps the whole game on vanilla OpenGL. You get a report instead of a broken
+frame.
 
-1. **Upstream redirect.** Angelica's `GLSMRedirector` points LWJGL GL calls at `GLStateManager`.
-2. **Bridge passes.** Julia adds the routes GLSM can't handle on its own: capability reads, vanilla aliases, uniform overloads and queries, resource writes, and storage-only texture allocation.
-3. **Typed dispatch.** Every call into the runtime becomes `invokedynamic` through `RenderDispatch`. Only JDK types cross the loader boundary. Calls bind per render session, and a class that would leave any native GL call behind is refused before it can run.
-4. **Frame hooks.** These bracket PZ's render step (`SpriteRenderer.postRender` → `Display.update`) with begin, present, and abort.
-
-**Windowing.** The game keeps its GLFW window, event loop, and input. Julia passes the window's native handle across as a
-`ForeignWindow` (Cocoa, Win32, X11 or Wayland). The runtime wraps it in an SDL window through a platform
-`BorrowedWindow` and restores the native window state on close.
-
-## Modules
+### Every frame
 
 ```mermaid
-flowchart BT
-    utils --> glaudit[gl-audit]
-    glaudit --> agent
-    rr[render-runtime] --> backend
-    backend --> transform
-    glaudit --> transform
-    transform --> host
-    host --> probe
-    probe --> mod[zomboid-mod]
+sequenceDiagram
+    participant PZ as Game render thread
+    participant RD as RenderDispatch
+    participant GLSM as Angelica GLSM + Julia bridges
+    participant GPU as SDL3 GPU (Metal)
+    PZ->>RD: frame begin (injected before sprite rendering)
+    PZ->>RD: glBindTexture, glUniform*, glDrawArrays …
+    RD->>GLSM: same calls, bound once per session
+    GLSM->>GPU: tracked state → pipelines, uploads, draw commands
+    PZ->>RD: present (injected before Display.update)
+    RD->>GPU: submit command buffer, present to the window
+    Note over PZ: GLFW keeps the window, events, and input
 ```
 
-| Module | Role |
-| --- | --- |
-| `utils` | JDK-only helpers: class-archive walking, SHA-256, TSV, `LOG_LEVEL` logging setup |
-| `gl-audit` | Offline inventory of graphics calls in JARs (`gl-audit` CLI) |
-| `agent` | `-javaagent` that records graphics references of loaded game classes without changing them |
-| `render-runtime` | JDK-only boundary shared by every loader: `RenderSession`, `RenderDispatch`, frame hooks, `ForeignWindow` |
-| `backend` | Runs inside the isolated runtime: hosted SDL backend, GL bridges, `Platform`, window borrowing (`window.macos`) |
-| `transform` | Bytecode passes, the endpoint registry, runtime preparation, and offline redirect/preparation audits |
-| `host` | Creates the isolated runtime: an adapting class loader plus a typed dispatch session |
-| `probe` | Native self-checking scenes and the `probe` CLI |
-| `zomboid-mod` | ZombieBuddy entry point. It schedules probes on PZ's render thread and restores host GL state |
+- **Isolation.** The game ships its own LWJGL. Julia's graphics stack lives in a separate class loader, and only JDK
+  types cross into it. Calls are `invokedynamic` sites bound to the current render session, so no game class ever links
+  against Julia's LWJGL.
+- **Shaders.** The game's GLSL is compiled by Angelica to SPIR-V and translated to the native shading language.
+- **Window.** The game keeps its GLFW window. Julia receives the native handle (Cocoa, Win32, X11 or Wayland), wraps it
+  in an SDL window, and puts back the window state it changed when it detaches.
+- **Failure.** An exception inside a frame aborts the GPU frame before it propagates, so nothing half-recorded is ever
+  presented.
+
+## Status
+
+Julia is in its integration stage and **does not replace the game renderer yet**. What works today:
+
+- Inside the running game, the mod runs self-verifying probes on PZ's render thread: a Metal device baseline, the full
+  GLSM adapter drawing through redirected OpenGL calls, and an experimental presentation into the game window. Each
+  probe checks its output pixel by pixel and then restores the game's GL state.
+- Offline preparation of the vanilla game still reports a few unsupported call sites. Live activation stays off until
+  there are none.
+- Viewpoint and other mods that use modern OpenGL come after vanilla.
+
+| Platform | GPU API | State |
+| --- | --- | --- |
+| macOS | Metal | Device and adapter verified in-game; window presentation experimental |
+| Windows | Direct3D 12 | Planned; the platform seams exist |
+| Linux | Vulkan | Planned; the platform seams exist |
 
 ## Building
 
-You need JDK 25. Gradle pins its daemon to Java 25 and verifies the wrapper checksum. Unix only.
+You need JDK 25. The build works on macOS and Linux only.
 
 ```sh
-./gradlew check                    # unit tests; never launches the game or opens a window
+./gradlew check                    # tests; never launches the game or opens a window
 ./gradlew :zomboid-mod:modZip      # → modules/zomboid-mod/build/distributions/Julia.zip
 ```
 
-Native probes run only when you invoke them, and they open no window. Results land under `modules/probe/build/reports/`:
+These native probes run only when requested and open no window:
 
 ```sh
 ./gradlew :probe:renderProbe       # raw Metal device: clear + translated textured draw
 ./gradlew :probe:adapterProbe      # full GLSM adapter on redirected OpenGL calls
-./gradlew :probe:suiteProbe        # both, as the mod runs them
+./gradlew :probe:suiteProbe        # both, in the same order as the mod
 ```
 
-Offline audits read JAR bytecode without loading any game classes:
+These offline audits read JAR bytecode and never load game classes:
 
 ```sh
 ./gradlew :probe:installDist
-modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects.tsv projectzomboid.jar
 modules/probe/build/install/probe/bin/probe --prepare-runtime preparation.tsv projectzomboid.jar
+modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects.tsv projectzomboid.jar
 ```
 
 Logging defaults to `error`. Set `LOG_LEVEL=warn|info|debug` to see more.
 
-## Running in the game
+## In the game
 
-The mod needs the ZombieBuddy mod to load its Java code.
-Approve `Julia.jar` when ZombieBuddy asks. Results go to `<PZ cache>/julia/run-<pid>/`.
+Julia needs the ZombieBuddy mod to load its Java code. Approve `Julia.jar` when ZombieBuddy asks. Results are written
+to `<PZ cache>/julia/run-<pid>/`.
 
 | JVM property | Effect |
 | --- | --- |
-| `-Djulia.probe=window` | Experimental: present three Metal frames into the game window (default `adapter`, offscreen) |
-| `-Djulia.outputDir=…`, `-Djulia.modJar=…` | Override the output root and archive location for isolated test launches |
-
-## Platforms
-
-| | GPU driver | Status |
-| --- | --- | --- |
-| macOS | Metal | Device and adapter probes verified in-game; window presentation experimental |
-| Windows | Direct3D 12 | Planned: `ForeignWindow.Win32` and `Platform.WINDOWS` declared, not implemented |
-| Linux | Vulkan | Planned: X11/Wayland declared, not implemented |
+| `-Djulia.probe=window` | Experimental: present into the game window (default `adapter`, offscreen) |
+| `-Djulia.outputDir=…`, `-Djulia.modJar=…` | Override the output root and archive location for test launches |
 
 ## License
 
-Julia's own code is [WTFNMFPL](LICENSE). The mod bundles Angelica, LWJGL3ify, and RetroFuturaBootstrap under LGPL v3. See [THIRD_PARTY.md](THIRD_PARTY.md).
+Julia's own code is [WTFNMFPL](LICENSE). The bundled Angelica, LWJGL3ify, and RetroFuturaBootstrap libraries are LGPL v3.
+See [THIRD_PARTY.md](THIRD_PARTY.md).
 
 > [!NOTE]
 > This project contains AI-generated code. See [AI_USAGE.md](AI_USAGE.md) for details.
