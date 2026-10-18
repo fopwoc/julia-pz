@@ -66,4 +66,4 @@ The `agent` module currently observes graphics references as scoped classes load
 
 ## First native execution
 
-The real Angelica `Device` now initializes on Metal inside the PZ process and passes a 1,024-pixel offscreen clear/readback check. The next standalone probe also passes translated OpenGL GLSL 330 compilation/linking, Metal shader creation, texture upload/sampling, and full pixel verification. See [the native probe evidence](metal-probe.md). The full `GLStateManager` / `SDLGPURenderBackend` initialization and ABI issues above remain unresolved.
+The real Angelica `Device` now initializes on Metal inside the PZ process and passes a 1,024-pixel offscreen clear/readback check. The textured-draw probe also passes both standalone and inside PZ, verifying translated OpenGL GLSL 330 compilation/linking, Metal shader creation, texture upload/sampling, and full pixel verification. See [the native probe evidence](metal-probe.md). The full `GLStateManager` / `SDLGPURenderBackend` initialization and ABI issues above remain unresolved.

@@ -31,7 +31,7 @@ No GUI automation or screenshots were used. The PNG is GPU readback data, not a 
 
 ## Translated textured draw
 
-The next probe passed in a standalone JVM on Metal / Apple M4 Max, with the same unmodified Angelica 2.2.34 libraries and SDL 3.4.12. It exercises `ShaderManager.shaderSource`, compilation, linking, resource reflection/remapping, SPIR-V to MSL translation, and SDL Metal shader/pipeline creation using OpenGL GLSL 330 sources with `gl_VertexID`, a varying, and a `sampler2D`.
+The textured-draw probe passed both in a standalone JVM and inside Project Zomboid 42.21.0 on Metal / Apple M4 Max, with the same unmodified Angelica 2.2.34 libraries and SDL 3.4.12. It exercises `ShaderManager.shaderSource`, compilation, linking, resource reflection/remapping, SPIR-V to MSL translation, and SDL Metal shader/pipeline creation using OpenGL GLSL 330 sources with `gl_VertexID`, a varying, and a `sampler2D`.
 
 A 4×4 RGBA8 texture contains sixteen distinct, asymmetric colors. A fullscreen triangle samples it with nearest filtering into a 32×32 target, and the fragment shader swaps red and blue. All 1,024 downloaded pixels must match the transformed pattern in the correct orientation. The clear check also remains active, giving 2,048 verified pixels per run. Independent golden-color tests reject flipped rows, a single corrupted channel, and truncated readback. The ordinary build now passes 15 tests without initializing SDL or opening a window.
 
@@ -39,4 +39,8 @@ The first attempt exposed an upstream host dependency: shader linking calls Ange
 
 The probe writes `metal-clear.png`, `metal-texture.png`, and `result.txt`; it removes stale proof files before starting. Resources are released through SDL's deferred-release APIs, and the shader manager is shut down before the device is destroyed. Angelica's worker pool uses daemon threads and its own idle shutdown; this is still a one-shot startup experiment.
 
-In-game validation of this updated textured-draw build is pending a restart of the separate PZ test profile.
+The user closed the previous instance and approved the updated JAR in ZombieBuddy. The separate PZ test profile then reported success from process `69469`, on the Cocoa `main` thread, with `textured_draw=PASS` and `verified_pixels=2048`. Both the PZ console and the probe status file confirm completion inside the game process.
+
+Tested build: `b0a2847`. Julia.jar SHA-256: `c553981013e597a9329f2774ddf38277549117d07ef3c4939ff0fef86f06e047`.
+
+This verifies the translated shader and sampled-texture path coexisting with PZ's OpenGL runtime. It does not establish that the game's draw calls have been redirected, that full GLSM initializes, or that a world renders through Metal.
