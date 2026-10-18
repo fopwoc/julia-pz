@@ -20,6 +20,8 @@ dependencies {
     // Angelica expects these to be supplied by its host application.
     implementation 'org.ow2.asm:asm-tree:9.9.1'
     implementation project(':gl-audit')
+    // ShaderManager's debug-environment check references Launch.blackboard. Never launch it.
+    runtimeOnly('net.minecraft:launchwrapper:1.12') { transitive = false }
     runtimeOnly 'org.joml:joml:1.10.8'
     runtimeOnly 'it.unimi.dsi:fastutil:8.5.18'
     runtimeOnly 'org.apache.logging.log4j:log4j-api:2.26.1'
@@ -51,7 +53,7 @@ distributions {
 
 tasks.register('renderProbe', JavaExec) {
     group = 'verification'
-    description = 'Runs the explicit native Metal clear/readback probe without opening a window'
+    description = 'Runs the explicit native Metal clear and translated textured-draw probe without opening a window'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'dev.julia.probe.BackendProbe'
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }

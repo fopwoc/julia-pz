@@ -11,4 +11,6 @@ Angelica is developed by GTNewHorizons and its contributors and is licensed unde
 
 Copies of LGPL v3 and GPL v3 are in `licenses/`. The probe's Unix distribution keeps dependencies as separate JAR files under `lib/`, so interface-compatible library replacements can be supplied there.
 
+The isolated runtime also includes Mojang's unmodified LaunchWrapper 1.12 solely because Angelica's shader debug-environment check references `Launch.blackboard`. Julia does not invoke the Minecraft launcher. Source: https://github.com/Mojang/LegacyLauncher
+
 Other dependencies retain their own licenses and notices in their published artifacts. This notice describes dependency licensing; it does not assign Julia's original source a project license.

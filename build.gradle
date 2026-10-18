@@ -14,7 +14,7 @@ allprojects {
         mavenCentral()
         maven {
             url = uri('https://libraries.minecraft.net/')
-            content { includeGroup 'com.mojang' }
+            content { includeGroup 'com.mojang'; includeGroup 'net.minecraft' }
         }
         maven {
             url = uri('https://nexus.gtnewhorizons.com/repository/public/')

@@ -17,6 +17,7 @@ com.gtnewhorizons.angelica:sdl-gpu:2.2.34=runtimeClasspath
 io.github.legacymoddingmc:unimixins:0.3.1=runtimeClasspath
 it.unimi.dsi:fastutil:8.5.18=runtimeClasspath
 net.jcip:jcip-annotations:1.0=runtimeClasspath
+net.minecraft:launchwrapper:1.12=runtimeClasspath
 net.minecraftforge:eventbus:7.0-beta.15=runtimeClasspath
 net.sf.jopt-simple:jopt-simple:4.7=runtimeClasspath
 org.anarres:jcpp:1.4.14=runtimeClasspath

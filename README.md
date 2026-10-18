@@ -33,7 +33,7 @@ Build identity comes from Git. macOS is the native development environment for t
 
 - `gl-audit`: offline graphics bytecode inventory and report writer.
 - `agent`: startup Java agent; currently observes loaded `zombie/`, `viewpoint/`, and `imgui/` classes without rewriting them. Its report lists references in loaded classes, not calls proven to have executed. A separate-JVM smoke test verifies attachment and application behavior.
-- `backend-probe`: consumes the published Angelica dependency, checks class linkage, tests the upstream redirector in memory, and provides an explicit native Metal clear/readback probe.
+- `backend-probe`: consumes the published Angelica dependency, checks class linkage, tests the upstream redirector in memory, and provides an explicit native Metal clear and translated textured-draw probe.
 - `zomboid-mod`: packages Julia as a ZombieBuddy client mod with an isolated graphics runtime.
 
 ## Backend investigation
@@ -65,7 +65,7 @@ Dependency versions are locked. Refresh deliberately with Gradle's `--write-lock
 ./gradlew :backend-probe:renderProbe
 ```
 
-This explicit task initializes SDL video on the Cocoa main thread, creates Angelica's real `Device`, clears a 32×32 offscreen RGBA8 target, submits the GPU commands, waits for completion, and verifies all 1,024 downloaded pixels. The result and PNG are saved under `modules/backend-probe/build/reports/metal/`. It opens no window and is not part of the normal test suite.
+This explicit task initializes SDL video on the Cocoa main thread and creates Angelica's real `Device`. It verifies a 32×32 clear, then uploads a 4×4 asymmetric texture and draws a fullscreen triangle using OpenGL GLSL 330 transformed and linked by Angelica, compiled to SPIR-V, and translated to Metal. The fragment shader swaps red and blue. GPU readback checks all 2,048 pixels across both passes. Results and PNGs are saved under `modules/backend-probe/build/reports/metal/`. It opens no window and is not part of the normal test suite.
 
 ## ZombieBuddy mod
 
@@ -77,4 +77,4 @@ The installable package is `modules/zomboid-mod/build/distributions/Julia.zip`. 
 
 Julia schedules the same offscreen check on PZ's render context. Its JAR includes the probe dependencies as nested JARs; a platform-parent class loader and a separate native extraction path keep the probe's LWJGL runtime separate from the game's classes. Results are written to `<PZ cache>/julia/run-<pid>/` by default. `julia.modJar` and `julia.outputDir` JVM properties can specify the archive and output root for an isolated test launch.
 
-This first mod does not replace the game renderer or transform game graphics calls. It tests the actual Angelica device and Metal clear/readback path inside the game process. Shader translation, texture sampling, GLSM startup, presentation, and gameplay rendering remain separate milestones. See [the first in-game result](docs/metal-probe.md).
+This first mod does not replace the game renderer or transform game graphics calls. It tests the actual Angelica device, translated shaders, and texture sampling inside the game process. Full GLSM startup, presentation, and gameplay rendering remain separate milestones. See [the first in-game result](docs/metal-probe.md).

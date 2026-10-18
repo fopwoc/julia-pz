@@ -23,7 +23,7 @@ import org.lwjgl.sdl.SDL_GPUTextureRegion;
 import org.lwjgl.sdl.SDL_GPUTextureTransferInfo;
 import org.lwjgl.sdl.SDL_GPUTransferBufferCreateInfo;
 
-/** A native Metal clear/readback check using Angelica's actual device implementation. */
+/** Native Metal clear and translated textured-draw checks using Angelica's actual device implementation. */
 public final class OffscreenProbe {
     private static final int SIZE = 32;
     private static final int BYTE_COUNT = SIZE * SIZE * 4;
@@ -34,6 +34,9 @@ public final class OffscreenProbe {
     public static void run(Path destination) throws IOException {
         Path output = destination.toAbsolutePath();
         Files.createDirectories(output);
+        Files.deleteIfExists(output.resolve("result.txt"));
+        Files.deleteIfExists(output.resolve("metal-clear.png"));
+        Files.deleteIfExists(output.resolve("metal-texture.png"));
         Configuration.SHARED_LIBRARY_EXTRACT_PATH.set(output.resolve("natives").toString());
         if (!System.getProperty("os.name").equals("Mac OS X")) {
             throw new IllegalStateException("This first graphics probe specifically requires Metal on macOS");
@@ -49,29 +52,26 @@ public final class OffscreenProbe {
         try {
             if (!device.createDevice()) throw failure("Angelica Device.createDevice");
             if (!device.isMetal()) throw new IllegalStateException("Expected Metal, got " + device.getDriverName());
-            byte[] rgba = clearAndRead(device);
-            verify(rgba);
-            var image = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_ARGB);
-            for (int y = 0; y < SIZE; y++) {
-                for (int x = 0; x < SIZE; x++) image.setRGB(x, y, argb(rgba, (y * SIZE + x) * 4));
-            }
-            if (!ImageIO.write(image, "png", output.resolve("metal-clear.png").toFile())) {
-                throw new IOException("No PNG writer available");
-            }
+            byte[] clear = renderAndRead(device, false);
+            verify(clear, false);
+            writeImage(output.resolve("metal-clear.png"), clear);
+            byte[] rgba = renderAndRead(device, true);
+            verify(rgba, true);
+            writeImage(output.resolve("metal-texture.png"), rgba);
             String result = "PASS\nbackend=" + device.getDriverName() + "\ngpu=" + device.getDeviceName()
                     + "\nprocess_id=" + ProcessHandle.current().pid() + "\nsdl=" + SDLVersion.SDL_GetVersion() + "\nsize=" + SIZE + "x" + SIZE
-                    + "\nverified_pixels=" + SIZE * SIZE + "\nargb=FF20C060\nthread="
+                    + "\nverified_pixels=" + SIZE * SIZE * 2 + "\nclear_argb=FF20C060\ntextured_draw=PASS\nshader_source=OpenGL GLSL 330\nthread="
                     + Thread.currentThread().getName() + "\n";
             Files.writeString(output.resolve("result.txt"), result);
             System.out.println("[Julia] PASS: Angelica / Metal / " + device.getDeviceName()
-                    + "; " + SIZE * SIZE + " offscreen pixels verified; " + output);
+                    + "; clear + translated textured draw; " + SIZE * SIZE * 2 + " pixels verified; " + output);
         } finally {
             device.destroyDevice();
             SDLInit.SDL_Quit();
         }
     }
 
-    private static byte[] clearAndRead(Device owner) {
+    private static byte[] renderAndRead(Device owner, boolean textured) throws IOException {
         long device = owner.getDevice();
         long texture = 0;
         long download = 0;
@@ -85,11 +85,15 @@ public final class OffscreenProbe {
             download = require(SDL_CreateGPUTransferBuffer(device, SDL_GPUTransferBufferCreateInfo.calloc(stack)
                     .usage(SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD).size(BYTE_COUNT)), "Create readback buffer");
             commands = require(SDL_AcquireGPUCommandBuffer(device), "Acquire command buffer");
-            var targets = SDL_GPUColorTargetInfo.calloc(1, stack);
-            targets.get(0).texture(texture).load_op(SDL_GPU_LOADOP_CLEAR).store_op(SDL_GPU_STOREOP_STORE)
-                    .clear_color(color -> color.r(32 / 255.0f).g(192 / 255.0f).b(96 / 255.0f).a(1));
-            long render = require(SDL_BeginGPURenderPass(commands, targets, null), "Begin render pass");
-            SDL_EndGPURenderPass(render);
+            if (textured) {
+                TexturedDraw.render(owner, commands, texture);
+            } else {
+                var targets = SDL_GPUColorTargetInfo.calloc(1, stack);
+                targets.get(0).texture(texture).load_op(SDL_GPU_LOADOP_CLEAR).store_op(SDL_GPU_STOREOP_STORE)
+                        .clear_color(color -> color.r(32 / 255.0f).g(192 / 255.0f).b(96 / 255.0f).a(1));
+                long render = require(SDL_BeginGPURenderPass(commands, targets, null), "Begin render pass");
+                SDL_EndGPURenderPass(render);
+            }
             long copy = require(SDL_BeginGPUCopyPass(commands), "Begin copy pass");
             SDL_DownloadFromGPUTexture(copy, SDL_GPUTextureRegion.calloc(stack)
                             .texture(texture).w(SIZE).h(SIZE).d(1),
@@ -121,12 +125,23 @@ public final class OffscreenProbe {
         }
     }
 
-    private static void verify(byte[] pixels) {
+    static void verify(byte[] pixels, boolean textured) {
+        if (pixels.length != BYTE_COUNT) throw new IllegalArgumentException("Expected " + BYTE_COUNT + " RGBA bytes");
         for (int offset = 0; offset < pixels.length; offset += 4) {
             int actual = argb(pixels, offset);
-            if (actual != EXPECTED) throw new IllegalStateException("Pixel " + offset / 4
-                    + " expected " + Integer.toHexString(EXPECTED) + ", got " + Integer.toHexString(actual));
+            int pixel = offset / 4;
+            int expected = textured ? TexturedDraw.expected(pixel % SIZE, pixel / SIZE, SIZE) : EXPECTED;
+            if (actual != expected) throw new IllegalStateException("Pixel " + offset / 4
+                    + " expected " + Integer.toHexString(expected) + ", got " + Integer.toHexString(actual));
         }
+    }
+
+    private static void writeImage(Path path, byte[] pixels) throws IOException {
+        var image = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < SIZE; y++) {
+            for (int x = 0; x < SIZE; x++) image.setRGB(x, y, argb(pixels, (y * SIZE + x) * 4));
+        }
+        if (!ImageIO.write(image, "png", path.toFile())) throw new IOException("No PNG writer available");
     }
 
     private static int argb(byte[] pixels, int offset) {
@@ -134,12 +149,12 @@ public final class OffscreenProbe {
                 | (pixels[offset + 1] & 255) << 8 | pixels[offset + 2] & 255;
     }
 
-    private static long require(long handle, String operation) {
+    static long require(long handle, String operation) {
         if (handle == 0) throw failure(operation);
         return handle;
     }
 
-    private static IllegalStateException failure(String operation) {
+    static IllegalStateException failure(String operation) {
         return new IllegalStateException(operation + ": " + SDLError.SDL_GetError());
     }
 }
