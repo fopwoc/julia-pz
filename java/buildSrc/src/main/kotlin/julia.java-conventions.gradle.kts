@@ -1,4 +1,4 @@
-// Shared setup for every Julia module: Java 25, strict compilation, locked dependencies, JUnit, and formatting.
+// Shared setup for every Julia module: Java 25, strict compilation, JUnit, and formatting.
 
 plugins {
     `java-library`
@@ -13,10 +13,6 @@ version = BuildInfo.of(project).version
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
     withSourcesJar()
-}
-
-dependencyLocking {
-    lockAllConfigurations()
 }
 
 dependencies {

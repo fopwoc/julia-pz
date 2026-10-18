@@ -1,11 +1,23 @@
 version: 2
 
+# Dependabot's proxy only reaches registries declared here; both are public and need no credentials.
+registries:
+  gtnh:
+    type: maven-repository
+    url: https://nexus.gtnewhorizons.com/repository/public/
+  minecraft:
+    type: maven-repository
+    url: https://libraries.minecraft.net/
+
 updates:
-  # The Gradle build in java/: buildSrc, the version catalog, and every module's gradle.lockfile.
+  # The Gradle build in java/: buildSrc and the version catalog.
   - package-ecosystem: gradle
     directories:
       - /java
       - /java/buildSrc
+    registries:
+      - gtnh
+      - minecraft
     schedule:
       interval: weekly
     groups:
