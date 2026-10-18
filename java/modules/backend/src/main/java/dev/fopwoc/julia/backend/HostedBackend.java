@@ -4,6 +4,7 @@ import static org.lwjgl.opengl.GL11.GL_INVALID_OPERATION;
 import static org.lwjgl.opengl.GL11.GL_RED;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
 import static org.lwjgl.opengl.GL20.GL_ATTACHED_SHADERS;
+import static org.lwjgl.opengl.GL20.GL_LINK_STATUS;
 import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL43.GL_DEPTH_STENCIL_TEXTURE_MODE;
 
@@ -82,7 +83,10 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void linkProgram(int program) {
-        if (shaderPrograms.link(program)) super.linkProgram(program);
+        if (shaderPrograms.link(program)) {
+            super.linkProgram(program);
+            if (super.getProgrami(program, GL_LINK_STATUS) != 0) shaderPrograms.initializeUniforms(program);
+        }
     }
 
     @Override

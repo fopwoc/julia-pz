@@ -27,7 +27,7 @@ final class ShaderCompatibilityChecks {
                     #version 110
                     uniform sampler2D texture;
                     #if 1
-                    uniform float amount;
+                    uniform float amount = 1.0;
                     #else
                     float amount = 0.0;
                     #endif
@@ -53,7 +53,7 @@ final class ShaderCompatibilityChecks {
             int sampler = glGetUniformLocation(program, "texture"), amount = glGetUniformLocation(program, "amount");
             if (sampler < 0 || amount < 0) throw new IllegalStateException("Legacy shader lost public uniform names");
             glUniform1i(sampler, 0);
-            glUniform1f(amount, 1.0f);
+
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, target);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 8, 8, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer) null);

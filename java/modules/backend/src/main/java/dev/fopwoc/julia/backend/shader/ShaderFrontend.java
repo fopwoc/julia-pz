@@ -5,6 +5,7 @@ import static org.lwjgl.util.shaderc.GLSLangResourceLimits.glslang_default_resou
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,8 @@ import org.lwjgl.util.shaderc.GLSLangInput;
 public final class ShaderFrontend implements AutoCloseable {
     private static final Pattern BUILTIN_OVERRIDE =
             Pattern.compile("\\b(?:float|[iu]?vec[234]|int|uint)\\s+(?:min|max|clamp)\\s*\\(");
+
+    private static final Pattern UNIFORM_INITIALIZER = Pattern.compile("\\buniform\\b[^;{}]*=");
 
     public record Compiled(int type, String source, String log, boolean valid) {}
 
@@ -93,6 +96,47 @@ public final class ShaderFrontend implements AutoCloseable {
             MemoryUtil.memFree(code);
             throw failure;
         }
+    }
+
+    public Map<String, float[]> initializers(List<Compiled> shaders) {
+        var groups = new LinkedHashMap<Integer, List<Compiled>>();
+        for (var shader : shaders)
+            groups.computeIfAbsent(shader.type(), ignored -> new ArrayList<>()).add(shader);
+        var result = new LinkedHashMap<String, float[]>();
+        for (var entry : groups.entrySet()) {
+            if (entry.getValue().stream()
+                    .noneMatch(shader ->
+                            UNIFORM_INITIALIZER.matcher(shader.source()).find())) continue;
+            var parsed = new ArrayList<Parsed>();
+            long program = glslang_program_create();
+            if (program == 0) throw new IllegalStateException("Cannot allocate uniform initializer program");
+            try {
+                for (var shader : entry.getValue()) {
+                    var part = parse(shader.type(), shader.source(), true);
+                    parsed.add(part);
+                    if (!part.valid())
+                        throw new IllegalStateException("Uniform initializer translation: " + part.log());
+                    glslang_program_add_shader(program, part.handle());
+                }
+                if (!glslang_program_link(program, GLSLANG_MSG_DEFAULT_BIT) || !glslang_program_map_io(program))
+                    throw new IllegalStateException(
+                            "Uniform initializer link: " + glslang_program_get_info_log(program));
+                glslang_program_SPIRV_generate(program, stage(entry.getKey()));
+                var words = glslang_program_SPIRV_get_ptr(program);
+                if (words == null || !words.hasRemaining())
+                    throw new IllegalStateException(
+                            "No uniform initializer SPIR-V: " + glslang_program_SPIRV_get_messages(program));
+                for (var value : UniformInitializers.read(words).entrySet()) {
+                    var previous = result.putIfAbsent(value.getKey(), value.getValue());
+                    if (previous != null && !Arrays.equals(previous, value.getValue()))
+                        throw new IllegalStateException("Conflicting uniform initializer: " + value.getKey());
+                }
+            } finally {
+                glslang_program_delete(program);
+                parsed.forEach(Parsed::close);
+            }
+        }
+        return Map.copyOf(result);
     }
 
     public Linked link(List<Compiled> shaders) {

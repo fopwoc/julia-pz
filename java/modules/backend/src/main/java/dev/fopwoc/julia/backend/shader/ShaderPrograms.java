@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Map;
 
 /** Owns GL shader-object attachments; only complete translated stages enter the upstream shader manager. */
 public final class ShaderPrograms implements AutoCloseable {
@@ -30,6 +31,7 @@ public final class ShaderPrograms implements AutoCloseable {
     private static final class Program {
         final LinkedHashSet<Integer> attachments = new LinkedHashSet<>();
         final ArrayList<Integer> stages = new ArrayList<>();
+        Map<String, float[]> initializers = Map.of();
     }
 
     private final HashMap<Integer, Shader> shaders = new HashMap<>();
@@ -123,6 +125,11 @@ public final class ShaderPrograms implements AutoCloseable {
         if (frontend == null) return fail(id, "No compiled shader objects attached");
         var linked = frontend.link(compiled);
         if (!linked.valid()) return fail(id, linked.log());
+        try {
+            program.initializers = frontend.initializers(compiled);
+        } catch (IllegalStateException failure) {
+            return fail(id, failure.getMessage());
+        }
         var stages = new ArrayList<Integer>();
         try {
             for (var stage : linked.stages().entrySet()) {
@@ -144,6 +151,10 @@ public final class ShaderPrograms implements AutoCloseable {
         } finally {
             for (int shader : stages) manager.deleteShader(shader);
         }
+    }
+
+    public void initializeUniforms(int id) {
+        BackendInternals.initializeUniforms(id, programs.get(id).initializers);
     }
 
     private static boolean fail(int id, String log) {

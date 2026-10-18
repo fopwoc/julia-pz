@@ -105,6 +105,7 @@ public final class AdapterScene {
             QuadChecks.run();
             ShaderLinkChecks.run();
             ShaderCompatibilityChecks.run();
+            UniformInitializerChecks.run();
             Files.writeString(output.resolve("resource-checks.txt"), ResourceChecks.REPORT);
 
             if (window) {

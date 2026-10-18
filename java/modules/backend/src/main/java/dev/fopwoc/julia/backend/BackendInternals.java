@@ -5,6 +5,7 @@ import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
+import com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineApplier;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FBOClearTracker;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
@@ -18,6 +19,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -27,6 +29,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * thread that owns the SDL context.
  */
 public final class BackendInternals {
+    private static final VarHandle PIPELINE_APPLIER;
     private static final VarHandle SHADERS;
     private static final VarHandle RESOURCES;
     private static final VarHandle FRAMES;
@@ -52,6 +55,8 @@ public final class BackendInternals {
                             ShaderManager.class,
                             "releaseShaderAttachment",
                             MethodType.methodType(void.class, int.class));
+            PIPELINE_APPLIER =
+                    lookup.findVarHandle(SDLGPURenderBackend.class, "pipelineApplier", PipelineApplier.class);
             SHADERS = lookup.findVarHandle(SDLGPURenderBackend.class, "shaderManager", ShaderManager.class);
             RESOURCES = lookup.findVarHandle(SDLGPURenderBackend.class, "resourceManager", ResourceManager.class);
             FRAMES = lookup.findVarHandle(SDLGPURenderBackend.class, "frameManager", FrameManager.class);
@@ -79,6 +84,24 @@ public final class BackendInternals {
     }
 
     private BackendInternals() {}
+
+    /** Initializes a just-linked program without binding it or releasing a pending-deletion current program. */
+    public static void initializeUniforms(int program, Map<String, float[]> values) {
+        var state = context();
+        var target = shaders().getProgram(program);
+        var previous = state.boundProgramObj;
+        var applier = (PipelineApplier) PIPELINE_APPLIER.get(backend());
+        try {
+            // putUniform reads the program object only; encoder and logical bindings stay untouched.
+            state.boundProgramObj = target;
+            for (var entry : values.entrySet()) {
+                int location = shaders().getUniformLocation(program, entry.getKey());
+                if (location >= 0) applier.putUniform(state, location, entry.getValue());
+            }
+        } finally {
+            state.boundProgramObj = previous;
+        }
+    }
 
     public static ContextState context() {
         backend();

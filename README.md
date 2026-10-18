@@ -67,7 +67,7 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
   Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
   Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
-- The current offline checks pass 131 JVM tests and verify 38,098 pixels on windowless Metal. The latest shader-input fix has not
+- The current offline checks pass 131 JVM tests and verify 38,354 pixels on windowless Metal. The uniform-initializer fix has not
   been tested inside PZ.
 - ImGui draw handoffs stay on the game side, calling the prepared renderer and then freeing the owned draw data.
   The archive gate requires that renderer to be included and prepared. A separate windowless probe uses the supplied
@@ -81,7 +81,8 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   single-object translation keeps its existing resource layout and names. Windowless draws verify 256 pixels across
   sharing, attachment order, macro scopes, deferred deletion and relinks. Regenerated stages with SSBOs explicitly
   reject linking until resource-name preservation is implemented. A live retry renders textured characters and reaches
-  the world; some game shaders still fail compilation.
+  the world. After preprocessing was corrected, the three previously observed shader compilation failures no longer
+  appear in the live retry; visual defects remain.
 - Program-resource queries reflect linked SPIR-V storage blocks and buffer variables, recovering original GL bindings
   from Angelica's remapped descriptor tables. Checks cover struct arrays, matrix and array strides, cross-stage blocks,
   runtime arrays, compute read/write bindings, truncated outputs and cache invalidation after relinking. Only the three
@@ -97,8 +98,7 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
 - The startup agent preflights classpath archives, rejects changed or unplanned graphics consumers, opens its isolated
   backend on the first render-context call, and closes it before the host window is destroyed. Initialization uploads
   survive the first frame boundary. Live vanilla testing reaches the menu through Metal; the host's logical render size
-  is scaled to the Retina drawable. Full-size UI, aligned input and animated menu video are user-confirmed. Remaining
-  shader compilation failures are runtime blockers. Ranged indexed quads now use the existing quad conversion, with both triangle
+  is scaled to the Retina drawable. Full-size UI, aligned input and animated menu video are user-confirmed. Ranged indexed quads now use the existing quad conversion, with both triangle
   halves verified offscreen for every index width. Invalid matrix uploads return a GL error before touching staging,
   preventing the observed bone-palette overflow from aborting the renderer. The latest live retry reaches the world
   and renders textured characters without freezing. The map remains black, characters flicker, floors are white,
@@ -110,7 +110,13 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
 - Conditional shader branches now resolve through glslang before Angelica builds its compatibility syntax tree.
   Legacy sampler identifiers use its existing `texture` → `gtexture` lookup alias before texture-call modernization.
   A native regression reproduces the prior missing-return error, then verifies 64 textured pixels and public uniform
-  lookup after the fix. Its in-game effect on the remaining shader failures awaits a retry.
+  lookup after the fix. The latest live retry has no shader compilation failures, but the map is still black, the
+  character-preview background flickers, and floors remain white.
+- Link-time uniform initializers now survive Vulkan UBO lowering: compiler-folded OpenGL SPIR-V constants initialize
+  the actual program staging without rebinding it. Checks cover 32-bit float/int/uint/bool scalars, vectors, matrices
+  and arrays, queries before binding, explicit overrides, relinking and a different current program pending deletion.
+  Other initializer types are rejected. This fixes an offscreen reproducer of missing defaults; PZ's chunk shader
+  relies on `useTexture = 1`, making this a candidate fix for white floors pending an in-game retry.
 - Startup transformation excludes trusted shared-runtime classes by code source. Rejected consumers return nonempty
   invalid class bytes: empty arrays were ignored by JVMTI instead of preventing class definition.
 - Viewpoint and other mods that use modern OpenGL come after vanilla.
