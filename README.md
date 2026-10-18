@@ -75,9 +75,9 @@ This explicit task initializes SDL video on the Cocoa main thread and creates An
 
 The installable package is `modules/zomboid-mod/build/distributions/Julia.zip`. Extract it into the PZ mods directory, enable Julia and ZombieBuddy, restart PZ, and approve Julia's JAR when ZombieBuddy asks.
 
-Julia schedules the device baseline and full adapter suite on PZ's render context. Its JAR includes the probe dependencies as nested JARs; a platform-parent class loader and a separate native extraction path keep the probe's LWJGL runtime separate from the game's classes. Results are written to `<PZ cache>/julia/run-<pid>/` by default. `julia.modJar` and `julia.outputDir` JVM properties can specify the archive and output root for an isolated test launch.
+Julia schedules the device baseline and full adapter suite on PZ's render context, then restores host GL dispatch before returning. Its JAR includes the probe dependencies as nested JARs; a platform-parent class loader and a separate native extraction path keep the probe's LWJGL runtime separate from the game's classes. Results are written to `<PZ cache>/julia/run-<pid>/` by default. `julia.modJar` and `julia.outputDir` JVM properties can specify the archive and output root for an isolated test launch.
 
-This first mod does not replace the game renderer or transform game graphics calls. It tests the actual Angelica device, translated shaders, and texture sampling inside the game process. Full GLSM startup and an automatically redirected offscreen GL texture draw now pass both standalone and inside PZ; the mod includes that probe. Presentation and gameplay rendering remain separate milestones. See [the adapter probe](docs/adapter-probe.md). See [the first in-game result](docs/metal-probe.md).
+This first mod does not replace the game renderer or transform game graphics calls. It tests the actual Angelica device, translated shaders, and texture sampling inside the game process. Full GLSM startup and the redirected offscreen draw completed their GPU checks, but the PZ process then crashed because the probe left native GL dispatch changed. The current build restores host dispatch; its runtime retest is pending. See [the correction](docs/host-gl-crash.md). Presentation and gameplay rendering remain separate milestones. See [the adapter probe](docs/adapter-probe.md). See [the first in-game result](docs/metal-probe.md).
 
 ## Full adapter probe
 
@@ -87,3 +87,7 @@ This first mod does not replace the game renderer or transform game graphics cal
 ```
 
 The first task initializes GLSM and the real SDL backend, redirects a controlled scene's ordinary LWJGL GL calls, and verifies all 1,024 sampled-texture pixels. The suite additionally runs the device baseline in the same isolated native runtime. These tasks open no window and run only when explicitly requested. See [host adaptation and verification scope](docs/adapter-probe.md).
+
+## Experimental window presentation
+
+`-Djulia.probe=window` opts into a three-frame Metal presentation experiment using PZ's existing GLFW Cocoa window. The default remains `adapter`. The window path compiles and has JVM regression coverage, but has not run in-game. First retest the host-dispatch fix with the default mode. See [the window boundary](docs/window-presentation.md).

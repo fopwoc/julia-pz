@@ -67,3 +67,7 @@ The `agent` module currently observes graphics references as scoped classes load
 ## First native execution
 
 The real Angelica `Device` now initializes on Metal inside the PZ process and passes a 1,024-pixel offscreen clear/readback check. The textured-draw probe also passes both standalone and inside PZ, verifying translated OpenGL GLSL 330 compilation/linking, Metal shader creation, texture upload/sampling, and full pixel verification. See [the native probe evidence](metal-probe.md). The next milestone now initializes the full `GLStateManager` / `SDLGPURenderBackend` and verifies a texture draw made through automatically redirected LWJGL calls, both standalone and inside the PZ process. See [the adapter probe](adapter-probe.md) for the host adaptation and remaining integration boundary. The earlier linkage table describes the initial unadapted runtime, not this adapted probe.
+
+## Post-probe native crash correction
+
+Process `70677` completed the GPU checks but then crashed when PZ used the fabricated native dispatch table. Safe coexistence is not yet established. The current source restores the host's native GL dispatch and releases the isolated GL provider; 34 offline tests pass, and the runtime retest is deferred. See [the crash evidence and fix](host-gl-crash.md). Borrowed-window presentation is implemented as an opt-in experiment and remains untested.

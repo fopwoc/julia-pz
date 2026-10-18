@@ -60,23 +60,39 @@ public final class Main {
                 }
             }
             if (urls.isEmpty()) throw new IOException("Julia.jar contains no probe libraries");
+            String mode = System.getProperty("julia.probe", "adapter");
+            if (!mode.equals("adapter") && !mode.equals("window")) throw new IllegalArgumentException("Unknown Julia probe: " + mode);
             ClassLoader original = Thread.currentThread().getContextClassLoader();
-            try (var isolated = new URLClassLoader(urls.toArray(URL[]::new), ClassLoader.getPlatformClassLoader())) {
-                Thread.currentThread().setContextClassLoader(isolated);
-                try {
-                    Class.forName("dev.julia.probe.host.AdapterLauncher", true, isolated)
-                            .getMethod("runSuite", Path.class).invoke(null, output);
-                } finally {
-                    Thread.currentThread().setContextClassLoader(original);
+            try (var hostGl = HostGlState.capture(Main.class.getClassLoader())) {
+                try (var isolated = new URLClassLoader(urls.toArray(URL[]::new), ClassLoader.getPlatformClassLoader())) {
+                    Thread.currentThread().setContextClassLoader(isolated);
+                    try {
+                        Class<?> launcher = Class.forName("dev.julia.probe.host.AdapterLauncher", true, isolated);
+                        if (mode.equals("window")) {
+                            long glfwWindow = (long) Class.forName("org.lwjglx.opengl.Display")
+                                    .getMethod("getWindow").invoke(null);
+                            long cocoaWindow = (long) Class.forName("org.lwjgl.glfw.GLFWNativeCocoa")
+                                    .getMethod("glfwGetCocoaWindow", long.class).invoke(null, glfwWindow);
+                            launcher.getMethod("runWindowSuite", Path.class, long.class).invoke(null, output, cocoaWindow);
+                        } else {
+                            launcher.getMethod("runSuite", Path.class).invoke(null, output);
+                        }
+                    } finally {
+                        Thread.currentThread().setContextClassLoader(original);
+                    }
                 }
+                hostGl.restoreAndVerify();
             }
-            Files.writeString(output.resolve("status.txt"), "PASS: Metal baseline and full GLSM adapter probes completed inside Project Zomboid\n");
+            Files.writeString(output.resolve("host-gl-state.txt"), "RESTORED: host GL capabilities republished; native binding query matches the pre-probe value\n");
+            Files.writeString(output.resolve("status.txt"), "PASS: " + mode
+                    + " probe completed inside Project Zomboid; host GL dispatch restored; gameplay continuation unverified\n");
         } catch (Exception | LinkageError exception) {
             Throwable cause = exception instanceof InvocationTargetException invocation ? invocation.getCause() : exception;
             System.err.println("[Julia] Metal probe failed");
             cause.printStackTrace();
             try (var writer = new java.io.PrintWriter(Files.newBufferedWriter(output.resolve("failure.txt")))) {
                 cause.printStackTrace(writer);
+                Files.writeString(output.resolve("status.txt"), "FAIL: Julia probe; see failure.txt\n");
             } catch (IOException writeFailure) {
                 writeFailure.printStackTrace();
             }

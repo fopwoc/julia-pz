@@ -7,6 +7,7 @@ import com.gtnewhorizons.angelica.glsm.hooks.GLSMInitConfig;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import me.eigenraven.lwjgl3ify.api.GLCapabilitiesOverride;
+import dev.julia.probe.host.ProbeGlRuntime;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.lwjgl.sdl.SDLInit;
@@ -34,7 +35,7 @@ public final class AdapterProbe {
             if (!device.createDevice() || !device.isMetal()) throw new IllegalStateException("Metal device unavailable");
             var backend = BackendManager.RENDER_BACKEND;
             backendCreated = true;
-            if (!(backend instanceof OffscreenBackend)) throw new IllegalStateException("Wrong backend: " + backend.getName());
+            if (!(backend instanceof HostedBackend)) throw new IllegalStateException("Wrong backend: " + backend.getName());
             backend.onPostWindowCreate(0);
             GLCapabilitiesOverride.set(SDLGPURenderBackend.advertisedCapabilities());
             GLStateManager.initialize(GLSMInitConfig.builder().displaySize(32, 32).build());
@@ -50,7 +51,8 @@ public final class AdapterProbe {
                 if (backendCreated) BackendManager.shutdown();
                 else device.destroyDevice();
             } finally {
-                SDLInit.SDL_Quit();
+                try { ProbeGlRuntime.close(); }
+                finally { SDLInit.SDL_Quit(); }
             }
         }
         Files.writeString(output.resolve("result.txt"), result);

@@ -11,7 +11,12 @@ public final class TexturePattern {
     }
 
     public static int expectedArgb(int x, int y, int size) {
-        int source = sourceArgb(x * EDGE / size, y * EDGE / size);
+        return expectedArgb(x, y, size, size);
+    }
+
+    public static int expectedArgb(int x, int y, int width, int height) {
+        int source = sourceArgb((int) ((2L * x + 1) * EDGE / (2L * width)),
+                (int) ((2L * y + 1) * EDGE / (2L * height)));
         return (source & 0xFF00FF00) | (source & 255) << 16 | (source >>> 16 & 255);
     }
 }

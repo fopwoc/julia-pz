@@ -19,7 +19,16 @@ public final class AdapterLauncher {
         runIsolated("dev.julia.probe.ProbeSuite", output);
     }
 
+    public static void runWindowSuite(Path output, long cocoaWindow) throws Exception {
+        if (cocoaWindow == 0) throw new IllegalArgumentException("Cocoa window is null");
+        runIsolated("dev.julia.probe.WindowSuite", output, cocoaWindow);
+    }
+
     private static void runIsolated(String entryPoint, Path output) throws Exception {
+        runIsolated(entryPoint, output, 0);
+    }
+
+    private static void runIsolated(String entryPoint, Path output, long cocoaWindow) throws Exception {
         ClassLoader current = AdapterLauncher.class.getClassLoader();
         URL[] libraries = current instanceof URLClassLoader urls ? urls.getURLs()
                 : Arrays.stream(System.getProperty("java.class.path").split(Pattern.quote(java.io.File.pathSeparator)))
@@ -33,8 +42,9 @@ public final class AdapterLauncher {
             System.setProperty("angelica.sdlgpu.disablePresenterThread", "true");
             Thread.currentThread().setContextClassLoader(adapted);
             try {
-                Class.forName(entryPoint, true, adapted)
-                        .getMethod("run", Path.class).invoke(null, output);
+                Class<?> entry = Class.forName(entryPoint, true, adapted);
+                if (cocoaWindow == 0) entry.getMethod("run", Path.class).invoke(null, output);
+                else entry.getMethod("run", Path.class, long.class).invoke(null, output, cocoaWindow);
             } catch (InvocationTargetException exception) {
                 if (exception.getCause() instanceof Exception cause) throw cause;
                 if (exception.getCause() instanceof Error cause) throw cause;

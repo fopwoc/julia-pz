@@ -1,6 +1,7 @@
 package dev.julia.probe.adapter;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
+import com.gtnewhorizons.angelica.glsm.profiling.DebugCounters;
 import dev.julia.probe.render.TexturePattern;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -15,12 +16,18 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
 /** Ordinary LWJGL OpenGL calls; the isolated loader must redirect every call before this scene can run. */
-final class AdapterDraw {
+public final class AdapterDraw {
     private static final int SIZE = 32;
 
     private AdapterDraw() { }
 
-    static void run(Path output) throws IOException {
+    static void run(Path output) throws IOException { run(output, SIZE, SIZE, false); }
+
+    public static void runWindow(Path output, int width, int height) throws IOException {
+        run(output, width, height, true);
+    }
+
+    private static void run(Path output, int width, int height, boolean window) throws IOException {
         int target = 0;
         int source = 0;
         int framebuffer = 0;
@@ -30,19 +37,22 @@ final class AdapterDraw {
         try {
             backend.onFrameBegin();
             frameOpen = true;
-            target = texture(SIZE, null);
-            framebuffer = glGenFramebuffers();
-            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
-            int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-            if (status != GL_FRAMEBUFFER_COMPLETE) throw new IllegalStateException("Incomplete FBO: " + status);
-            glViewport(0, 0, SIZE, SIZE);
+            if (!window) {
+                target = texture(SIZE, null);
+                framebuffer = glGenFramebuffers();
+                glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
+                int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+                if (status != GL_FRAMEBUFFER_COMPLETE) throw new IllegalStateException("Incomplete FBO: " + status);
+            } else {
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            }
+            glViewport(0, 0, width, height);
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_BLEND);
             glDisable(GL_CULL_FACE);
             glDisable(GL_SCISSOR_TEST);
             glClearColor(1, 0, 1, 1);
-            glClear(GL_COLOR_BUFFER_BIT);
             ByteBuffer upload = MemoryUtil.memAlloc(TexturePattern.EDGE * TexturePattern.EDGE * 4);
             try {
                 for (int y = 0; y < TexturePattern.EDGE; y++) {
@@ -65,26 +75,38 @@ final class AdapterDraw {
             int sampler = glGetUniformLocation(program, "image");
             if (sampler < 0) throw new IllegalStateException("Sampler uniform is missing");
             glUniform1i(sampler, 0);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
-            backend.onFrameEnd();
-            frameOpen = false;
-            ByteBuffer pixels = MemoryUtil.memAlloc(SIZE * SIZE * 4);
+            long presents = DebugCounters.PRESENTS.sum();
+            for (int frame = 0; frame < (window ? 3 : 1); frame++) {
+                if (frame != 0) {
+                    backend.onFrameBegin();
+                    frameOpen = true;
+                }
+                glClear(GL_COLOR_BUFFER_BIT);
+                glDrawArrays(GL_TRIANGLES, 0, 3);
+                backend.onFrameEnd();
+                frameOpen = false;
+            }
+            if (window && DebugCounters.PRESENTS.sum() - presents != 3) {
+                throw new IllegalStateException("Expected three successful swapchain submissions; got "
+                        + (DebugCounters.PRESENTS.sum() - presents));
+            }
+            ByteBuffer pixels = MemoryUtil.memAlloc(width * height * 4);
             try {
-                glReadPixels(0, 0, SIZE, SIZE, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-                var image = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_ARGB);
-                for (int y = 0; y < SIZE; y++) {
-                    for (int x = 0; x < SIZE; x++) {
-                        int offset = (y * SIZE + x) * 4;
+                glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+                var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        int offset = (y * width + x) * 4;
                         int actual = (pixels.get(offset + 3) & 255) << 24 | (pixels.get(offset) & 255) << 16
                                 | (pixels.get(offset + 1) & 255) << 8 | pixels.get(offset + 2) & 255;
-                        int expected = TexturePattern.expectedArgb(x, y, SIZE);
+                        int expected = TexturePattern.expectedArgb(x, y, width, height);
                         if (actual != expected) throw new IllegalStateException("GLSM pixel " + x + "," + y
                                 + " expected " + Integer.toHexString(expected) + ", got " + Integer.toHexString(actual));
                         // glReadPixels uses a bottom-left origin; PNG uses a top-left origin.
-                        image.setRGB(x, SIZE - 1 - y, actual);
+                        image.setRGB(x, height - 1 - y, actual);
                     }
                 }
-                if (!ImageIO.write(image, "png", output.resolve("adapter-texture.png").toFile())) {
+                if (!ImageIO.write(image, "png", output.resolve(window ? "window-texture.png" : "adapter-texture.png").toFile())) {
                     throw new IOException("No PNG writer available");
                 }
             } finally {

@@ -1,7 +1,7 @@
 name=Julia - Metal probe
 id=Julia
 require=\ZombieBuddy
-description=Angelica Metal baseline and full GLSM adapter with redirected OpenGL draw/readback tests. The current game renderer stays active.
+description=Metal baseline and full GLSM readback with host GL-state restoration. Window presentation is an optional experimental probe.
 javaJarFile=media/java/client/Julia.jar
 javaPkgName=dev.julia.zomboid
 ZBVersionMin=2.3.4
