@@ -6,3 +6,4 @@
 work/
 local.properties
 /modules/*/bin/
+.kotlin/

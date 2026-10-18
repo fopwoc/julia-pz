@@ -12,8 +12,9 @@ public enum Platform {
             // Cocoa only permits SDL video initialization on the process main thread.
             long isMainThread = LibSystem.getLibrary().getFunctionAddress("pthread_main_np");
             if (isMainThread == 0 || JNI.invokeI(isMainThread) == 0) {
-                throw new IllegalStateException("SDL video initialization requires the Cocoa main thread; current thread: "
-                        + Thread.currentThread().getName());
+                throw new IllegalStateException(
+                        "SDL video initialization requires the Cocoa main thread; current thread: "
+                                + Thread.currentThread().getName());
             }
         }
     },

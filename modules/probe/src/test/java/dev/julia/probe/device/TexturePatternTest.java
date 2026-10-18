@@ -1,7 +1,8 @@
 package dev.julia.probe.device;
 
-import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 
 class TexturePatternTest {
     @Test
@@ -12,7 +13,8 @@ class TexturePatternTest {
             {0xFF3AD613, 0xFF45D650, 0xFF50D68D, 0xFF50D68D, 0xFF5BD6CA}
         };
         for (int y = 0; y < 3; y++) {
-            for (int x = 0; x < 5; x++) assertEquals(expected[y][x], TexturePattern.expectedArgb(x, y, 5, 3), x + "," + y);
+            for (int x = 0; x < 5; x++)
+                assertEquals(expected[y][x], TexturePattern.expectedArgb(x, y, 5, 3), x + "," + y);
         }
     }
 
@@ -24,5 +26,4 @@ class TexturePatternTest {
         assertFalse(TexturePattern.matchesArgb(0xFF070D12, 0, 545, 3600, 2182));
         assertFalse(TexturePattern.matchesArgb(0xFF299313, 0, 545, 3600, 2182));
     }
-
 }

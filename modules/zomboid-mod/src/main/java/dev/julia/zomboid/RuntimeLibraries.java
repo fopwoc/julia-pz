@@ -59,7 +59,8 @@ final class RuntimeLibraries {
 
         @Override
         protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-            if (name.startsWith(SHARED)) return RuntimeLibraries.class.getClassLoader().loadClass(name);
+            if (name.startsWith(SHARED))
+                return RuntimeLibraries.class.getClassLoader().loadClass(name);
             return super.loadClass(name, resolve);
         }
     }

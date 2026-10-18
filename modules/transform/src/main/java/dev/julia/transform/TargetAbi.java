@@ -28,7 +28,8 @@ public final class TargetAbi {
             var result = new HashSet<String>();
             for (var method : ClassFile.of().parse(input.readAllBytes()).methods()) {
                 if ((method.flags().flagsMask() & PUBLIC_STATIC) == PUBLIC_STATIC) {
-                    result.add(method.methodName().stringValue() + method.methodType().stringValue());
+                    result.add(method.methodName().stringValue()
+                            + method.methodType().stringValue());
                 }
             }
             return Set.copyOf(result);

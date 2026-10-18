@@ -1,12 +1,13 @@
 package dev.julia.audit.report;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import dev.julia.audit.model.ArchiveAudit;
 import dev.julia.audit.model.GraphicsReference;
 import dev.julia.audit.model.GraphicsSymbol;
 import java.io.StringWriter;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
 class TsvAuditWriterTest {
     @Test
@@ -23,8 +24,11 @@ class TsvAuditWriterTest {
     }
 
     private static GraphicsReference reference(String method) {
-        return new GraphicsReference(new GraphicsSymbol(GraphicsSymbol.Kind.METHOD,
-                "org/lwjgl/opengl/GL11", method, "()V"), "sample/Renderer", "render", "()V",
+        return new GraphicsReference(
+                new GraphicsSymbol(GraphicsSymbol.Kind.METHOD, "org/lwjgl/opengl/GL11", method, "()V"),
+                "sample/Renderer",
+                "render",
+                "()V",
                 GraphicsReference.Kind.INSTRUCTION);
     }
 }

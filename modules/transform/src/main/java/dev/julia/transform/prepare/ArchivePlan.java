@@ -45,7 +45,8 @@ public final class ArchivePlan {
     public Map<String, byte[]> requireBytecode() {
         if (!ready()) throw new IllegalStateException("Archive activation blocked: " + blockers);
         var classes = new HashMap<String, byte[]>();
-        for (var entry : entries) classes.put(entry.prepared().name(), entry.prepared().requireBytecode());
+        for (var entry : entries)
+            classes.put(entry.prepared().name(), entry.prepared().requireBytecode());
         return Map.copyOf(classes);
     }
 }

@@ -1,9 +1,9 @@
 package dev.julia.probe.scene;
 
+import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_CULL_FACE;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
-import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_NEAREST;
 import static org.lwjgl.opengl.GL11.GL_NO_ERROR;
 import static org.lwjgl.opengl.GL11.GL_RGBA;
@@ -125,7 +125,8 @@ public final class AdapterScene {
             attach(program, GL_VERTEX_SHADER, "/shaders/adapter.vert");
             attach(program, GL_FRAGMENT_SHADER, "/shaders/adapter.frag");
             glLinkProgram(program);
-            if (glGetProgrami(program, GL_LINK_STATUS) == 0) throw new IllegalStateException(glGetProgramInfoLog(program));
+            if (glGetProgrami(program, GL_LINK_STATUS) == 0)
+                throw new IllegalStateException(glGetProgramInfoLog(program));
             glUseProgram(program);
             UniformChecks.run(program);
 
@@ -171,7 +172,10 @@ public final class AdapterScene {
             for (int y = 0; y < edge; y++) {
                 for (int x = 0; x < edge; x++) {
                     int color = TexturePattern.sourceArgb(x, y);
-                    upload.put((byte) (color >>> 16)).put((byte) (color >>> 8)).put((byte) color).put((byte) 255);
+                    upload.put((byte) (color >>> 16))
+                            .put((byte) (color >>> 8))
+                            .put((byte) color)
+                            .put((byte) 255);
                 }
             }
             upload.flip();
@@ -181,7 +185,8 @@ public final class AdapterScene {
         }
         int source = texture(edge, edge, null);
         try {
-            GL44.glCopyImageSubData(uploaded, GL_TEXTURE_2D, 0, 0, 0, 0, source, GL_TEXTURE_2D, 0, 0, 0, 0, edge, edge, 1);
+            GL44.glCopyImageSubData(
+                    uploaded, GL_TEXTURE_2D, 0, 0, 0, 0, source, GL_TEXTURE_2D, 0, 0, 0, 0, edge, edge, 1);
         } finally {
             glDeleteTextures(uploaded);
         }
@@ -196,8 +201,10 @@ public final class AdapterScene {
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
                     int offset = (y * width + x) * 4;
-                    int actual = (pixels.get(offset + 3) & 255) << 24 | (pixels.get(offset) & 255) << 16
-                            | (pixels.get(offset + 1) & 255) << 8 | pixels.get(offset + 2) & 255;
+                    int actual = (pixels.get(offset + 3) & 255) << 24
+                            | (pixels.get(offset) & 255) << 16
+                            | (pixels.get(offset + 1) & 255) << 8
+                            | pixels.get(offset + 2) & 255;
                     if (!TexturePattern.matchesArgb(actual, x, y, width, height)) {
                         throw new IllegalStateException("GLSM pixel " + x + "," + y + " in " + width + "x" + height
                                 + " expected " + Integer.toHexString(TexturePattern.expectedArgb(x, y, width, height))
@@ -232,7 +239,8 @@ public final class AdapterScene {
                 glShaderSource(shader, new String(stream.readAllBytes(), StandardCharsets.UTF_8));
             }
             glCompileShader(shader);
-            if (glGetShaderi(shader, GL_COMPILE_STATUS) == 0) throw new IllegalStateException(glGetShaderInfoLog(shader));
+            if (glGetShaderi(shader, GL_COMPILE_STATUS) == 0)
+                throw new IllegalStateException(glGetShaderInfoLog(shader));
             glAttachShader(program, shader);
         } finally {
             glDeleteShader(shader);

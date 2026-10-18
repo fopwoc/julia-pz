@@ -1,5 +1,9 @@
 package dev.julia.audit.scan;
 
+import static java.lang.classfile.ClassFile.ACC_STATIC;
+import static java.lang.constant.ConstantDescs.CD_void;
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.lang.classfile.ClassFile;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
@@ -11,12 +15,10 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import static java.lang.classfile.ClassFile.ACC_STATIC;
-import static java.lang.constant.ConstantDescs.CD_void;
-import static org.junit.jupiter.api.Assertions.*;
 
 class GraphicsArchiveScannerTest {
-    @TempDir Path directory;
+    @TempDir
+    Path directory;
 
     @Test
     void selectsRuntimeVariantAndExcludesEmbeddedBindings() throws Exception {
@@ -44,7 +46,7 @@ class GraphicsArchiveScannerTest {
         Path path = directory.resolve("broken.jar");
         try (var jar = new JarOutputStream(Files.newOutputStream(path))) {
             jar.putNextEntry(new JarEntry("broken/Renderer.class"));
-            jar.write(new byte[]{0, 1});
+            jar.write(new byte[] {0, 1});
             jar.closeEntry();
         }
         var error = assertThrows(java.io.IOException.class, () -> new GraphicsArchiveScanner().scan(path));
@@ -52,9 +54,18 @@ class GraphicsArchiveScannerTest {
     }
 
     private static void add(JarOutputStream jar, String name, String target) throws Exception {
-        var bytes = ClassFile.of().build(ClassDesc.of("example.Renderer"), builder -> builder.withMethodBody(
-                "render", MethodTypeDesc.of(CD_void), ACC_STATIC, code -> code.invokestatic(
-                        ClassDesc.of("org.lwjgl.opengl.GL11"), target, MethodTypeDesc.of(CD_void)).return_()));
+        var bytes = ClassFile.of()
+                .build(
+                        ClassDesc.of("example.Renderer"),
+                        builder -> builder.withMethodBody(
+                                "render",
+                                MethodTypeDesc.of(CD_void),
+                                ACC_STATIC,
+                                code -> code.invokestatic(
+                                                ClassDesc.of("org.lwjgl.opengl.GL11"),
+                                                target,
+                                                MethodTypeDesc.of(CD_void))
+                                        .return_()));
         jar.putNextEntry(new JarEntry(name));
         jar.write(bytes);
         jar.closeEntry();

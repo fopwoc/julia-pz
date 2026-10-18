@@ -29,7 +29,8 @@ public final class LegacyNamespacePass {
     private LegacyNamespacePass() {}
 
     public static byte[] adapt(String className, byte[] bytes) {
-        if (!className.startsWith("com.gtnewhorizons.angelica.") && !className.startsWith("com.gtnewhorizon.gtnhlib.")) {
+        if (!className.startsWith("com.gtnewhorizons.angelica.")
+                && !className.startsWith("com.gtnewhorizon.gtnhlib.")) {
             return bytes;
         }
         var node = new ClassNode();

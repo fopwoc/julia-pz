@@ -7,7 +7,7 @@ import org.lwjgl.system.MemoryUtil;
 
 /** LWJGL 3 overloads missing from the published GLSM ABI. */
 public final class UniformBridge {
-    private UniformBridge() { }
+    private UniformBridge() {}
 
     public static void glUniform1(int location, float[] values) {
         var buffer = MemoryUtil.memAllocFloat(values.length);

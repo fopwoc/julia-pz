@@ -1,8 +1,8 @@
 package dev.julia.agent;
 
 import dev.julia.agent.audit.RuntimeAudit;
-import java.lang.instrument.Instrumentation;
 import dev.julia.utils.logging.LogConfiguration;
+import java.lang.instrument.Instrumentation;
 import java.nio.file.Path;
 
 /** Startup agent that inventories graphics references in loaded game classes without changing them. */
@@ -20,13 +20,14 @@ public final class JuliaAgent {
         var audit = new RuntimeAudit(Path.of(arguments));
         LOG.log(System.Logger.Level.INFO, "Registering graphics class observer");
         instrumentation.addTransformer(audit);
-        Runtime.getRuntime().addShutdownHook(Thread.ofPlatform().name("julia-audit-report").unstarted(() -> {
-            try {
-                audit.close();
-            } catch (Exception exception) {
-                LOG.log(System.Logger.Level.ERROR, "Cannot write runtime graphics report", exception);
-            }
-        }));
+        Runtime.getRuntime()
+                .addShutdownHook(Thread.ofPlatform().name("julia-audit-report").unstarted(() -> {
+                    try {
+                        audit.close();
+                    } catch (Exception exception) {
+                        LOG.log(System.Logger.Level.ERROR, "Cannot write runtime graphics report", exception);
+                    }
+                }));
         LOG.log(System.Logger.Level.INFO, "Julia ready in audit mode; rendering calls are unchanged");
     }
 }

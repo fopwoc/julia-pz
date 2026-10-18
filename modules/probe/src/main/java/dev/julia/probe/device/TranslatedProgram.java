@@ -1,13 +1,14 @@
 package dev.julia.probe.device;
 
+import static org.lwjgl.opengl.GL20.GL_FRAGMENT_SHADER;
+import static org.lwjgl.opengl.GL20.GL_VERTEX_SHADER;
+import static org.lwjgl.sdl.SDLGPU.*;
+
 import com.gtnewhorizons.angelica.sdlgpu.device.Device;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
 import dev.julia.backend.utils.Sdl;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import static org.lwjgl.opengl.GL20.GL_FRAGMENT_SHADER;
-import static org.lwjgl.opengl.GL20.GL_VERTEX_SHADER;
-import static org.lwjgl.sdl.SDLGPU.*;
 
 /** Owns Angelica's OpenGL GLSL transformation, linking, and Metal shader handles. */
 final class TranslatedProgram implements AutoCloseable {
@@ -32,12 +33,24 @@ final class TranslatedProgram implements AutoCloseable {
             if (vr.numSamplers() != 0 || fr.numSamplers() != 1 || vr.numUBOs() != 0 || fr.numUBOs() != 0) {
                 throw new IllegalStateException("Unexpected translated shader resources: " + vr + "; " + fr);
             }
-            program.sdlVertexShader = Sdl.require(shaders.createSDLShader(program.vertexSpirv,
-                    SDL_GPU_SHADERSTAGE_VERTEX, vr.numSamplers(), vr.numUBOs(), vr.numStorageBuffers(),
-                    vr.numStorageTextures()), "Create translated vertex shader");
-            program.sdlFragmentShader = Sdl.require(shaders.createSDLShader(program.fragmentSpirv,
-                    SDL_GPU_SHADERSTAGE_FRAGMENT, fr.numSamplers(), fr.numUBOs(), fr.numStorageBuffers(),
-                    fr.numStorageTextures()), "Create translated fragment shader");
+            program.sdlVertexShader = Sdl.require(
+                    shaders.createSDLShader(
+                            program.vertexSpirv,
+                            SDL_GPU_SHADERSTAGE_VERTEX,
+                            vr.numSamplers(),
+                            vr.numUBOs(),
+                            vr.numStorageBuffers(),
+                            vr.numStorageTextures()),
+                    "Create translated vertex shader");
+            program.sdlFragmentShader = Sdl.require(
+                    shaders.createSDLShader(
+                            program.fragmentSpirv,
+                            SDL_GPU_SHADERSTAGE_FRAGMENT,
+                            fr.numSamplers(),
+                            fr.numUBOs(),
+                            fr.numStorageBuffers(),
+                            fr.numStorageTextures()),
+                    "Create translated fragment shader");
         } catch (IOException | RuntimeException | Error failure) {
             shaders.shutdown();
             throw failure;
@@ -58,9 +71,16 @@ final class TranslatedProgram implements AutoCloseable {
         return shader;
     }
 
-    long vertex() { return program.sdlVertexShader; }
-    long fragment() { return program.sdlFragmentShader; }
+    long vertex() {
+        return program.sdlVertexShader;
+    }
+
+    long fragment() {
+        return program.sdlFragmentShader;
+    }
 
     @Override
-    public void close() { shaders.shutdown(); }
+    public void close() {
+        shaders.shutdown();
+    }
 }

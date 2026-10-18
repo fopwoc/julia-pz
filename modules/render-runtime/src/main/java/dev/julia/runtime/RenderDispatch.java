@@ -9,21 +9,28 @@ import java.lang.invoke.MethodType;
 /** Typed invokedynamic dispatch; no LWJGL classes, argument boxing, or native state cross this boundary. */
 public final class RenderDispatch {
     private static final MethodHandle RESOLVE;
+
     static {
         try {
-            RESOLVE = MethodHandles.lookup().findStatic(RenderDispatch.class, "resolve",
-                    MethodType.methodType(MethodHandle.class, String.class, String.class, MethodType.class));
-        } catch (ReflectiveOperationException failure) { throw new ExceptionInInitializerError(failure); }
+            RESOLVE = MethodHandles.lookup()
+                    .findStatic(
+                            RenderDispatch.class,
+                            "resolve",
+                            MethodType.methodType(MethodHandle.class, String.class, String.class, MethodType.class));
+        } catch (ReflectiveOperationException failure) {
+            throw new ExceptionInInitializerError(failure);
+        }
     }
 
-    private RenderDispatch() { }
+    private RenderDispatch() {}
 
     public static CallSite bootstrap(MethodHandles.Lookup caller, String name, MethodType type, String owner) {
         var resolver = MethodHandles.insertArguments(RESOLVE, 0, owner, name, type);
         return new ConstantCallSite(MethodHandles.foldArguments(MethodHandles.exactInvoker(type), resolver));
     }
 
-    private static MethodHandle resolve(String owner, String name, MethodType type) throws ReflectiveOperationException {
+    private static MethodHandle resolve(String owner, String name, MethodType type)
+            throws ReflectiveOperationException {
         return RenderSession.current().target(owner, name, type);
     }
 }

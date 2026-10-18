@@ -33,7 +33,8 @@ final class CocoaWindowState {
     }
 
     void restore() {
-        if (object(window, "contentView") != view) throw new IllegalStateException("Foreign wrapper replaced the GLFW content view");
+        if (object(window, "contentView") != view)
+            throw new IllegalStateException("Foreign wrapper replaced the GLFW content view");
         setObject(window, "setDelegate:", delegate);
         setObject(window, "setNextResponder:", windowResponder);
         setObject(view, "setNextResponder:", viewResponder);
@@ -45,10 +46,14 @@ final class CocoaWindowState {
     }
 
     void verify() {
-        if (object(window, "contentView") != view || object(window, "delegate") != delegate
-                || object(window, "nextResponder") != windowResponder || object(view, "nextResponder") != viewResponder
-                || flag(window, "acceptsMouseMovedEvents") != mouseMoved || object(view, "allowedTouchTypes") != touchTypes
-                || flag(window, "isReleasedWhenClosed") != releasedWhenClosed || flag(window, "isOneShot") != oneShot
+        if (object(window, "contentView") != view
+                || object(window, "delegate") != delegate
+                || object(window, "nextResponder") != windowResponder
+                || object(view, "nextResponder") != viewResponder
+                || flag(window, "acceptsMouseMovedEvents") != mouseMoved
+                || object(view, "allowedTouchTypes") != touchTypes
+                || flag(window, "isReleasedWhenClosed") != releasedWhenClosed
+                || flag(window, "isOneShot") != oneShot
                 || flag(view, "wantsBestResolutionOpenGLSurface") != highResolution) {
             throw new IllegalStateException("GLFW Cocoa ownership was not restored");
         }

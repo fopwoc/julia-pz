@@ -1,10 +1,11 @@
 package dev.julia.transform.load;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import dev.julia.audit.scan.GraphicsClassScanner;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
-import static org.junit.jupiter.api.Assertions.*;
 
 class SceneTransformTest {
     @Test
@@ -13,13 +14,16 @@ class SceneTransformTest {
         var references = new GraphicsClassScanner(symbol -> true).scan(transformed);
         var node = new org.objectweb.asm.tree.ClassNode();
         new org.objectweb.asm.ClassReader(transformed).accept(node, 0);
-        assertTrue(node.methods.stream().flatMap(method -> java.util.Arrays.stream(method.instructions.toArray()))
+        assertTrue(node.methods.stream()
+                .flatMap(method -> java.util.Arrays.stream(method.instructions.toArray()))
                 .filter(org.objectweb.asm.tree.InvokeDynamicInsnNode.class::isInstance)
                 .map(org.objectweb.asm.tree.InvokeDynamicInsnNode.class::cast)
                 .anyMatch(call -> call.bsm.getOwner().equals("dev/julia/runtime/RenderDispatch")
                         && call.name.equals("glClear")
-                        && java.util.Arrays.asList(call.bsmArgs).contains("com/gtnewhorizons/angelica/glsm/GLStateManager")));
-        assertFalse(references.stream().anyMatch(reference -> reference.target().owner().startsWith("org/lwjgl/opengl/")));
+                        && java.util.Arrays.asList(call.bsmArgs)
+                                .contains("com/gtnewhorizons/angelica/glsm/GLStateManager")));
+        assertFalse(references.stream()
+                .anyMatch(reference -> reference.target().owner().startsWith("org/lwjgl/opengl/")));
     }
 
     @Test
@@ -35,14 +39,16 @@ class SceneTransformTest {
 
     private static byte[] scene(boolean clear, boolean unknown) {
         var writer = new ClassWriter(0);
-        writer.visit(Opcodes.V25, Opcodes.ACC_PUBLIC, "dev/julia/probe/adapter/Fixture", null, "java/lang/Object", null);
+        writer.visit(
+                Opcodes.V25, Opcodes.ACC_PUBLIC, "dev/julia/probe/adapter/Fixture", null, "java/lang/Object", null);
         var method = writer.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "draw", "()V", null, null);
         method.visitCode();
         if (clear) {
             method.visitLdcInsn(0x4000);
             method.visitMethodInsn(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/GL11", "glClear", "(I)V", false);
         }
-        if (unknown) method.visitMethodInsn(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/GL11", "glUnknownJuliaTest", "()V", false);
+        if (unknown)
+            method.visitMethodInsn(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/GL11", "glUnknownJuliaTest", "()V", false);
         method.visitInsn(Opcodes.RETURN);
         method.visitMaxs(1, 0);
         method.visitEnd();

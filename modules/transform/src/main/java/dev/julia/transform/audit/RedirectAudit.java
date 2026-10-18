@@ -52,7 +52,16 @@ public final class RedirectAudit {
         var audit = new RedirectAudit(compatibility);
         try (var writer = Files.newBufferedWriter(
                 output, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
-            Tsv.row(writer, "archive", "class", "method", "caller_descriptor", "kind", "owner", "name", "descriptor",
+            Tsv.row(
+                    writer,
+                    "archive",
+                    "class",
+                    "method",
+                    "caller_descriptor",
+                    "kind",
+                    "owner",
+                    "name",
+                    "descriptor",
                     "status");
             for (int index = first + 1; index < args.length; index++) audit.inspect(Path.of(args[index]), writer);
         }
@@ -66,8 +75,10 @@ public final class RedirectAudit {
 
     /** Upstream endpoints always; Julia's bridges only when the compatibility pipeline is applied. */
     private boolean target(String owner) {
-        return Endpoint.contains(owner) && (compatibility || owner.equals(Endpoint.STATE_MANAGER.owner())
-                || owner.equals(Endpoint.DEBUG_SHIM.owner()));
+        return Endpoint.contains(owner)
+                && (compatibility
+                        || owner.equals(Endpoint.STATE_MANAGER.owner())
+                        || owner.equals(Endpoint.DEBUG_SHIM.owner()));
     }
 
     private void inspect(Path input, Writer writer) throws IOException {
@@ -84,9 +95,17 @@ public final class RedirectAudit {
                 var symbol = reference.target();
                 String status = classify(symbol);
                 counts.merge(status, 1, Integer::sum);
-                Tsv.row(writer, archive, reference.callerClass(), reference.callerMethod(),
-                        reference.callerDescriptor(), symbol.kind(), symbol.owner(), symbol.name(),
-                        symbol.descriptor(), status);
+                Tsv.row(
+                        writer,
+                        archive,
+                        reference.callerClass(),
+                        reference.callerMethod(),
+                        reference.callerDescriptor(),
+                        symbol.kind(),
+                        symbol.owner(),
+                        symbol.name(),
+                        symbol.descriptor(),
+                        status);
             }
         });
     }
@@ -94,7 +113,8 @@ public final class RedirectAudit {
     private String classify(GraphicsSymbol symbol) throws IOException {
         if (target(symbol.owner())) {
             return abi.contains(symbol.owner(), symbol.name(), symbol.descriptor())
-                    ? "TARGET_SIGNATURE_PRESENT" : "TARGET_SIGNATURE_MISSING";
+                    ? "TARGET_SIGNATURE_PRESENT"
+                    : "TARGET_SIGNATURE_MISSING";
         }
         if (symbol.kind() == GraphicsSymbol.Kind.FIELD) return "HOST_FIELD";
         if (symbol.name().startsWith("gl") || symbol.name().startsWith("ngl")) {

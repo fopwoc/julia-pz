@@ -22,13 +22,19 @@ record TextureRegion(int level, int x, int y, int z, int width, int height, int 
     /** Array layers are never mip-reduced; volume depth is. */
     void validate(ResourceManager.TextureMeta meta) {
         int shift = Math.clamp(level, 0, 30);
-        validate(meta.levels(), Math.max(1, meta.width() >> shift), Math.max(1, meta.height() >> shift),
+        validate(
+                meta.levels(),
+                Math.max(1, meta.width() >> shift),
+                Math.max(1, meta.height() >> shift),
                 isArray(meta.glTarget()) ? meta.depth() : Math.max(1, meta.depth() >> shift));
     }
 
     void validate(int levels, int mipWidth, int mipHeight, int mipDepth) {
         boolean negative = level < 0 || x < 0 || y < 0 || z < 0 || width < 0 || height < 0 || depth < 0;
-        if (negative || level >= levels || (long) x + width > mipWidth || (long) y + height > mipHeight
+        if (negative
+                || level >= levels
+                || (long) x + width > mipWidth
+                || (long) y + height > mipHeight
                 || (long) z + depth > mipDepth) {
             throw new IllegalArgumentException("Texture region outside allocated storage");
         }

@@ -1,25 +1,34 @@
 package dev.julia.agent;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import zombie.Sample;
-import static org.junit.jupiter.api.Assertions.*;
 
 class AgentSmokeTest {
-    @TempDir Path directory;
+    @TempDir
+    Path directory;
 
     @Test
     void attachesToSeparateJvmAndObservesWithoutChangingBehavior() throws Exception {
         Path report = directory.resolve("runtime.tsv");
         Path log = directory.resolve("process.log");
         Path java = Path.of(System.getProperty("java.home"), "bin", "java");
-        Path fixtures = Path.of(Sample.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-        var builder = new ProcessBuilder(java.toString(), "-XX:-CreateCoredumpOnCrash",
-                "-javaagent:" + System.getProperty("agent.jar") + "=" + report,
-                "-cp", fixtures.toString(), "zombie.Sample").redirectErrorStream(true).redirectOutput(log.toFile());
+        Path fixtures = Path.of(
+                Sample.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        var builder = new ProcessBuilder(
+                        java.toString(),
+                        "-XX:-CreateCoredumpOnCrash",
+                        "-javaagent:" + System.getProperty("agent.jar") + "=" + report,
+                        "-cp",
+                        fixtures.toString(),
+                        "zombie.Sample")
+                .redirectErrorStream(true)
+                .redirectOutput(log.toFile());
         builder.environment().put("LOG_LEVEL", "info");
         var process = builder.start();
         try {

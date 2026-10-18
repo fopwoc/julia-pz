@@ -11,15 +11,30 @@ import org.lwjgl.system.MemoryStack;
 public final class TextureCopyBridge {
     private TextureCopyBridge() {}
 
-    public static void glCopyImageSubData(int source, int sourceTarget, int sourceLevel, int sx, int sy, int sz,
-            int destination, int destinationTarget, int destinationLevel, int dx, int dy, int dz,
-            int width, int height, int depth) {
+    public static void glCopyImageSubData(
+            int source,
+            int sourceTarget,
+            int sourceLevel,
+            int sx,
+            int sy,
+            int sz,
+            int destination,
+            int destinationTarget,
+            int destinationLevel,
+            int dx,
+            int dy,
+            int dz,
+            int width,
+            int height,
+            int depth) {
         var resources = BackendInternals.resources();
         var frames = BackendInternals.frames();
         var sourceMeta = resources.getTextureMeta(source);
         var destinationMeta = resources.getTextureMeta(destination);
         validate(sourceMeta, sourceTarget, new TextureRegion(sourceLevel, sx, sy, sz, width, height, depth));
-        validate(destinationMeta, destinationTarget,
+        validate(
+                destinationMeta,
+                destinationTarget,
                 new TextureRegion(destinationLevel, dx, dy, dz, width, height, depth));
         if (sourceMeta.sdlFormat() != destinationMeta.sdlFormat()) {
             throw new UnsupportedOperationException("Image copy requires identical SDL storage formats");
@@ -31,8 +46,11 @@ public final class TextureCopyBridge {
         if (sourceHandle == 0 || destinationHandle == 0) {
             throw new IllegalArgumentException("Image copy requires allocated textures");
         }
-        if (sourceHandle == destinationHandle && sourceLevel == destinationLevel
-                && overlaps(sx, dx, width) && overlaps(sy, dy, height) && overlaps(sz, dz, depth)) {
+        if (sourceHandle == destinationHandle
+                && sourceLevel == destinationLevel
+                && overlaps(sx, dx, width)
+                && overlaps(sy, dy, height)
+                && overlaps(sz, dz, depth)) {
             throw new UnsupportedOperationException("Overlapping image copy");
         }
         if (frames.getCommandBuffer() == 0) throw new IllegalStateException("Image copy requires an active frame");
@@ -75,7 +93,8 @@ public final class TextureCopyBridge {
         if (meta == null || meta.glTarget() != target) {
             throw new IllegalArgumentException("Image copy target does not match storage");
         }
-        if (!TextureRegion.isSupported(target)) throw new UnsupportedOperationException("Unsupported image-copy target");
+        if (!TextureRegion.isSupported(target))
+            throw new UnsupportedOperationException("Unsupported image-copy target");
         region.validate(meta);
     }
 }

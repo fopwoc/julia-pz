@@ -24,8 +24,9 @@ public final class LogConfiguration {
         var logger = Logger.getLogger(ROOT);
         synchronized (Logger.class) {
             // Compare by name: another loader's copy of this class may already have installed its handler.
-            if (Arrays.stream(logger.getHandlers()).anyMatch(handler -> handler.getFormatter() != null
-                    && handler.getFormatter().getClass().getName().equals(CompactFormat.class.getName()))) {
+            if (Arrays.stream(logger.getHandlers())
+                    .anyMatch(handler -> handler.getFormatter() != null
+                            && handler.getFormatter().getClass().getName().equals(CompactFormat.class.getName()))) {
                 return;
             }
             logger.setUseParentHandlers(false);

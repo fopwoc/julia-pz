@@ -4,10 +4,12 @@ import org.lwjgl.opengl.GL;
 
 /** Local capability objects survive branches through transformed stack-map frames. */
 public final class CapabilityFixture {
-    private CapabilityFixture() { }
+    private CapabilityFixture() {}
+
     public static boolean displayFlag() {
         return org.lwjglx.opengl.Display.capabilities.GL_ARB_texture_compression;
     }
+
     public static int flags(boolean branch) {
         var capabilities = GL.getCapabilities();
         int result = branch ? 1 : 0;

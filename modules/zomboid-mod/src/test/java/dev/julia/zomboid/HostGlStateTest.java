@@ -1,5 +1,7 @@
 package dev.julia.zomboid;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -9,11 +11,12 @@ import javax.tools.ToolProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import static org.junit.jupiter.api.Assertions.*;
 
 class HostGlStateTest {
     private static final String DISPATCH = "julia.test.nativeDispatch";
-    @TempDir Path directory;
+
+    @TempDir
+    Path directory;
 
     @BeforeEach
     void compileIndependentBindings() throws Exception {
@@ -53,14 +56,25 @@ class HostGlStateTest {
                     }
                 }
                 """);
-        assertEquals(0, ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d", directory.toString(),
-                capabilities.toString(), gl.toString(), gl11.toString()));
+        assertEquals(
+                0,
+                ToolProvider.getSystemJavaCompiler()
+                        .run(
+                                null,
+                                null,
+                                null,
+                                "-d",
+                                directory.toString(),
+                                capabilities.toString(),
+                                gl.toString(),
+                                gl11.toString()));
     }
 
     @Test
     void republishesHostDispatchDespiteUnchangedHostJavaCapabilities() throws Exception {
         Object previous = System.getProperties().get(DISPATCH);
-        try (var host = bindings(); var probe = bindings()) {
+        try (var host = bindings();
+                var probe = bindings()) {
             Object original = install(host, 1234);
             try (var saved = HostGlState.capture(host)) {
                 install(probe, 0xDEAD000000000001L);
@@ -70,13 +84,16 @@ class HostGlStateTest {
                 assertEquals(1234L, System.getProperties().get(DISPATCH));
             }
             assertSame(original, capabilities(host));
-        } finally { restoreProperty(previous); }
+        } finally {
+            restoreProperty(previous);
+        }
     }
 
     @Test
     void restoresAfterProbeThrows() throws Exception {
         Object previous = System.getProperties().get(DISPATCH);
-        try (var host = bindings(); var probe = bindings()) {
+        try (var host = bindings();
+                var probe = bindings()) {
             Object original = install(host, 5678);
             assertThrows(IllegalArgumentException.class, () -> {
                 try (var saved = HostGlState.capture(host)) {
@@ -87,7 +104,9 @@ class HostGlStateTest {
             });
             assertSame(original, capabilities(host));
             assertEquals(5678L, System.getProperties().get(DISPATCH));
-        } finally { restoreProperty(previous); }
+        } finally {
+            restoreProperty(previous);
+        }
     }
 
     @Test
@@ -98,13 +117,18 @@ class HostGlStateTest {
             try (var saved = HostGlState.capture(host)) {
                 var failure = new AtomicReference<Throwable>();
                 Thread thread = Thread.ofPlatform().start(() -> {
-                    try { saved.restoreAndVerify(); }
-                    catch (Throwable exception) { failure.set(exception); }
+                    try {
+                        saved.restoreAndVerify();
+                    } catch (Throwable exception) {
+                        failure.set(exception);
+                    }
                 });
                 thread.join();
                 assertInstanceOf(IllegalStateException.class, failure.get());
             }
-        } finally { restoreProperty(previous); }
+        } finally {
+            restoreProperty(previous);
+        }
     }
 
     @Test
@@ -115,7 +139,7 @@ class HostGlStateTest {
     }
 
     private URLClassLoader bindings() throws Exception {
-        return new URLClassLoader(new URL[]{directory.toUri().toURL()}, ClassLoader.getPlatformClassLoader());
+        return new URLClassLoader(new URL[] {directory.toUri().toURL()}, ClassLoader.getPlatformClassLoader());
     }
 
     private static Object install(ClassLoader loader, long address) throws Exception {
@@ -127,7 +151,9 @@ class HostGlStateTest {
     }
 
     private static Object capabilities(ClassLoader loader) throws Exception {
-        return Class.forName("org.lwjgl.opengl.GL", true, loader).getMethod("getCapabilities").invoke(null);
+        return Class.forName("org.lwjgl.opengl.GL", true, loader)
+                .getMethod("getCapabilities")
+                .invoke(null);
     }
 
     private static void restoreProperty(Object previous) {

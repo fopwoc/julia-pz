@@ -1,5 +1,7 @@
 package dev.julia.transform.pass;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import dev.julia.transform.Endpoint;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Opcodes;
@@ -10,10 +12,10 @@ import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
-import static org.junit.jupiter.api.Assertions.*;
 
 class TextureAllocationPassTest {
-    @Test void routesOnlyProvenNullStorageCalls() {
+    @Test
+    void routesOnlyProvenNullStorageCalls() {
         var node = new ClassNode();
         var method = new MethodNode();
         node.methods.add(method);
@@ -38,7 +40,11 @@ class TextureAllocationPassTest {
     }
 
     private static MethodInsnNode call() {
-        return new MethodInsnNode(Opcodes.INVOKESTATIC, "com/gtnewhorizons/angelica/glsm/GLStateManager",
-                "glTexImage3D", "(IIIIIIIIIJ)V", false);
+        return new MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                "com/gtnewhorizons/angelica/glsm/GLStateManager",
+                "glTexImage3D",
+                "(IIIIIIIIIJ)V",
+                false);
     }
 }

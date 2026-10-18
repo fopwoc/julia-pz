@@ -47,8 +47,13 @@ public final class ProbeLauncher {
 
     /** Raw-device baseline followed by presentation into a game-owned window. */
     public static void runWindowSuite(Path output, ForeignWindow window) throws Exception {
-        runtime().invoke("dev.julia.probe.WindowSuite", "run",
-                MethodType.methodType(void.class, Path.class, ForeignWindow.class), output, window);
+        runtime()
+                .invoke(
+                        "dev.julia.probe.WindowSuite",
+                        "run",
+                        MethodType.methodType(void.class, Path.class, ForeignWindow.class),
+                        output,
+                        window);
     }
 
     private static IsolatedRuntime runtime() {

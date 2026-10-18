@@ -8,7 +8,10 @@ public final class Tsv {
     private Tsv() {}
 
     public static String escape(String cell) {
-        return cell.replace("\\", "\\\\").replace("\t", "\\t").replace("\r", "\\r").replace("\n", "\\n");
+        return cell.replace("\\", "\\\\")
+                .replace("\t", "\\t")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n");
     }
 
     public static void row(Writer output, Object... cells) throws IOException {

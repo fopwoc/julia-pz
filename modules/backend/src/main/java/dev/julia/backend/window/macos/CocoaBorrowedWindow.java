@@ -23,9 +23,11 @@ public final class CocoaBorrowedWindow implements BorrowedWindow {
         int properties = SDL_CreateProperties();
         if (properties == 0) throw Sdl.failure("Create window properties");
         try {
-            Sdl.require(SDL_SetPointerProperty(properties, SDL_PROP_WINDOW_CREATE_COCOA_WINDOW_POINTER, cocoaWindow)
-                    && SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN, true)
-                    && SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, true),
+            Sdl.require(
+                    SDL_SetPointerProperty(properties, SDL_PROP_WINDOW_CREATE_COCOA_WINDOW_POINTER, cocoaWindow)
+                            && SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN, true)
+                            && SDL_SetBooleanProperty(
+                                    properties, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, true),
                     "Set foreign window properties");
             handle = Sdl.require(SDL_CreateWindowWithProperties(properties), "Wrap Cocoa window");
             original.restore();

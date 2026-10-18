@@ -15,7 +15,12 @@ final class HostGlState implements AutoCloseable {
     private final int textureBinding;
     private boolean restored;
 
-    private HostGlState(Object capabilities, Method getCapabilities, Method setCapabilities, Method getInteger, int textureBinding) {
+    private HostGlState(
+            Object capabilities,
+            Method getCapabilities,
+            Method setCapabilities,
+            Method getInteger,
+            int textureBinding) {
         this.capabilities = capabilities;
         this.getCapabilities = getCapabilities;
         this.setCapabilities = setCapabilities;
@@ -34,12 +39,14 @@ final class HostGlState implements AutoCloseable {
     }
 
     void restoreAndVerify() throws ReflectiveOperationException {
-        if (Thread.currentThread() != owner) throw new IllegalStateException("GL capabilities belong to " + owner.getName());
+        if (Thread.currentThread() != owner)
+            throw new IllegalStateException("GL capabilities belong to " + owner.getName());
         if (restored) return;
         // Calling the host setter is essential even when its Java ThreadLocal still contains this object.
         // LWJGL's fast native dispatch reads JNIEnv reserved state changed by the isolated runtime.
         setCapabilities.invoke(null, capabilities);
-        if (getCapabilities.invoke(null) != capabilities) throw new IllegalStateException("Host GL capability identity changed");
+        if (getCapabilities.invoke(null) != capabilities)
+            throw new IllegalStateException("Host GL capability identity changed");
         int binding = (int) getInteger.invoke(null, GL_TEXTURE_BINDING_2D);
         if (binding != textureBinding) throw new IllegalStateException("Host texture binding changed across the probe");
         restored = true;

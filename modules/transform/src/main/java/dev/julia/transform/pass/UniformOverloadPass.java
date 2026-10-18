@@ -14,7 +14,8 @@ public final class UniformOverloadPass {
     private static final String OWNER = Endpoint.UNIFORM_BRIDGE.owner();
     private static final String STATE_MANAGER = Endpoint.STATE_MANAGER.owner();
     private static final Set<String> METHODS = Set.of(
-            "glUniform1(I[F)V", "glUniformMatrix4(IZ[F)V",
+            "glUniform1(I[F)V",
+            "glUniformMatrix4(IZ[F)V",
             "glGetActiveUniform(IIILjava/nio/IntBuffer;Ljava/nio/IntBuffer;)Ljava/lang/String;");
 
     private UniformOverloadPass() {}
@@ -46,9 +47,13 @@ public final class UniformOverloadPass {
         }
         if (value instanceof ConstantDynamic dynamic) {
             Object[] arguments = new Object[dynamic.getBootstrapMethodArgumentCount()];
-            for (int i = 0; i < arguments.length; i++) arguments[i] = adaptConstant(dynamic.getBootstrapMethodArgument(i));
-            return new ConstantDynamic(dynamic.getName(), dynamic.getDescriptor(),
-                    (Handle) adaptConstant(dynamic.getBootstrapMethod()), arguments);
+            for (int i = 0; i < arguments.length; i++)
+                arguments[i] = adaptConstant(dynamic.getBootstrapMethodArgument(i));
+            return new ConstantDynamic(
+                    dynamic.getName(),
+                    dynamic.getDescriptor(),
+                    (Handle) adaptConstant(dynamic.getBootstrapMethod()),
+                    arguments);
         }
         return value;
     }

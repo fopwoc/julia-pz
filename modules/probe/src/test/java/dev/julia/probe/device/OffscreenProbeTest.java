@@ -1,7 +1,8 @@
 package dev.julia.probe.device;
 
-import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 
 class OffscreenProbeTest {
     // Independent golden RGBA values after the shader's BGRA swizzle.

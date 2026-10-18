@@ -14,13 +14,23 @@ public final class RenderSession implements AutoCloseable {
 
     public interface Frames {
         void begin();
+
         void present();
+
         void abort();
+
         void close();
     }
 
-    private enum State { READY, FRAME, FAILED, CLOSED }
-    private record Symbol(String owner, String name, MethodType type) { }
+    private enum State {
+        READY,
+        FRAME,
+        FAILED,
+        CLOSED
+    }
+
+    private record Symbol(String owner, String name, MethodType type) {}
+
     private static final ThreadLocal<RenderSession> CURRENT = new ThreadLocal<>();
     private final Thread owner = Thread.currentThread();
     private final Targets targets;
@@ -42,7 +52,9 @@ public final class RenderSession implements AutoCloseable {
 
     static RenderSession current() {
         var session = CURRENT.get();
-        if (session == null) throw new IllegalStateException("No render session on thread " + Thread.currentThread().getName());
+        if (session == null)
+            throw new IllegalStateException(
+                    "No render session on thread " + Thread.currentThread().getName());
         session.requireUsable();
         return session;
     }
@@ -63,23 +75,35 @@ public final class RenderSession implements AutoCloseable {
         requireUsable();
         if (state != State.READY) throw new IllegalStateException("Frame already open");
         state = State.FRAME;
-        try { frames.begin(); }
-        catch (RuntimeException | Error failure) { fail(failure); throw failure; }
+        try {
+            frames.begin();
+        } catch (RuntimeException | Error failure) {
+            fail(failure);
+            throw failure;
+        }
     }
 
     void present() {
         requireUsable();
         if (state != State.FRAME) throw new IllegalStateException("No frame to present");
-        try { frames.present(); state = State.READY; }
-        catch (RuntimeException | Error failure) { fail(failure); throw failure; }
+        try {
+            frames.present();
+            state = State.READY;
+        } catch (RuntimeException | Error failure) {
+            fail(failure);
+            throw failure;
+        }
     }
 
     private void fail(Throwable failure) {
         boolean frameOpen = state == State.FRAME;
         state = State.FAILED;
         if (frameOpen) {
-            try { frames.abort(); }
-            catch (RuntimeException | Error cleanup) { if (cleanup != failure) failure.addSuppressed(cleanup); }
+            try {
+                frames.abort();
+            } catch (RuntimeException | Error cleanup) {
+                if (cleanup != failure) failure.addSuppressed(cleanup);
+            }
         }
     }
 
@@ -95,20 +119,26 @@ public final class RenderSession implements AutoCloseable {
 
     private void requireUsable() {
         requireOwner();
-        if (state == State.CLOSED || state == State.FAILED) throw new IllegalStateException("Render session is " + state);
+        if (state == State.CLOSED || state == State.FAILED)
+            throw new IllegalStateException("Render session is " + state);
     }
 
-    @Override public void close() {
+    @Override
+    public void close() {
         requireOwner();
         if (state == State.CLOSED) return;
         Throwable failure = null;
         try {
             if (state == State.FRAME) {
-                try { frames.abort(); }
-                catch (RuntimeException | Error cleanup) { failure = cleanup; }
+                try {
+                    frames.abort();
+                } catch (RuntimeException | Error cleanup) {
+                    failure = cleanup;
+                }
             }
-            try { frames.close(); }
-            catch (RuntimeException | Error cleanup) {
+            try {
+                frames.close();
+            } catch (RuntimeException | Error cleanup) {
                 if (failure == null) failure = cleanup;
                 else if (failure != cleanup) failure.addSuppressed(cleanup);
             }

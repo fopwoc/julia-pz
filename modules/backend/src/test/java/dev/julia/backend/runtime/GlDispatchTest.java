@@ -1,5 +1,7 @@
 package dev.julia.backend.runtime;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -7,10 +9,10 @@ import java.nio.file.Path;
 import javax.tools.ToolProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import static org.junit.jupiter.api.Assertions.*;
 
 class GlDispatchTest {
-    @TempDir Path directory;
+    @TempDir
+    Path directory;
 
     @Test
     void clearsNativeDispatchAndDestroysProbeFunctionProvider() throws Exception {
@@ -34,8 +36,10 @@ class GlDispatchTest {
                     }
                 }
                 """);
-        assertEquals(0, ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d", directory.toString(),
-                capabilities.toString(), gl.toString()));
+        assertEquals(
+                0,
+                ToolProvider.getSystemJavaCompiler()
+                        .run(null, null, null, "-d", directory.toString(), capabilities.toString(), gl.toString()));
         String resource = "dev/julia/backend/runtime/GlDispatch.class";
         Path helper = directory.resolve(resource);
         Files.createDirectories(helper.getParent());
@@ -43,8 +47,11 @@ class GlDispatchTest {
             assertNotNull(bytes);
             Files.copy(bytes, helper);
         }
-        try (var loader = new URLClassLoader(new URL[]{directory.toUri().toURL()}, ClassLoader.getPlatformClassLoader())) {
-            Class.forName("dev.julia.backend.runtime.GlDispatch", true, loader).getMethod("release").invoke(null);
+        try (var loader =
+                new URLClassLoader(new URL[] {directory.toUri().toURL()}, ClassLoader.getPlatformClassLoader())) {
+            Class.forName("dev.julia.backend.runtime.GlDispatch", true, loader)
+                    .getMethod("release")
+                    .invoke(null);
             Class<?> bindings = Class.forName("org.lwjgl.opengl.GL", false, loader);
             assertTrue(bindings.getField("dispatchCleared").getBoolean(null));
             assertTrue(bindings.getField("providerDestroyed").getBoolean(null));

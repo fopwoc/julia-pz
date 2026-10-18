@@ -38,7 +38,8 @@ public final class DispatchPass {
         for (var method : node.methods) {
             for (var instruction : method.instructions.toArray()) {
                 if (instruction instanceof MethodInsnNode call && Endpoint.contains(call.owner)) {
-                    if (call.getOpcode() != Opcodes.INVOKESTATIC) throw new IllegalArgumentException("Nonstatic backend call");
+                    if (call.getOpcode() != Opcodes.INVOKESTATIC)
+                        throw new IllegalArgumentException("Nonstatic backend call");
                     checkDescriptor(call.desc);
                     method.instructions.set(call, dynamic(call.owner, call.name, call.desc));
                     count++;
@@ -66,7 +67,8 @@ public final class DispatchPass {
         if (type.getSort() == Type.ARRAY) {
             checkType(type.getElementType());
         } else if (type.getSort() == Type.OBJECT && !type.getInternalName().startsWith("java/")) {
-            throw new IllegalArgumentException("Non-JDK type crosses graphics runtime boundary: " + type.getDescriptor());
+            throw new IllegalArgumentException(
+                    "Non-JDK type crosses graphics runtime boundary: " + type.getDescriptor());
         }
     }
 

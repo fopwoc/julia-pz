@@ -16,7 +16,8 @@ public final class HostWindow implements AutoCloseable {
     }
 
     public static synchronized HostWindow bind(long handle, int width, int height) {
-        if (handle == 0 || width <= 0 || height <= 0) throw new IllegalArgumentException("A live window and positive dimensions are required");
+        if (handle == 0 || width <= 0 || height <= 0)
+            throw new IllegalArgumentException("A live window and positive dimensions are required");
         if (current != null) throw new IllegalStateException("A host window is already bound");
         var window = new HostWindow(handle, width, height);
         current = window;
@@ -27,9 +28,18 @@ public final class HostWindow implements AutoCloseable {
         HostWindow window = current;
         return window == null ? 0 : window.handle;
     }
-    public static int getWidth() { return require().width; }
-    public static int getHeight() { return require().height; }
-    public static boolean wasResized() { return require().resized; }
+
+    public static int getWidth() {
+        return require().width;
+    }
+
+    public static int getHeight() {
+        return require().height;
+    }
+
+    public static boolean wasResized() {
+        return require().resized;
+    }
 
     public long handle() {
         requireOwner();
@@ -53,7 +63,8 @@ public final class HostWindow implements AutoCloseable {
     }
 
     private void requireOwner() {
-        if (Thread.currentThread() != owner) throw new IllegalStateException("Host window belongs to " + owner.getName());
+        if (Thread.currentThread() != owner)
+            throw new IllegalStateException("Host window belongs to " + owner.getName());
     }
 
     @Override

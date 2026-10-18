@@ -11,7 +11,8 @@ import java.util.Arrays;
 /** Command-line entry for offline audits, linkage checks, and explicitly requested native probes. */
 public final class ProbeMain {
     private static final System.Logger LOG = System.getLogger(ProbeMain.class.getName());
-    private static final String USAGE = String.join(System.lineSeparator(),
+    private static final String USAGE = String.join(
+            System.lineSeparator(),
             "Usage: probe <command>",
             "  [game.jar ...]                      check that Angelica's entry points link",
             "  " + RedirectAudit.USAGE,
@@ -43,7 +44,8 @@ public final class ProbeMain {
             case "--adapter" -> ProbeLauncher.runAdapter(directory(rest));
             case "--suite" -> ProbeLauncher.runSuite(directory(rest));
             default -> {
-                if (command.startsWith("--")) throw new IllegalArgumentException("Unknown command " + command + "\n" + USAGE);
+                if (command.startsWith("--"))
+                    throw new IllegalArgumentException("Unknown command " + command + "\n" + USAGE);
                 return LinkageCheck.run(args, System.out, System.err);
             }
         }

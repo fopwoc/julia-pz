@@ -63,11 +63,14 @@ public final class GlsmSession implements AutoCloseable {
         }
         if (window != 0) device.claimWindow(window);
         backend = BackendManager.RENDER_BACKEND;
-        if (!(backend instanceof HostedBackend)) throw new IllegalStateException("Unexpected backend: " + backend.getName());
+        if (!(backend instanceof HostedBackend))
+            throw new IllegalStateException("Unexpected backend: " + backend.getName());
         backend.onPostWindowCreate(window);
         GLCapabilitiesOverride.set(SDLGPURenderBackend.advertisedCapabilities());
         size = drawable.get();
-        GLStateManager.initialize(GLSMInitConfig.builder().displaySize(size.width(), size.height()).build());
+        GLStateManager.initialize(GLSMInitConfig.builder()
+                .displaySize(size.width(), size.height())
+                .build());
         GLStateManager.setRunningSplash(false);
         GLStateManager.markSplashComplete(label);
     }

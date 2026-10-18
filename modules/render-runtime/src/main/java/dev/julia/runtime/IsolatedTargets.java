@@ -16,19 +16,22 @@ public final class IsolatedTargets implements RenderSession.Targets {
         this.owners = Set.copyOf(owners);
     }
 
-    @Override public MethodHandle resolve(String owner, String name, MethodType type) throws ReflectiveOperationException {
+    @Override
+    public MethodHandle resolve(String owner, String name, MethodType type) throws ReflectiveOperationException {
         if (!owners.contains(owner)) throw new IllegalArgumentException("Unapproved graphics endpoint: " + owner);
         checkType(type.returnType());
         for (Class<?> argument : type.parameterArray()) checkType(argument);
         var endpoint = Class.forName(owner.replace('/', '.'), false, loader);
-        if (endpoint.getClassLoader() != loader) throw new IllegalArgumentException("Graphics endpoint escaped its isolated loader: " + owner);
+        if (endpoint.getClassLoader() != loader)
+            throw new IllegalArgumentException("Graphics endpoint escaped its isolated loader: " + owner);
         return MethodHandles.publicLookup().findStatic(endpoint, name, type);
     }
 
     private static void checkType(Class<?> type) {
         while (type.isArray()) type = type.componentType();
         if (!type.isPrimitive() && type.getClassLoader() != null) {
-            throw new IllegalArgumentException("Non-bootstrap type crosses graphics runtime boundary: " + type.getName());
+            throw new IllegalArgumentException(
+                    "Non-bootstrap type crosses graphics runtime boundary: " + type.getName());
         }
     }
 }

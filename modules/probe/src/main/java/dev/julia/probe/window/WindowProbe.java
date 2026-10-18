@@ -30,8 +30,8 @@ public final class WindowProbe {
         try (var video = HostedVideo.start();
                 var borrowed = BorrowedWindow.borrow(window);
                 var binding = bind(borrowed.handle());
-                var session = GlsmSession.open(video, binding.handle(), () -> pixelSize(borrowed.handle()),
-                        "Julia window probe")) {
+                var session = GlsmSession.open(
+                        video, binding.handle(), () -> pixelSize(borrowed.handle()), "Julia window probe")) {
             var size = session.size();
             AdapterScene.window(output, size.width(), size.height());
             Sdl.require(SDL_WaitForGPUIdle(session.device().getDevice()), "Wait for presented frames");
@@ -44,9 +44,15 @@ public final class WindowProbe {
                     verified_pixels=%d
                     process_id=%d
                     thread=%s
-                    """.formatted(session.backend().getName(), window.getClass().getSimpleName(), AdapterScene.FRAMES,
-                    size.width(), size.height(), size.pixels(), ProcessHandle.current().pid(),
-                    Thread.currentThread().getName());
+                    """.formatted(
+                            session.backend().getName(),
+                            window.getClass().getSimpleName(),
+                            AdapterScene.FRAMES,
+                            size.width(),
+                            size.height(),
+                            size.pixels(),
+                            ProcessHandle.current().pid(),
+                            Thread.currentThread().getName());
         }
         // Reaching here means every borrowed window verified its restored native state on close.
         Files.writeString(output.resolve("result.txt"), result + "native_window_state_restored=true\n");
@@ -68,8 +74,11 @@ public final class WindowProbe {
         try (var stack = MemoryStack.stackPush()) {
             var width = stack.ints(0);
             var height = stack.ints(0);
-            Sdl.require(pixels ? SDL_GetWindowSizeInPixels(window, width, height)
-                    : SDL_GetWindowSize(window, width, height), operation);
+            Sdl.require(
+                    pixels
+                            ? SDL_GetWindowSizeInPixels(window, width, height)
+                            : SDL_GetWindowSize(window, width, height),
+                    operation);
             return new GlsmSession.Size(width.get(0), height.get(0));
         }
     }

@@ -1,8 +1,8 @@
 package dev.julia.transform.pass;
 
 import dev.julia.transform.Endpoint;
-import org.objectweb.asm.Handle;
 import org.objectweb.asm.ConstantDynamic;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.ClassRemapper;
@@ -20,6 +20,7 @@ public final class CapabilityPass {
     private static final String OWNER = Endpoint.CAPABILITY_BRIDGE.owner();
     private static final String CAPS = "org/lwjgl/opengl/GLCapabilities";
     private static final String DESCRIPTOR = "L" + CAPS + ";";
+
     private CapabilityPass() {}
 
     public static ClassNode adapt(ClassNode original) {
@@ -34,26 +35,36 @@ public final class CapabilityPass {
         for (var method : node.methods) {
             for (var instruction : method.instructions.toArray()) {
                 if (instruction instanceof MethodInsnNode call) {
-                    if (call.getOpcode() == Opcodes.INVOKESTATIC && call.owner.equals("org/lwjgl/opengl/GL")
-                            && call.name.equals("getCapabilities") && call.desc.equals("()" + DESCRIPTOR)) {
+                    if (call.getOpcode() == Opcodes.INVOKESTATIC
+                            && call.owner.equals("org/lwjgl/opengl/GL")
+                            && call.name.equals("getCapabilities")
+                            && call.desc.equals("()" + DESCRIPTOR)) {
                         call.owner = OWNER;
                         call.name = "current";
                         call.desc = "()Ljava/util/Set;";
                     } else if (call.owner.equals(CAPS) || call.desc.contains(DESCRIPTOR)) {
-                        throw new IllegalArgumentException("Capability object crosses a method boundary: " + call.owner + "." + call.name);
+                        throw new IllegalArgumentException(
+                                "Capability object crosses a method boundary: " + call.owner + "." + call.name);
                     }
                 } else if (instruction instanceof FieldInsnNode field) {
-                    if (field.getOpcode() == Opcodes.GETSTATIC && field.owner.equals("org/lwjglx/opengl/Display")
-                            && field.name.equals("capabilities") && field.desc.equals(DESCRIPTOR)) {
-                        method.instructions.set(field, new MethodInsnNode(Opcodes.INVOKESTATIC, OWNER, "current", "()Ljava/util/Set;", false));
+                    if (field.getOpcode() == Opcodes.GETSTATIC
+                            && field.owner.equals("org/lwjglx/opengl/Display")
+                            && field.name.equals("capabilities")
+                            && field.desc.equals(DESCRIPTOR)) {
+                        method.instructions.set(
+                                field,
+                                new MethodInsnNode(Opcodes.INVOKESTATIC, OWNER, "current", "()Ljava/util/Set;", false));
                     } else if (field.owner.equals(CAPS)) {
-                        if (field.getOpcode() != Opcodes.GETFIELD || !field.desc.equals("Z")
+                        if (field.getOpcode() != Opcodes.GETFIELD
+                                || !field.desc.equals("Z")
                                 || !(field.name.startsWith("GL_") || field.name.matches("OpenGL[1-4][0-6]"))) {
-                            throw new IllegalArgumentException("Unsupported capability access: " + field.name + field.desc);
+                            throw new IllegalArgumentException(
+                                    "Unsupported capability access: " + field.name + field.desc);
                         }
                         var query = new InsnList();
                         query.add(new LdcInsnNode(field.name));
-                        query.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE, "java/util/Set", "contains", "(Ljava/lang/Object;)Z", true));
+                        query.add(new MethodInsnNode(
+                                Opcodes.INVOKEINTERFACE, "java/util/Set", "contains", "(Ljava/lang/Object;)Z", true));
                         method.instructions.insertBefore(field, query);
                         method.instructions.remove(field);
                     } else if (field.desc.contains(DESCRIPTOR)) {
@@ -64,30 +75,38 @@ public final class CapabilityPass {
                 } else if (instruction instanceof InvokeDynamicInsnNode dynamic) {
                     checkConstant(dynamic.bsm);
                     for (Object argument : dynamic.bsmArgs) checkConstant(argument);
-                } else if (instruction instanceof TypeInsnNode type && type.desc.equals(CAPS)
-                        && type.getOpcode() != Opcodes.CHECKCAST && type.getOpcode() != Opcodes.INSTANCEOF) {
+                } else if (instruction instanceof TypeInsnNode type
+                        && type.desc.equals(CAPS)
+                        && type.getOpcode() != Opcodes.CHECKCAST
+                        && type.getOpcode() != Opcodes.INSTANCEOF) {
                     throw new IllegalArgumentException("Native capability construction is unsupported");
                 }
             }
         }
         var mapped = new ClassNode();
         node.accept(new ClassRemapper(mapped, new Remapper(Opcodes.ASM9) {
-            @Override public String map(String type) { return type.equals(CAPS) ? "java/util/Set" : type; }
+            @Override
+            public String map(String type) {
+                return type.equals(CAPS) ? "java/util/Set" : type;
+            }
         }));
         return mapped;
     }
 
     private static void checkConstant(Object value) {
-        if (value instanceof Handle handle && (handle.getOwner().equals(CAPS) || handle.getDesc().contains(DESCRIPTOR))) {
+        if (value instanceof Handle handle
+                && (handle.getOwner().equals(CAPS) || handle.getDesc().contains(DESCRIPTOR))) {
             throw new IllegalArgumentException("Capability method/field handles require a dedicated bridge");
         }
         if (value instanceof Type type && type.getDescriptor().contains(CAPS)) {
             throw new IllegalArgumentException("Native capability class literal or method type is unsupported");
         }
         if (value instanceof ConstantDynamic dynamic) {
-            if (dynamic.getDescriptor().contains(DESCRIPTOR)) throw new IllegalArgumentException("Native capability dynamic constant");
+            if (dynamic.getDescriptor().contains(DESCRIPTOR))
+                throw new IllegalArgumentException("Native capability dynamic constant");
             checkConstant(dynamic.getBootstrapMethod());
-            for (int i = 0; i < dynamic.getBootstrapMethodArgumentCount(); i++) checkConstant(dynamic.getBootstrapMethodArgument(i));
+            for (int i = 0; i < dynamic.getBootstrapMethodArgumentCount(); i++)
+                checkConstant(dynamic.getBootstrapMethodArgument(i));
         }
     }
 }

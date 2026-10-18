@@ -4,7 +4,10 @@ import java.util.Comparator;
 
 public record GraphicsSymbol(Kind kind, String owner, String name, String descriptor)
         implements Comparable<GraphicsSymbol> {
-    public enum Kind { METHOD, FIELD }
+    public enum Kind {
+        METHOD,
+        FIELD
+    }
 
     public boolean isGraphicsBinding() {
         return owner.startsWith("org/lwjgl/opengl/")

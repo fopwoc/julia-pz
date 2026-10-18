@@ -1,5 +1,7 @@
 package dev.julia.probe.device;
 
+import static org.lwjgl.sdl.SDLGPU.*;
+
 import com.gtnewhorizons.angelica.sdlgpu.device.Device;
 import dev.julia.backend.platform.Platform;
 import dev.julia.backend.utils.Sdl;
@@ -11,17 +13,16 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.locks.LockSupport;
 import javax.imageio.ImageIO;
-import org.lwjgl.sdl.SDLInit;
 import org.lwjgl.sdl.SDLHints;
+import org.lwjgl.sdl.SDLInit;
 import org.lwjgl.sdl.SDLVersion;
-import org.lwjgl.system.Configuration;
-import org.lwjgl.system.MemoryStack;
-import static org.lwjgl.sdl.SDLGPU.*;
 import org.lwjgl.sdl.SDL_GPUColorTargetInfo;
 import org.lwjgl.sdl.SDL_GPUTextureCreateInfo;
 import org.lwjgl.sdl.SDL_GPUTextureRegion;
 import org.lwjgl.sdl.SDL_GPUTextureTransferInfo;
 import org.lwjgl.sdl.SDL_GPUTransferBufferCreateInfo;
+import org.lwjgl.system.Configuration;
+import org.lwjgl.system.MemoryStack;
 
 /** Native GPU clear and translated textured-draw checks using Angelica's actual device implementation. */
 public final class OffscreenProbe {
@@ -29,7 +30,7 @@ public final class OffscreenProbe {
     private static final int BYTE_COUNT = SIZE * SIZE * 4;
     private static final int EXPECTED = 0xFF20C060;
 
-    private OffscreenProbe() { }
+    private OffscreenProbe() {}
 
     public static void run(Path destination) throws IOException {
         Path output = destination.toAbsolutePath();
@@ -56,8 +57,10 @@ public final class OffscreenProbe {
             verify(rgba, true);
             writeImage(output.resolve("metal-texture.png"), rgba);
             String result = "PASS\nbackend=" + device.getDriverName() + "\ngpu=" + device.getDeviceName()
-                    + "\nprocess_id=" + ProcessHandle.current().pid() + "\nsdl=" + SDLVersion.SDL_GetVersion() + "\nsize=" + SIZE + "x" + SIZE
-                    + "\nverified_pixels=" + SIZE * SIZE * 2 + "\nclear_argb=FF20C060\ntextured_draw=PASS\nshader_source=OpenGL GLSL 330\nthread="
+                    + "\nprocess_id=" + ProcessHandle.current().pid() + "\nsdl=" + SDLVersion.SDL_GetVersion()
+                    + "\nsize=" + SIZE + "x" + SIZE
+                    + "\nverified_pixels=" + SIZE * SIZE * 2
+                    + "\nclear_argb=FF20C060\ntextured_draw=PASS\nshader_source=OpenGL GLSL 330\nthread="
                     + Thread.currentThread().getName() + "\n";
             Files.writeString(output.resolve("result.txt"), result);
             System.out.println("[Julia] PASS: Angelica / " + device.getDriverName() + " / " + device.getDeviceName()
@@ -75,27 +78,54 @@ public final class OffscreenProbe {
         long commands = 0;
         long fence = 0;
         try (var stack = MemoryStack.stackPush()) {
-            texture = Sdl.require(SDL_CreateGPUTexture(device, SDL_GPUTextureCreateInfo.calloc(stack)
-                    .type(SDL_GPU_TEXTURETYPE_2D).format(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM)
-                    .usage(SDL_GPU_TEXTUREUSAGE_COLOR_TARGET).width(SIZE).height(SIZE)
-                    .layer_count_or_depth(1).num_levels(1).sample_count(SDL_GPU_SAMPLECOUNT_1)), "Create texture");
-            download = Sdl.require(SDL_CreateGPUTransferBuffer(device, SDL_GPUTransferBufferCreateInfo.calloc(stack)
-                    .usage(SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD).size(BYTE_COUNT)), "Create readback buffer");
+            texture = Sdl.require(
+                    SDL_CreateGPUTexture(
+                            device,
+                            SDL_GPUTextureCreateInfo.calloc(stack)
+                                    .type(SDL_GPU_TEXTURETYPE_2D)
+                                    .format(SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM)
+                                    .usage(SDL_GPU_TEXTUREUSAGE_COLOR_TARGET)
+                                    .width(SIZE)
+                                    .height(SIZE)
+                                    .layer_count_or_depth(1)
+                                    .num_levels(1)
+                                    .sample_count(SDL_GPU_SAMPLECOUNT_1)),
+                    "Create texture");
+            download = Sdl.require(
+                    SDL_CreateGPUTransferBuffer(
+                            device,
+                            SDL_GPUTransferBufferCreateInfo.calloc(stack)
+                                    .usage(SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD)
+                                    .size(BYTE_COUNT)),
+                    "Create readback buffer");
             commands = Sdl.require(SDL_AcquireGPUCommandBuffer(device), "Acquire command buffer");
             if (textured) {
                 TexturedDraw.render(owner, commands, texture);
             } else {
                 var targets = SDL_GPUColorTargetInfo.calloc(1, stack);
-                targets.get(0).texture(texture).load_op(SDL_GPU_LOADOP_CLEAR).store_op(SDL_GPU_STOREOP_STORE)
-                        .clear_color(color -> color.r(32 / 255.0f).g(192 / 255.0f).b(96 / 255.0f).a(1));
+                targets.get(0)
+                        .texture(texture)
+                        .load_op(SDL_GPU_LOADOP_CLEAR)
+                        .store_op(SDL_GPU_STOREOP_STORE)
+                        .clear_color(color -> color.r(32 / 255.0f)
+                                .g(192 / 255.0f)
+                                .b(96 / 255.0f)
+                                .a(1));
                 long render = Sdl.require(SDL_BeginGPURenderPass(commands, targets, null), "Begin render pass");
                 SDL_EndGPURenderPass(render);
             }
             long copy = Sdl.require(SDL_BeginGPUCopyPass(commands), "Begin copy pass");
-            SDL_DownloadFromGPUTexture(copy, SDL_GPUTextureRegion.calloc(stack)
-                            .texture(texture).w(SIZE).h(SIZE).d(1),
-                    SDL_GPUTextureTransferInfo.calloc(stack).transfer_buffer(download)
-                            .pixels_per_row(SIZE).rows_per_layer(SIZE));
+            SDL_DownloadFromGPUTexture(
+                    copy,
+                    SDL_GPUTextureRegion.calloc(stack)
+                            .texture(texture)
+                            .w(SIZE)
+                            .h(SIZE)
+                            .d(1),
+                    SDL_GPUTextureTransferInfo.calloc(stack)
+                            .transfer_buffer(download)
+                            .pixels_per_row(SIZE)
+                            .rows_per_layer(SIZE));
             SDL_EndGPUCopyPass(copy);
             fence = SDL_SubmitGPUCommandBufferAndAcquireFence(commands);
             commands = 0;
@@ -128,8 +158,9 @@ public final class OffscreenProbe {
             int actual = argb(pixels, offset);
             int pixel = offset / 4;
             int expected = textured ? TexturePattern.expectedArgb(pixel % SIZE, pixel / SIZE, SIZE) : EXPECTED;
-            if (actual != expected) throw new IllegalStateException("Pixel " + offset / 4
-                    + " expected " + Integer.toHexString(expected) + ", got " + Integer.toHexString(actual));
+            if (actual != expected)
+                throw new IllegalStateException("Pixel " + offset / 4 + " expected " + Integer.toHexString(expected)
+                        + ", got " + Integer.toHexString(actual));
         }
     }
 
@@ -142,8 +173,9 @@ public final class OffscreenProbe {
     }
 
     private static int argb(byte[] pixels, int offset) {
-        return (pixels[offset + 3] & 255) << 24 | (pixels[offset] & 255) << 16
-                | (pixels[offset + 1] & 255) << 8 | pixels[offset + 2] & 255;
+        return (pixels[offset + 3] & 255) << 24
+                | (pixels[offset] & 255) << 16
+                | (pixels[offset + 1] & 255) << 8
+                | pixels[offset + 2] & 255;
     }
-
 }

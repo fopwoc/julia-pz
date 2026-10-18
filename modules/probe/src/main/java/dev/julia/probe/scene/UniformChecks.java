@@ -72,8 +72,12 @@ final class UniformChecks {
                     throw new IllegalStateException("Uniform name truncation mismatch: " + truncated);
                 }
             }
-            if (!weights || !transform || size.position() != 1 || type.position() != 1
-                    || size.get(0) != -77 || type.get(0) != -88) {
+            if (!weights
+                    || !transform
+                    || size.position() != 1
+                    || type.position() != 1
+                    || size.get(0) != -77
+                    || type.get(0) != -88) {
                 throw new IllegalStateException("Uniform reflection or output buffer positions are incorrect");
             }
         }
@@ -93,19 +97,27 @@ final class UniformChecks {
             var vector = stack.floats(99, 88, 77, 66);
             vector.position(1);
             GL43.glGetUniformfv(program, location(program, "shift"), vector);
-            if (vector.position() != 1 || vector.get(0) != 99 || vector.get(1) != 0.25f || vector.get(2) != 0.5f
+            if (vector.position() != 1
+                    || vector.get(0) != 99
+                    || vector.get(1) != 0.25f
+                    || vector.get(2) != 0.5f
                     || vector.get(3) != 66) {
                 throw new IllegalStateException("Uniform vector query output mismatch");
             }
             float[] weights = {-99, -88};
             GL43.glGetUniformfv(program, location(program, "weights"), weights);
-            if (weights[0] != 0.25f || weights[1] != -88) throw new IllegalStateException("Array query must return one element");
+            if (weights[0] != 0.25f || weights[1] != -88)
+                throw new IllegalStateException("Array query must return one element");
             int[] integers = {-99, -88};
             GL43.glGetUniformiv(program, channels, integers);
             if (integers[0] != 3 || integers[1] != -88) throw new IllegalStateException("Integer array query mismatch");
             float[] matrix = new float[16];
             GL43.glGetUniformfv(program, location(program, "transform"), matrix);
-            if (matrix[0] != 1 || matrix[5] != 1 || matrix[10] != 1 || matrix[15] != 1 || matrix[12] != 0.25f
+            if (matrix[0] != 1
+                    || matrix[5] != 1
+                    || matrix[10] != 1
+                    || matrix[15] != 1
+                    || matrix[12] != 0.25f
                     || matrix[13] != -0.5f) {
                 throw new IllegalStateException("Matrix query is not column-major");
             }

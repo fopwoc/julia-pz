@@ -31,7 +31,10 @@ public final class VanillaAliasPass {
                     call.desc = "(D)V";
                 } else {
                     String name = ALIASES.get(key);
-                    if (name != null) { call.owner = GLSM; call.name = name; }
+                    if (name != null) {
+                        call.owner = GLSM;
+                        call.name = name;
+                    }
                 }
             }
         }

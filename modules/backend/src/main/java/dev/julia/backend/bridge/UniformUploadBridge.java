@@ -13,7 +13,9 @@ public final class UniformUploadBridge {
     public static void glUniform1iv(int location, int[] values) {
         if (location < 0 || values.length == 0) return;
         var program = BackendInternals.context().boundProgramObj;
-        if (program == null || !program.linked || location >= program.uniformSlotCount
+        if (program == null
+                || !program.linked
+                || location >= program.uniformSlotCount
                 || !program.locationToName.containsKey(location)) {
             throw new IllegalArgumentException("Invalid integer uniform location: " + location);
         }
@@ -27,9 +29,10 @@ public final class UniformUploadBridge {
         }
         var info = program.anyBlockMemberInfo(location);
         if (info == null) info = program.locationToMemberInfo.get(location);
-        boolean integral = info != null && (info.baseType() == Spvc.SPVC_BASETYPE_INT32
-                || info.baseType() == Spvc.SPVC_BASETYPE_BOOLEAN
-                || program.boolUniforms.contains(program.locationToName.get(location)));
+        boolean integral = info != null
+                && (info.baseType() == Spvc.SPVC_BASETYPE_INT32
+                        || info.baseType() == Spvc.SPVC_BASETYPE_BOOLEAN
+                        || program.boolUniforms.contains(program.locationToName.get(location)));
         if (!integral || info.vectorSize() != 1 || info.columns() != 1) {
             throw new IllegalArgumentException("Expected a signed integer or boolean scalar/array uniform");
         }

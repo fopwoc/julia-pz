@@ -30,15 +30,17 @@ public final class RuntimeAudit implements ClassFileTransformer, AutoCloseable {
         Path path = destination.toAbsolutePath().normalize();
         Files.createDirectories(path.getParent());
         // Reserve the destination before startup; never overwrite an existing file.
-        output = Files.newBufferedWriter(path, StandardCharsets.UTF_8,
-                StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+        output = Files.newBufferedWriter(
+                path, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
     }
 
     @Override
-    public byte[] transform(ClassLoader loader, String className, Class<?> redefined,
-                            ProtectionDomain domain, byte[] bytes) {
-        if (className == null || !(className.startsWith("zombie/")
-                || className.startsWith("viewpoint/") || className.startsWith("imgui/"))) return null;
+    public byte[] transform(
+            ClassLoader loader, String className, Class<?> redefined, ProtectionDomain domain, byte[] bytes) {
+        if (className == null
+                || !(className.startsWith("zombie/")
+                        || className.startsWith("viewpoint/")
+                        || className.startsWith("imgui/"))) return null;
         try {
             references.addAll(scanner.scan(bytes));
             scanned.incrementAndGet();
@@ -59,7 +61,10 @@ public final class RuntimeAudit implements ClassFileTransformer, AutoCloseable {
             new TsvAuditWriter().write(List.of(report), output);
         }
         if (failures.get() > 0) {
-            LOG.log(System.Logger.Level.ERROR, "Runtime inventory is incomplete: {0} class audits failed", failures.get());
+            LOG.log(
+                    System.Logger.Level.ERROR,
+                    "Runtime inventory is incomplete: {0} class audits failed",
+                    failures.get());
         }
         LOG.log(System.Logger.Level.INFO, "Wrote runtime inventory for {0} classes", scanned.get());
     }

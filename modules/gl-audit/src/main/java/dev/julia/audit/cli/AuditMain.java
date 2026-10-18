@@ -11,7 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 
 public final class AuditMain {
-    private AuditMain() { }
+    private AuditMain() {}
 
     public static void main(String[] args) {
         System.exit(run(args, System.out, System.err));
@@ -40,7 +40,8 @@ public final class AuditMain {
             if (inputs.isEmpty()) throw new IllegalArgumentException("Supply at least one JAR");
             if (output != null && Files.exists(output)) {
                 for (var input : inputs) {
-                    if (Files.isSameFile(output, input)) throw new IllegalArgumentException("Output would overwrite an input JAR");
+                    if (Files.isSameFile(output, input))
+                        throw new IllegalArgumentException("Output would overwrite an input JAR");
                 }
             }
             var scanner = new GraphicsArchiveScanner();
@@ -48,9 +49,17 @@ public final class AuditMain {
             for (var input : inputs) {
                 var audit = scanner.scan(input);
                 audits.add(audit);
-                long unique = audit.references().stream().map(GraphicsReference::target).distinct().count();
-                out.printf("%s: %,d classes, %,d binding classes excluded, %,d references, %,d unique symbols%n",
-                        audit.archive(), audit.classesScanned(), audit.bindingsExcluded(), audit.references().size(), unique);
+                long unique = audit.references().stream()
+                        .map(GraphicsReference::target)
+                        .distinct()
+                        .count();
+                out.printf(
+                        "%s: %,d classes, %,d binding classes excluded, %,d references, %,d unique symbols%n",
+                        audit.archive(),
+                        audit.classesScanned(),
+                        audit.bindingsExcluded(),
+                        audit.references().size(),
+                        unique);
             }
             if (output != null) {
                 Files.createDirectories(output.getParent());

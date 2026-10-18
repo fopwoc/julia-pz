@@ -48,7 +48,8 @@ final class LinkageCheck {
                 failure.printStackTrace(err);
             }
         }
-        out.printf("%d/%d entry points linked. No native initialization or rendering was attempted.%n",
+        out.printf(
+                "%d/%d entry points linked. No native initialization or rendering was attempted.%n",
                 ENTRY_POINTS.size() - failures, ENTRY_POINTS.size());
         return failures;
     }

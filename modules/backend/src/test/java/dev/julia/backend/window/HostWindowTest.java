@@ -1,8 +1,9 @@
 package dev.julia.backend.window;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
 class HostWindowTest {
     @Test
@@ -35,8 +36,11 @@ class HostWindowTest {
         try (var binding = HostWindow.bind(42, 640, 480)) {
             var failure = new AtomicReference<Throwable>();
             var thread = Thread.ofPlatform().start(() -> {
-                try { binding.dimensions(800, 600); }
-                catch (Throwable exception) { failure.set(exception); }
+                try {
+                    binding.dimensions(800, 600);
+                } catch (Throwable exception) {
+                    failure.set(exception);
+                }
             });
             thread.join();
             assertInstanceOf(IllegalStateException.class, failure.get());

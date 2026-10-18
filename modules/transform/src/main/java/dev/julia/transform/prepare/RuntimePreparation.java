@@ -60,7 +60,8 @@ public final class RuntimePreparation {
     private String classify(GraphicsSymbol symbol) throws IOException {
         String key = symbol.owner() + "." + symbol.name() + symbol.descriptor();
         if (Endpoint.contains(symbol.owner())) {
-            if (symbol.kind() != GraphicsSymbol.Kind.METHOD || !abi.contains(symbol.owner(), symbol.name(), symbol.descriptor())) {
+            if (symbol.kind() != GraphicsSymbol.Kind.METHOD
+                    || !abi.contains(symbol.owner(), symbol.name(), symbol.descriptor())) {
                 return "MISSING_TARGET " + key;
             }
             if (Endpoint.STATE_MANAGER.is(symbol.owner()) && symbol.name().equals("glGetUniform")) {
@@ -79,8 +80,10 @@ public final class RuntimePreparation {
         if (symbol.owner().equals(LEGACY_GL + "Display") && symbol.name().equals("drawImGuiDrawData")) {
             return "HOST_RENDERER " + key;
         }
-        if (symbol.owner().startsWith(LEGACY_GL) && (symbol.owner().substring(LEGACY_GL.length()).startsWith("GL")
-                || symbol.name().startsWith("gl") || symbol.name().startsWith("ngl"))) {
+        if (symbol.owner().startsWith(LEGACY_GL)
+                && (symbol.owner().substring(LEGACY_GL.length()).startsWith("GL")
+                        || symbol.name().startsWith("gl")
+                        || symbol.name().startsWith("ngl"))) {
             return "LEGACY_OPENGL " + key;
         }
         return null;

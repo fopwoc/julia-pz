@@ -23,7 +23,8 @@ public final class PreparationAudit {
         if (arguments.length < 2) throw new IllegalArgumentException("Usage: " + USAGE);
         Path output = Path.of(arguments[0]).toAbsolutePath();
         if (Files.exists(output)) throw new IllegalArgumentException("Report already exists: " + output);
-        var plan = ArchivePreparation.inspect(Arrays.stream(arguments).skip(1).map(Path::of).toList());
+        var plan = ArchivePreparation.inspect(
+                Arrays.stream(arguments).skip(1).map(Path::of).toList());
         Files.createDirectories(output.getParent());
         try (var writer = Files.newBufferedWriter(
                 output, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
@@ -32,8 +33,15 @@ public final class PreparationAudit {
                 var result = entry.prepared();
                 String status = result.ready() ? "CLASS_READY" : "BLOCKED";
                 for (String detail : result.ready() ? List.of("") : result.blockers()) {
-                    Tsv.row(writer, entry.archive(), result.name(), entry.sha256(), result.calls(), result.frameHooks(),
-                            status, detail);
+                    Tsv.row(
+                            writer,
+                            entry.archive(),
+                            result.name(),
+                            entry.sha256(),
+                            result.calls(),
+                            result.frameHooks(),
+                            status,
+                            detail);
                 }
             }
             for (String issue : plan.blockers()) {
@@ -50,9 +58,11 @@ public final class PreparationAudit {
         long ready = classes.stream().filter(PreparedClass::ready).count();
         int calls = classes.stream().mapToInt(PreparedClass::calls).sum();
         long frames = classes.stream().filter(PreparedClass::frameHooks).count();
-        out.printf("Prepared classes: %d/%d; routed call sites: %d; frame anchors: %d%n",
+        out.printf(
+                "Prepared classes: %d/%d; routed call sites: %d; frame anchors: %d%n",
                 ready, classes.size(), calls, frames);
-        out.printf("Unique blockers: %d; archive activation: %s%n",
+        out.printf(
+                "Unique blockers: %d; archive activation: %s%n",
                 plan.blockers().size(), plan.ready() ? "CANDIDATE" : "BLOCKED");
         out.println("Report: " + output);
         out.println("Class readiness is structural evidence only. No game classes were loaded;"

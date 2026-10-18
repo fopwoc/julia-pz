@@ -1,12 +1,13 @@
 package dev.julia.transform.load;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
-import static org.junit.jupiter.api.Assertions.*;
 
 class WindowQueryPassTest {
     private static final String DEVICE = "com.gtnewhorizons.angelica.sdlgpu.device.Device";
@@ -32,8 +33,11 @@ class WindowQueryPassTest {
     @Test
     void excludesGameAndBridgeDisplayImplementations() {
         byte[] original = fixture();
-        for (String name : new String[]{"zombie.core.opengl.RenderThread", "org.lwjglx.opengl.Display",
-                "com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate"}) {
+        for (String name : new String[] {
+            "zombie.core.opengl.RenderThread",
+            "org.lwjglx.opengl.Display",
+            "com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate"
+        }) {
             assertSame(original, WindowQueryPass.adapt(name, original));
         }
     }
@@ -41,7 +45,8 @@ class WindowQueryPassTest {
     private static byte[] fixture() {
         var writer = new ClassWriter(0);
         writer.visit(Opcodes.V25, Opcodes.ACC_PUBLIC, DEVICE.replace('.', '/'), null, "java/lang/Object", null);
-        writer.visitAnnotation("Lme/eigenraven/lwjgl3ify/api/Lwjgl3Aware;", false).visitEnd();
+        writer.visitAnnotation("Lme/eigenraven/lwjgl3ify/api/Lwjgl3Aware;", false)
+                .visitEnd();
         var method = writer.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "example", "()V", null, null);
         method.visitCode();
         method.visitMethodInsn(Opcodes.INVOKESTATIC, "org/lwjglx/opengl/Display", "getWindow", "()J", false);

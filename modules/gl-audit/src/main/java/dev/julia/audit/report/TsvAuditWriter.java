@@ -16,13 +16,32 @@ public final class TsvAuditWriter {
             .thenComparing(GraphicsReference::kind);
 
     public void write(List<ArchiveAudit> audits, Writer output) throws IOException {
-        Tsv.row(output, "archive", "sha256", "symbol_kind", "owner", "name", "descriptor", "reference_kind",
-                "caller_class", "caller_method", "caller_descriptor");
+        Tsv.row(
+                output,
+                "archive",
+                "sha256",
+                "symbol_kind",
+                "owner",
+                "name",
+                "descriptor",
+                "reference_kind",
+                "caller_class",
+                "caller_method",
+                "caller_descriptor");
         for (var audit : audits) {
             for (var reference : audit.references().stream().sorted(ORDER).toList()) {
                 var target = reference.target();
-                Tsv.row(output, audit.archive(), audit.sha256(), target.kind(), target.owner(), target.name(),
-                        target.descriptor(), reference.kind(), reference.callerClass(), reference.callerMethod(),
+                Tsv.row(
+                        output,
+                        audit.archive(),
+                        audit.sha256(),
+                        target.kind(),
+                        target.owner(),
+                        target.name(),
+                        target.descriptor(),
+                        reference.kind(),
+                        reference.callerClass(),
+                        reference.callerMethod(),
                         reference.callerDescriptor());
             }
         }

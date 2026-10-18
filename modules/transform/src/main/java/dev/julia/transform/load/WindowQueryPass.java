@@ -28,7 +28,8 @@ public final class WindowQueryPass {
         boolean changed = false;
         for (var method : node.methods) {
             for (var instruction : method.instructions) {
-                if (instruction instanceof MethodInsnNode call && call.owner.equals(DISPLAY)
+                if (instruction instanceof MethodInsnNode call
+                        && call.owner.equals(DISPLAY)
                         && QUERIES.contains(call.name + call.desc)) {
                     call.owner = HOST_WINDOW;
                     changed = true;

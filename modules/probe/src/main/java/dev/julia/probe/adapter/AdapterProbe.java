@@ -15,14 +15,15 @@ public final class AdapterProbe {
     private AdapterProbe() {}
 
     public static void run(Path destination) throws Exception {
-        var size = new GlsmSession.Size(Integer.getInteger("julia.probe.width", 32),
-                Integer.getInteger("julia.probe.height", 32));
+        var size = new GlsmSession.Size(
+                Integer.getInteger("julia.probe.width", 32), Integer.getInteger("julia.probe.height", 32));
         Path output = destination.toAbsolutePath();
         Files.createDirectories(output);
         Files.deleteIfExists(output.resolve("result.txt"));
         Files.deleteIfExists(output.resolve("adapter-texture.png"));
         if (Configuration.SHARED_LIBRARY_EXTRACT_PATH.get() == null) {
-            Configuration.SHARED_LIBRARY_EXTRACT_PATH.set(output.resolve("natives").toString());
+            Configuration.SHARED_LIBRARY_EXTRACT_PATH.set(
+                    output.resolve("natives").toString());
         }
         String backend;
         try (var video = HostedVideo.start();
@@ -44,8 +45,15 @@ public final class AdapterProbe {
                 uniform_checks=float array,matrix array transpose,truncated reflection,buffer positions
                 process_id=%d
                 thread=%s
-                """.formatted(backend, size.width(), size.height(), AdapterScene.FRAMES, size.pixels(),
-                ResourceChecks.VERIFIED_PIXELS, ProcessHandle.current().pid(), Thread.currentThread().getName()));
+                """.formatted(
+                        backend,
+                        size.width(),
+                        size.height(),
+                        AdapterScene.FRAMES,
+                        size.pixels(),
+                        ResourceChecks.VERIFIED_PIXELS,
+                        ProcessHandle.current().pid(),
+                        Thread.currentThread().getName()));
         System.out.println("[Julia] PASS: full GLSM / SDL GPU adapter initialized; " + size.pixels()
                 + " textured pixels verified");
         LOG.log(System.Logger.Level.INFO, "Adapter probe passed at {0}x{1}", size.width(), size.height());

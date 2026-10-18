@@ -18,11 +18,26 @@ public final class PreparedClass {
         this.frameHooks = frameHooks;
     }
 
-    public String name() { return name; }
-    public List<String> blockers() { return blockers; }
-    public int calls() { return calls; }
-    public boolean frameHooks() { return frameHooks; }
-    public boolean ready() { return blockers.isEmpty(); }
+    public String name() {
+        return name;
+    }
+
+    public List<String> blockers() {
+        return blockers;
+    }
+
+    public int calls() {
+        return calls;
+    }
+
+    public boolean frameHooks() {
+        return frameHooks;
+    }
+
+    public boolean ready() {
+        return blockers.isEmpty();
+    }
+
     public byte[] requireBytecode() {
         if (!ready()) throw new IllegalStateException("Cannot activate " + name + ": " + blockers);
         return bytecode.clone();

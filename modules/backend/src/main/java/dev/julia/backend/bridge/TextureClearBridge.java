@@ -18,8 +18,18 @@ import org.lwjgl.system.MemoryStack;
 public final class TextureClearBridge {
     private TextureClearBridge() {}
 
-    public static void glClearTexSubImage(int texture, int level, int x, int y, int z, int width, int height,
-            int depth, int format, int type, float[] color) {
+    public static void glClearTexSubImage(
+            int texture,
+            int level,
+            int x,
+            int y,
+            int z,
+            int width,
+            int height,
+            int depth,
+            int format,
+            int type,
+            float[] color) {
         if (format != GL_RGBA || type != GL_FLOAT) {
             throw new UnsupportedOperationException("Clear bridge requires RGBA / FLOAT input");
         }
@@ -34,8 +44,8 @@ public final class TextureClearBridge {
         boolean bgra = switch (meta.sdlFormat()) {
             case SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM -> false;
             case SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM -> true;
-            default -> throw new UnsupportedOperationException(
-                    "Clear bridge requires normalized four-byte color storage");
+            default ->
+                throw new UnsupportedOperationException("Clear bridge requires normalized four-byte color storage");
         };
         var region = new TextureRegion(level, x, y, z, width, height, depth);
         region.validate(meta);
@@ -43,8 +53,9 @@ public final class TextureClearBridge {
         if (region.empty()) return;
         if (frames.getCommandBuffer() == 0) throw new IllegalStateException("Texture clear requires an active frame");
 
-        BackendInternals.clears().resolveDestinationForWrite(
-                BackendInternals.context(), handle, meta, level, x, y, z, width, height, false);
+        BackendInternals.clears()
+                .resolveDestinationForWrite(
+                        BackendInternals.context(), handle, meta, level, x, y, z, width, height, false);
         long copy = frames.ensureCopyPass();
         if (copy == 0) throw new IllegalStateException("Cannot acquire texture-clear copy pass");
         resources.flushBatchedUploads(copy);
