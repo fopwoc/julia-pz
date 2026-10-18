@@ -2,10 +2,12 @@ package dev.fopwoc.julia.host;
 
 import dev.fopwoc.julia.audit.scan.GraphicsArchiveScanner;
 import dev.fopwoc.julia.audit.scan.GraphicsClassScanner;
+import dev.fopwoc.julia.runtime.StartupHooks;
 import dev.fopwoc.julia.transform.prepare.ArchivePlan;
 import dev.fopwoc.julia.transform.prepare.RuntimePreparation;
 import dev.fopwoc.julia.utils.io.Sha256;
 import java.lang.instrument.ClassFileTransformer;
+import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +18,8 @@ public final class PreparedTransformer implements ClassFileTransformer {
     private final Map<String, ArchivePlan.Entry> entries = new HashMap<>();
     private final GraphicsClassScanner graphics = new GraphicsClassScanner(RuntimePreparation::isGraphicsConsumer);
     private final ClassLoader consumerLoader;
+    private final CodeSource runtimeSource =
+            StartupHooks.class.getProtectionDomain().getCodeSource();
 
     public PreparedTransformer(ArchivePlan plan, ClassLoader consumerLoader) {
         plan.requireBytecode();
@@ -27,6 +31,10 @@ public final class PreparedTransformer implements ClassFileTransformer {
     public byte[] transform(
             ClassLoader loader, String name, Class<?> redefined, ProtectionDomain domain, byte[] bytes) {
         if (name == null || loader != consumerLoader || GraphicsArchiveScanner.isBindingClass(name)) return null;
+        if (name.startsWith("dev/fopwoc/julia/runtime/")
+                && domain != null
+                && runtimeSource != null
+                && runtimeSource.equals(domain.getCodeSource())) return null;
         try {
             var entry = entries.get(name);
             if (entry == null) {
@@ -39,13 +47,13 @@ public final class PreparedTransformer implements ClassFileTransformer {
             return entry.prepared().requireBytecode();
         } catch (Throwable failure) {
             LOG.log(System.Logger.Level.ERROR, "Cannot safely transform " + name, failure);
-            return new byte[0];
+            return new byte[] {0};
         }
     }
 
     private static byte[] reject(String name, String reason) {
         LOG.log(System.Logger.Level.ERROR, "Refusing class {0}: {1}", name, reason);
-        // The instrumentation contract ignores thrown transformer exceptions. Invalid bytes fail definition closed.
-        return new byte[0];
+        // Empty arrays allocate a null JVMTI buffer and are ignored. A nonempty invalid class fails definition closed.
+        return new byte[] {0};
     }
 }

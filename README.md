@@ -67,7 +67,7 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
   Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
   Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
-- The current offline checks pass 125 JVM tests and verify 38,016 pixels on windowless Metal. The latest bridges have not
+- The current offline checks pass 127 JVM tests and verify 38,034 pixels on windowless Metal. The client-pointer upload fix has not
   been tested inside PZ.
 - ImGui draw handoffs stay on the game side, calling the prepared renderer and then freeing the owned draw data.
   The archive gate requires that renderer to be included and prepared. A separate windowless probe uses the supplied
@@ -80,7 +80,8 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   transform; user functions are renamed by SPIR-V function ID so builtin overloads keep their meaning. Ordinary
   single-object translation keeps its existing resource layout and names. Windowless draws verify 256 pixels across
   sharing, attachment order, macro scopes, deferred deletion and relinks. Regenerated stages with SSBOs explicitly
-  reject linking until resource-name preservation is implemented. In-game results await a retry.
+  reject linking until resource-name preservation is implemented. A live retry renders textured characters and reaches
+  the world; some game shaders still fail compilation.
 - Program-resource queries reflect linked SPIR-V storage blocks and buffer variables, recovering original GL bindings
   from Angelica's remapped descriptor tables. Checks cover struct arrays, matrix and array strides, cross-stage blocks,
   runtime arrays, compute read/write bindings, truncated outputs and cache invalidation after relinking. Only the three
@@ -96,16 +97,18 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
 - The startup agent preflights classpath archives, rejects changed or unplanned graphics consumers, opens its isolated
   backend on the first render-context call, and closes it before the host window is destroyed. Initialization uploads
   survive the first frame boundary. Live vanilla testing reaches the menu through Metal; the host's logical render size
-  is scaled to the Retina drawable. Full-size UI and aligned input are user-confirmed. Purple menu video, modular-shader
-  linking failures remain runtime blockers. Ranged indexed quads now use the existing quad conversion, with both triangle
+  is scaled to the Retina drawable. Full-size UI and aligned input are user-confirmed. Purple menu video and remaining
+  shader compilation failures are runtime blockers. Ranged indexed quads now use the existing quad conversion, with both triangle
   halves verified offscreen for every index width. Invalid matrix uploads return a GL error before touching staging,
-  preventing the observed bone-palette overflow from aborting the renderer. A live retry no longer froze, but the map
-  was black and character/world views were black or flickering. These observations predate the separate-object shader
-  linker and its builtin-override fix; their live effects remain unverified. An
-  additional world-entry exception came from a capability read on the game-logic thread. Capability flags now live in
-  an immutable shared snapshot with backend-scoped publication; only GPU operations enter the render-thread dispatch.
-  Cross-thread reads, lazy startup, revocation and GPU-thread enforcement pass offline; this fix awaits a live retry.
-  No gameplay claim is made.
+  preventing the observed bone-palette overflow from aborting the renderer. The latest live retry reaches the world
+  and renders textured characters without freezing. The map remains black, characters flicker, floors are white,
+  and some sprites and face culling look incorrect. Capability reads on the game-logic thread now use an immutable
+  shared snapshot; only GPU operations enter render-thread dispatch. World entry no longer raises the prior
+  capability-thread exception. These results establish partial rendering, not gameplay correctness.
+- Video-style CPU texture pointers now upload their pixels instead of being mistaken for PBO offsets. Windowless
+  checks cover RGBA, padded RGB, unpack skips and decoder-buffer reuse. The video fix awaits an in-game retry.
+- Startup transformation excludes trusted shared-runtime classes by code source. Rejected consumers return nonempty
+  invalid class bytes: empty arrays were ignored by JVMTI instead of preventing class definition.
 - Viewpoint and other mods that use modern OpenGL come after vanilla.
 
 | Platform | GPU API | State |

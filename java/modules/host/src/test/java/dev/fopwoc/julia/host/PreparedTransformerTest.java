@@ -2,11 +2,14 @@ package dev.fopwoc.julia.host;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import dev.fopwoc.julia.runtime.CapabilitySnapshot;
+import dev.fopwoc.julia.runtime.StartupHooks;
 import dev.fopwoc.julia.transform.prepare.ArchivePreparation;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import org.junit.jupiter.api.Test;
@@ -35,24 +38,41 @@ class PreparedTransformerTest implements Opcodes {
         assertTrue(plan.ready(), plan.blockers().toString());
         var owner = getClass().getClassLoader();
         var transform = new PreparedTransformer(plan, owner);
+        var runtimeDomain = StartupHooks.class.getProtectionDomain();
+        String runtimeName = "dev/fopwoc/julia/runtime/CapabilitySnapshot";
+        byte[] runtimeBytes;
+        try (var stream = CapabilitySnapshot.class.getResourceAsStream("CapabilitySnapshot.class")) {
+            runtimeBytes = Objects.requireNonNull(stream).readAllBytes();
+        }
+        assertNull(transform.transform(owner, runtimeName, null, runtimeDomain, runtimeBytes));
+        assertNotNull(transform.transform(owner, runtimeName, null, null, runtimeBytes));
+        byte[] rejected = transform.transform(owner, "other/Late", null, null, draw("other/Late", "glGetError"));
+        assertTrue(rejected.length > 0, "JVMTI must receive a non-null replacement buffer");
+        assertThrows(
+                ClassFormatError.class,
+                () -> new ClassLoader() {
+                    Class<?> define() {
+                        return defineClass(null, rejected, 0, rejected.length);
+                    }
+                }.define());
         byte[] prepared = transform.transform(owner, "zombie/LiveFixture", null, null, draw);
         assertNotNull(prepared);
         assertDoesNotThrow(() -> new ClassReader(prepared));
         assertFalse(Arrays.equals(draw, prepared));
         assertEquals(
-                0,
+                1,
                 transform.transform(
                                 owner, "zombie/LiveFixture", null, null, draw("zombie/LiveFixture", "glUnknownChanged"))
                         .length);
         assertEquals(
-                0,
+                1,
                 transform.transform(owner, "zombie/Unplanned", null, null, draw("zombie/Unplanned", "glGetError"))
                         .length);
         assertEquals(
-                0,
+                1,
                 transform.transform(owner, "other/Unplanned", null, null, draw("other/Unplanned", "glGetError"))
                         .length);
-        assertEquals(0, transform.transform(owner, "other/Corrupt", null, null, new byte[] {1}).length);
+        assertEquals(1, transform.transform(owner, "other/Corrupt", null, null, new byte[] {1}).length);
         assertNull(transform.transform(ClassLoader.getPlatformClassLoader(), "zombie/LiveFixture", null, null, draw));
     }
 
