@@ -1,0 +1,6 @@
+// Creates the isolated graphics runtime: adapting class loader plus typed dispatch session.
+
+dependencies {
+    api project(':render-runtime')
+    implementation project(':transform')
+}

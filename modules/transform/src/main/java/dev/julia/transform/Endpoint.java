@@ -1,0 +1,58 @@
+package dev.julia.transform;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+/**
+ * Every static class a transformed consumer may call into the isolated graphics runtime.
+ *
+ * <p>Owners are internal names, never class literals: the transform layer must not load backend classes.
+ */
+public enum Endpoint {
+    STATE_MANAGER("com/gtnewhorizons/angelica/glsm/GLStateManager", true),
+    DEBUG_SHIM("com/gtnewhorizons/angelica/sdlgpu/compat/AwareGLDebugShim", true),
+    UNIFORM_BRIDGE("dev/julia/backend/bridge/UniformBridge", false),
+    UNIFORM_QUERY_BRIDGE("dev/julia/backend/bridge/UniformQueryBridge", false),
+    UNIFORM_UPLOAD_BRIDGE("dev/julia/backend/bridge/UniformUploadBridge", false),
+    CAPABILITY_BRIDGE("dev/julia/backend/bridge/CapabilityBridge", false),
+    TEXTURE_ALLOCATION_BRIDGE("dev/julia/backend/bridge/TextureAllocationBridge", false),
+    BUFFER_STORAGE_BRIDGE("dev/julia/backend/bridge/BufferStorageBridge", false),
+    TEXTURE_CLEAR_BRIDGE("dev/julia/backend/bridge/TextureClearBridge", false),
+    TEXTURE_COPY_BRIDGE("dev/julia/backend/bridge/TextureCopyBridge", false);
+
+    private static final Map<String, Endpoint> BY_OWNER =
+            Arrays.stream(values()).collect(Collectors.toUnmodifiableMap(Endpoint::owner, Function.identity()));
+
+    private final String owner;
+    private final boolean upstream;
+
+    Endpoint(String owner, boolean upstream) {
+        this.owner = owner;
+        this.upstream = upstream;
+    }
+
+    /** Internal class name, e.g. {@code com/gtnewhorizons/angelica/glsm/GLStateManager}. */
+    public String owner() {
+        return owner;
+    }
+
+    /** Published Angelica API, as opposed to one of Julia's compatibility bridges. */
+    public boolean upstream() {
+        return upstream;
+    }
+
+    public boolean is(String internalName) {
+        return owner.equals(internalName);
+    }
+
+    public static boolean contains(String internalName) {
+        return BY_OWNER.containsKey(internalName);
+    }
+
+    public static Set<String> owners() {
+        return BY_OWNER.keySet();
+    }
+}

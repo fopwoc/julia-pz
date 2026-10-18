@@ -15,11 +15,10 @@ import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+/** Records graphics references of {@code zombie/}, {@code viewpoint/}, and {@code imgui/} classes as they load. */
 public final class RuntimeAudit implements ClassFileTransformer, AutoCloseable {
-    private static final Logger LOG = Logger.getLogger(RuntimeAudit.class.getName());
+    private static final System.Logger LOG = System.getLogger(RuntimeAudit.class.getName());
     private final GraphicsClassScanner scanner = new GraphicsClassScanner();
     private final ConcurrentLinkedQueue<GraphicsReference> references = new ConcurrentLinkedQueue<>();
     private final AtomicInteger scanned = new AtomicInteger();
@@ -45,7 +44,7 @@ public final class RuntimeAudit implements ClassFileTransformer, AutoCloseable {
             scanned.incrementAndGet();
         } catch (RuntimeException exception) {
             failures.incrementAndGet();
-            LOG.log(Level.SEVERE, "Cannot audit " + className, exception);
+            LOG.log(System.Logger.Level.ERROR, "Cannot audit " + className, exception);
         }
         return null;
     }
@@ -59,7 +58,9 @@ public final class RuntimeAudit implements ClassFileTransformer, AutoCloseable {
             var report = new ArchiveAudit("runtime-loaded-classes", "", scanned.get(), 0, List.copyOf(references));
             new TsvAuditWriter().write(List.of(report), output);
         }
-        if (failures.get() > 0) LOG.severe("Runtime inventory is incomplete: " + failures.get() + " class audits failed");
-        LOG.info("Wrote runtime inventory for " + scanned.get() + " classes");
+        if (failures.get() > 0) {
+            LOG.log(System.Logger.Level.ERROR, "Runtime inventory is incomplete: {0} class audits failed", failures.get());
+        }
+        LOG.log(System.Logger.Level.INFO, "Wrote runtime inventory for {0} classes", scanned.get());
     }
 }

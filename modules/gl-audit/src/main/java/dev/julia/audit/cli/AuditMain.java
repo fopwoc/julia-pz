@@ -1,6 +1,7 @@
 package dev.julia.audit.cli;
 
 import dev.julia.audit.model.ArchiveAudit;
+import dev.julia.audit.model.GraphicsReference;
 import dev.julia.audit.report.TsvAuditWriter;
 import dev.julia.audit.scan.GraphicsArchiveScanner;
 import java.io.PrintStream;
@@ -47,7 +48,7 @@ public final class AuditMain {
             for (var input : inputs) {
                 var audit = scanner.scan(input);
                 audits.add(audit);
-                long unique = audit.references().stream().map(reference -> reference.target()).distinct().count();
+                long unique = audit.references().stream().map(GraphicsReference::target).distinct().count();
                 out.printf("%s: %,d classes, %,d binding classes excluded, %,d references, %,d unique symbols%n",
                         audit.archive(), audit.classesScanned(), audit.bindingsExcluded(), audit.references().size(), unique);
             }

@@ -5,12 +5,17 @@ configurations {
 }
 
 dependencies {
-    runtimeOnly project(':backend-probe')
+    implementation project(':utils')
+    implementation project(':render-runtime')
+    runtimeOnly project(':probe')
 }
 
 tasks.named('jar') {
     archiveFileName = 'Julia.jar'
     manifest { attributes 'Implementation-Version': project.version }
+    // ZombieBuddy loads only top-level classes; the probe runtime stays nested and isolated.
+    from(project(':utils').sourceSets.main.output)
+    from(project(':render-runtime').sourceSets.main.output)
     from(configurations.runtimeClasspath) { into 'lib' }
 }
 

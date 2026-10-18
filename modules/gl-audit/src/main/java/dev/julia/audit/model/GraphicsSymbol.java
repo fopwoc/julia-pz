@@ -1,5 +1,7 @@
 package dev.julia.audit.model;
 
+import java.util.Comparator;
+
 public record GraphicsSymbol(Kind kind, String owner, String name, String descriptor)
         implements Comparable<GraphicsSymbol> {
     public enum Kind { METHOD, FIELD }
@@ -11,12 +13,13 @@ public record GraphicsSymbol(Kind kind, String owner, String name, String descri
                 || owner.startsWith("org/lwjglx/opengl/");
     }
 
+    private static final Comparator<GraphicsSymbol> ORDER = Comparator.comparing(GraphicsSymbol::owner)
+            .thenComparing(GraphicsSymbol::name)
+            .thenComparing(GraphicsSymbol::descriptor)
+            .thenComparing(GraphicsSymbol::kind);
+
     @Override
     public int compareTo(GraphicsSymbol other) {
-        int order = owner.compareTo(other.owner);
-        if (order == 0) order = name.compareTo(other.name);
-        if (order == 0) order = descriptor.compareTo(other.descriptor);
-        if (order == 0) order = kind.compareTo(other.kind);
-        return order;
+        return ORDER.compare(this, other);
     }
 }

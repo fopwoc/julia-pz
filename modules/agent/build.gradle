@@ -1,15 +1,17 @@
 dependencies {
     implementation project(':gl-audit')
+    implementation project(':utils')
 }
 
 tasks.named('jar') {
-    archiveBaseName = 'julia-agent'
     archiveFileName = 'julia-agent.jar'
     manifest {
         attributes 'Premain-Class': 'dev.julia.agent.JuliaAgent',
                 'Implementation-Version': project.version
     }
+    // A -javaagent JAR must be self-contained.
     from(project(':gl-audit').sourceSets.main.output)
+    from(project(':utils').sourceSets.main.output)
 }
 
 tasks.named('test') {

@@ -1,0 +1,16 @@
+// Bytecode passes that route OpenGL consumers to the backend's typed endpoints, plus offline audits.
+
+dependencies {
+    implementation 'org.ow2.asm:asm-tree:9.9.1'
+    implementation 'org.ow2.asm:asm-commons:9.9.1'
+    implementation project(':utils')
+    implementation project(':gl-audit')
+    // Upstream redirector at compile time; published endpoint ABIs are read from class resources.
+    implementation project(':backend')
+
+    testImplementation project(':render-runtime')
+}
+
+tasks.named('test') {
+    doFirst { systemProperty 'fixture.classpath', sourceSets.test.runtimeClasspath.asPath }
+}

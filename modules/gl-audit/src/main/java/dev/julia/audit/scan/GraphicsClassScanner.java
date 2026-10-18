@@ -12,6 +12,7 @@ import java.lang.classfile.instruction.InvokeDynamicInstruction;
 import java.lang.classfile.instruction.InvokeInstruction;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 public final class GraphicsClassScanner {
@@ -22,7 +23,7 @@ public final class GraphicsClassScanner {
     }
 
     public GraphicsClassScanner(Predicate<GraphicsSymbol> accepts) {
-        this.accepts = java.util.Objects.requireNonNull(accepts);
+        this.accepts = Objects.requireNonNull(accepts);
     }
 
     public List<GraphicsReference> scan(byte[] bytes) {
@@ -30,46 +31,39 @@ public final class GraphicsClassScanner {
         String owner = model.thisClass().asInternalName();
         var references = new ArrayList<GraphicsReference>();
         for (var method : model.methods()) {
-            if (method.code().isEmpty()) continue;
-            for (var element : method.code().orElseThrow()) {
+            var code = method.code();
+            if (code.isEmpty()) continue;
+            var caller = new Caller(owner, method.methodName().stringValue(), method.methodType().stringValue());
+            for (var element : code.orElseThrow()) {
                 switch (element) {
-                    case InvokeInstruction call -> add(references, call.method(), owner,
-                            method.methodName().stringValue(), method.methodType().stringValue(),
-                            GraphicsReference.Kind.INSTRUCTION);
-                    case FieldInstruction field -> add(references, field.field(), owner,
-                            method.methodName().stringValue(), method.methodType().stringValue(),
-                            GraphicsReference.Kind.INSTRUCTION);
+                    case InvokeInstruction call -> add(references, call.method(), caller, GraphicsReference.Kind.INSTRUCTION);
+                    case FieldInstruction field -> add(references, field.field(), caller, GraphicsReference.Kind.INSTRUCTION);
                     case InvokeDynamicInstruction dynamic -> {
                         var bootstrap = dynamic.invokedynamic().bootstrap();
-                        add(references, bootstrap.bootstrapMethod().reference(), owner,
-                                method.methodName().stringValue(), method.methodType().stringValue(),
-                                GraphicsReference.Kind.METHOD_HANDLE);
+                        add(references, bootstrap.bootstrapMethod().reference(), caller, GraphicsReference.Kind.METHOD_HANDLE);
                         for (var argument : bootstrap.arguments()) {
                             if (argument instanceof MethodHandleEntry handle) {
-                                add(references, handle.reference(), owner, method.methodName().stringValue(),
-                                        method.methodType().stringValue(), GraphicsReference.Kind.METHOD_HANDLE);
+                                add(references, handle.reference(), caller, GraphicsReference.Kind.METHOD_HANDLE);
                             }
                         }
                     }
-                    case LoadConstantInstruction constant when constant.constantEntry() instanceof MethodHandleEntry -> {
-                        var handle = (MethodHandleEntry) constant.constantEntry();
-                        add(references, handle.reference(), owner, method.methodName().stringValue(),
-                                method.methodType().stringValue(), GraphicsReference.Kind.METHOD_HANDLE);
-                    }
-                    default -> { }
+                    case LoadConstantInstruction constant when constant.constantEntry() instanceof MethodHandleEntry handle ->
+                        add(references, handle.reference(), caller, GraphicsReference.Kind.METHOD_HANDLE);
+                    default -> {}
                 }
             }
         }
         return List.copyOf(references);
     }
 
-    private void add(List<GraphicsReference> references, MemberRefEntry member, String caller,
-                            String method, String descriptor, GraphicsReference.Kind kind) {
-        var symbol = new GraphicsSymbol(member instanceof FieldRefEntry
-                ? GraphicsSymbol.Kind.FIELD : GraphicsSymbol.Kind.METHOD,
-                member.owner().asInternalName(), member.name().stringValue(), member.type().stringValue());
+    private record Caller(String owner, String method, String descriptor) {}
+
+    private void add(List<GraphicsReference> references, MemberRefEntry member, Caller caller, GraphicsReference.Kind kind) {
+        var symbolKind = member instanceof FieldRefEntry ? GraphicsSymbol.Kind.FIELD : GraphicsSymbol.Kind.METHOD;
+        var symbol = new GraphicsSymbol(symbolKind, member.owner().asInternalName(), member.name().stringValue(),
+                member.type().stringValue());
         if (accepts.test(symbol)) {
-            references.add(new GraphicsReference(symbol, caller, method, descriptor, kind));
+            references.add(new GraphicsReference(symbol, caller.owner(), caller.method(), caller.descriptor(), kind));
         }
     }
 }

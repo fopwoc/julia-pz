@@ -1,33 +1,32 @@
 package dev.julia.agent;
 
 import dev.julia.agent.audit.RuntimeAudit;
-import dev.julia.agent.logging.LogConfiguration;
 import java.lang.instrument.Instrumentation;
+import dev.julia.utils.logging.LogConfiguration;
 import java.nio.file.Path;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+/** Startup agent that inventories graphics references in loaded game classes without changing them. */
 public final class JuliaAgent {
-    private static final Logger LOG = Logger.getLogger(JuliaAgent.class.getName());
+    private static final System.Logger LOG = System.getLogger(JuliaAgent.class.getName());
 
-    private JuliaAgent() { }
+    private JuliaAgent() {}
 
     public static void premain(String arguments, Instrumentation instrumentation) throws Exception {
         LogConfiguration.configure();
-        LOG.info("Starting Julia audit agent");
+        LOG.log(System.Logger.Level.INFO, "Starting Julia audit agent");
         if (arguments == null || arguments.isBlank()) {
             throw new IllegalArgumentException("Supply a new report path: -javaagent:julia-agent.jar=/path/report.tsv");
         }
         var audit = new RuntimeAudit(Path.of(arguments));
-        LOG.info("Registering graphics class observer");
+        LOG.log(System.Logger.Level.INFO, "Registering graphics class observer");
         instrumentation.addTransformer(audit);
         Runtime.getRuntime().addShutdownHook(Thread.ofPlatform().name("julia-audit-report").unstarted(() -> {
             try {
                 audit.close();
             } catch (Exception exception) {
-                LOG.log(Level.SEVERE, "Cannot write runtime graphics report", exception);
+                LOG.log(System.Logger.Level.ERROR, "Cannot write runtime graphics report", exception);
             }
         }));
-        LOG.info("Julia ready in audit mode; rendering calls are unchanged");
+        LOG.log(System.Logger.Level.INFO, "Julia ready in audit mode; rendering calls are unchanged");
     }
 }
