@@ -33,7 +33,8 @@ Build identity comes from Git. macOS is the native development environment for t
 
 - `gl-audit`: offline graphics bytecode inventory and report writer.
 - `agent`: startup Java agent; currently observes loaded `zombie/`, `viewpoint/`, and `imgui/` classes without rewriting them. Its report lists references in loaded classes, not calls proven to have executed. A separate-JVM smoke test verifies attachment and application behavior.
-- `backend-probe`: consumes the published Angelica dependency, checks class linkage, and tests the upstream redirector in memory.
+- `backend-probe`: consumes the published Angelica dependency, checks class linkage, tests the upstream redirector in memory, and provides an explicit native Metal clear/readback probe.
+- `zomboid-mod`: packages Julia as a ZombieBuddy client mod with an isolated graphics runtime.
 
 ## Backend investigation
 
@@ -57,3 +58,23 @@ LOG_LEVEL=info java -javaagent:modules/agent/build/libs/julia-agent.jar=/path/to
 The report path is required and must not exist. Reports are written at normal JVM shutdown. The agent does not modify classes or choose a renderer. It has not been installed into or tested inside Zomboid. Default `LOG_LEVEL` is `error`; accepted overrides are `warn`, `info`, and `debug`. Agent logging only configures Julia's logger namespace.
 
 Dependency versions are locked. Refresh deliberately with Gradle's `--write-locks` option. Angelica remains a replaceable external dependency; see [third-party notices](THIRD_PARTY.md).
+
+## Native Metal probe
+
+```sh
+./gradlew :backend-probe:renderProbe
+```
+
+This explicit task initializes SDL video on the Cocoa main thread, creates Angelica's real `Device`, clears a 32×32 offscreen RGBA8 target, submits the GPU commands, waits for completion, and verifies all 1,024 downloaded pixels. The result and PNG are saved under `modules/backend-probe/build/reports/metal/`. It opens no window and is not part of the normal test suite.
+
+## ZombieBuddy mod
+
+```sh
+./gradlew :zomboid-mod:modZip
+```
+
+The installable package is `modules/zomboid-mod/build/distributions/Julia.zip`. Extract it into the PZ mods directory, enable Julia and ZombieBuddy, restart PZ, and approve Julia's JAR when ZombieBuddy asks.
+
+Julia schedules the same offscreen check on PZ's render context. Its JAR includes the probe dependencies as nested JARs; a platform-parent class loader and a separate native extraction path keep the probe's LWJGL runtime separate from the game's classes. Results are written to `<PZ cache>/julia/run-<pid>/` by default. `julia.modJar` and `julia.outputDir` JVM properties can specify the archive and output root for an isolated test launch.
+
+This first mod does not replace the game renderer or transform game graphics calls. It tests the actual Angelica device and Metal clear/readback path inside the game process. Shader translation, texture sampling, GLSM startup, presentation, and gameplay rendering remain separate milestones. See [the first in-game result](docs/metal-probe.md).

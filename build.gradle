@@ -12,6 +12,27 @@ allprojects {
     version = gitIdentity.get()
     repositories {
         mavenCentral()
+        maven {
+            url = uri('https://libraries.minecraft.net/')
+            content { includeGroup 'com.mojang' }
+        }
+        maven {
+            url = uri('https://nexus.gtnewhorizons.com/repository/public/')
+            content {
+                includeGroup 'com.gtnewhorizons.angelica'
+                includeGroup 'com.github.GTNewHorizons'
+                includeGroup 'org.taumc'
+                includeGroup 'io.github.legacymoddingmc'
+            }
+        }
+        maven {
+            url = uri('https://maven.minecraftforge.net/')
+            content { includeGroup 'net.minecraftforge' }
+        }
+        maven {
+            url = uri('https://maven.taumc.org/releases/')
+            content { includeGroup 'org.taumc' }
+        }
     }
 }
 

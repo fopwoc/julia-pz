@@ -2,30 +2,6 @@ plugins {
     id 'application'
 }
 
-repositories {
-    maven {
-        url = uri('https://libraries.minecraft.net/')
-        content { includeGroup 'com.mojang' }
-    }
-    maven {
-        url = uri('https://nexus.gtnewhorizons.com/repository/public/')
-        content {
-            includeGroup 'com.gtnewhorizons.angelica'
-            includeGroup 'com.github.GTNewHorizons'
-            includeGroup 'org.taumc'
-            includeGroup 'io.github.legacymoddingmc'
-        }
-    }
-    maven {
-        url = uri('https://maven.minecraftforge.net/')
-        content { includeGroup 'net.minecraftforge' }
-    }
-    maven {
-        url = uri('https://maven.taumc.org/releases/')
-        content { includeGroup 'org.taumc' }
-    }
-}
-
 def operatingSystem = System.getProperty('os.name')
 def architecture = System.getProperty('os.arch')
 if (!(architecture in ['aarch64', 'arm64', 'amd64', 'x86_64'])) {
@@ -54,7 +30,7 @@ dependencies {
         exclude group: 'org.lwjgl'
     }
     for (module in ['lwjgl', 'lwjgl-sdl', 'lwjgl-shaderc', 'lwjgl-spvc']) {
-        runtimeOnly "org.lwjgl:${module}:3.4.2"
+        implementation "org.lwjgl:${module}:3.4.2"
         runtimeOnly "org.lwjgl:${module}:3.4.2:${nativeClassifier}"
     }
 }
@@ -71,4 +47,14 @@ distributions {
             from(rootProject.file('licenses')) { into 'licenses' }
         }
     }
+}
+
+tasks.register('renderProbe', JavaExec) {
+    group = 'verification'
+    description = 'Runs the explicit native Metal clear/readback probe without opening a window'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.julia.probe.BackendProbe'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
+    jvmArgs '-XstartOnFirstThread', '--enable-native-access=ALL-UNNAMED'
+    args '--render', layout.buildDirectory.dir('reports/metal').get().asFile.absolutePath
 }

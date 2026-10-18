@@ -5,3 +5,4 @@
 .DS_Store
 work/
 local.properties
+/modules/*/bin/

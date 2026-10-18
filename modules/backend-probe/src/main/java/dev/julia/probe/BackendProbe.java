@@ -1,6 +1,7 @@
 package dev.julia.probe;
 
 import dev.julia.probe.redirect.RedirectAudit;
+import dev.julia.probe.render.OffscreenProbe;
 import java.io.PrintStream;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -8,7 +9,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
-/** Checks class linkage without initializing Angelica, loading natives, or creating a window. */
+/** Entry point for linkage checks, redirect audits, and the explicit offscreen graphics probe. */
 public final class BackendProbe {
     private static final String[] ENTRY_POINTS = {
             "com.gtnewhorizons.angelica.glsm.redirect.GLSMRedirector",
@@ -20,6 +21,10 @@ public final class BackendProbe {
     private BackendProbe() { }
 
     public static void main(String[] args) throws Exception {
+        if (args.length == 2 && args[0].equals("--render")) {
+            OffscreenProbe.run(Path.of(args[1]));
+            return;
+        }
         if (args.length > 0 && args[0].equals("--audit-redirects")) {
             RedirectAudit.main(java.util.Arrays.copyOfRange(args, 1, args.length));
             return;

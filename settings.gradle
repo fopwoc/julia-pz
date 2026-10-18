@@ -7,3 +7,6 @@ project(':backend-probe').projectDir = file('modules/backend-probe')
 
 include('agent')
 project(':agent').projectDir = file('modules/agent')
+
+include('zomboid-mod')
+project(':zomboid-mod').projectDir = file('modules/zomboid-mod')

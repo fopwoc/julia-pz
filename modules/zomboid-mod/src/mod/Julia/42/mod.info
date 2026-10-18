@@ -1,0 +1,7 @@
+name=Julia - Metal probe
+id=Julia
+require=\ZombieBuddy
+description=Initial Angelica Metal device and offscreen readback test. The current game renderer stays active.
+javaJarFile=media/java/client/Julia.jar
+javaPkgName=dev.julia.zomboid
+ZBVersionMin=2.3.4

@@ -63,3 +63,7 @@ There are 18 unique unchanged OpenGL method signatures in the game archive and 5
 5. Address Viewpoint's additional surface in phase 2.
 
 The `agent` module currently observes graphics references as scoped classes load. It does not redirect calls or select a new renderer.
+
+## First native execution
+
+The real Angelica `Device` now initializes on Metal inside the PZ process and passes a 1,024-pixel offscreen clear/readback check. See [the native probe evidence](metal-probe.md). The full `GLStateManager` / `SDLGPURenderBackend` initialization and ABI issues above remain unresolved.
