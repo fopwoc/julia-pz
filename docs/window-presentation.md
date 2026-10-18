@@ -14,7 +14,7 @@ SDL's Cocoa listener changes responder links, touch acceptance, and window flags
 
 The scene is compiled against ordinary LWJGL GL calls, then redirected by Angelica before loading. It requires exactly three increments of Angelica's successful-present counter, waits for GPU idle, and checks every final framebuffer pixel. The pattern oracle accounts for pixel centers on odd and non-square surfaces. A PNG is readback evidence, not a screenshot or proof that a compositor displayed it.
 
-## Validation status
+## Initial validation status
 
 The implementation compiles; ownership, thread, remapping, and rectangular sampling regressions pass. Earlier standalone offscreen checks passed before the host-dispatch fix. The window experiment has never been run. The first priority is the [post-probe host GL restoration fix](host-gl-crash.md), whose runtime retest is also pending.
 
@@ -40,3 +40,13 @@ Build `bebc979` presented three frames in process `75920`, then rejected a readb
 The reported readback boundary is consistent with a 2× Retina target: at height 2,182, row 545's center lies exactly on a quarter-texture boundary. The oracle now accepts either immediately adjacent texel only at exact mathematical boundaries, with exact channel checks everywhere. A regression test rejects non-adjacent colors and even one-bit channel corruption. This is not a broad color tolerance.
 
 The corrected build passes 35 offline tests. The next native run will validate the DPI restoration and boundary handling.
+
+## Successful native retest
+
+Build `bdb44db` passed in PZ process `76221` on the Cocoa `main` thread. The real SDL GPU backend submitted exactly three presents into the borrowed GLFW Cocoa window. The final target was 3,600×2,204 pixels; all 7,934,400 readback pixels passed the texture oracle. Both the window result and the outer host-state proof passed after teardown.
+
+The user confirmed that the normal menu returned at its full size and mouse/keyboard input worked. This resolves the quarter-size menu defect observed in the first window attempt. The default-mode restoration test also had a user-confirmed new game with working controls and ordinary rendering; a world was not separately tested after this window-mode run.
+
+Julia.jar SHA-256: `4ffcfdf06e4f84cc9d17f90220fcb882ea07732a4a340409b5d74a55f158d51e`. The build passes 35 JVM tests. Native evidence consists of the stage result, `window-texture.png`, `host-gl-state.txt`, suite status, and console success line. The PNG is final-target readback; presentation proof is three successful upstream swapchain submissions, with user confirmation of normal rendering/input after detach.
+
+This validates the bounded presentation bridge. PZ gameplay still renders with its original OpenGL renderer. Automatic routing of its live scene calls and frame lifecycle remains future work.

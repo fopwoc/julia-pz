@@ -26,9 +26,9 @@ Tested Julia.jar SHA-256: `9ec93dd60f2efd1b5a4f17af542f5775e049f8879aea9ae0be6c2
 
 ## Probe modes
 
-The default `julia.probe=adapter` runs the prior offscreen baseline/adapter sequence with the new restoration guard. The borrowed-window experiment is opt-in with `-Djulia.probe=window`. Window presentation remains unverified and should follow the host-restoration retest.
+The default `julia.probe=adapter` runs the prior offscreen baseline/adapter sequence with the new restoration guard. The borrowed-window experiment is opt-in with `-Djulia.probe=window`. It subsequently passed a three-frame native retest with host restoration and user-confirmed normal menu sizing/input; see [the presentation evidence](window-presentation.md).
 
-Later validation must establish both the new restoration proof and continued ordinary PZ rendering after the probe. Gameplay, input, resizing, and presentation remain separate manual checks.
+The default-mode retest established restoration and user-confirmed ordinary PZ world rendering after the probe. Gameplay, input, resizing, and presentation remain separate manual checks.
 
 ## Sources
 

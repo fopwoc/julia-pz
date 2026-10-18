@@ -77,7 +77,7 @@ The installable package is `modules/zomboid-mod/build/distributions/Julia.zip`. 
 
 Julia schedules the device baseline and full adapter suite on PZ's render context, then restores host GL dispatch before returning. Its JAR includes the probe dependencies as nested JARs; a platform-parent class loader and a separate native extraction path keep the probe's LWJGL runtime separate from the game's classes. Results are written to `<PZ cache>/julia/run-<pid>/` by default. `julia.modJar` and `julia.outputDir` JVM properties can specify the archive and output root for an isolated test launch.
 
-This first mod does not replace the game renderer or transform game graphics calls. It tests the actual Angelica device, translated shaders, and texture sampling inside the game process. Full GLSM startup and the redirected offscreen draw completed their GPU checks, but the PZ process then crashed because the probe left native GL dispatch changed. The current build restores host dispatch; its runtime retest is pending. See [the correction](docs/host-gl-crash.md). Presentation and gameplay rendering remain separate milestones. See [the adapter probe](docs/adapter-probe.md). See [the first in-game result](docs/metal-probe.md).
+This first mod does not replace the game renderer or transform game graphics calls. It tests the actual Angelica device, translated shaders, and texture sampling inside the game process. Full GLSM startup and the redirected offscreen draw completed their GPU checks, but the PZ process then crashed because the probe left native GL dispatch changed. The corrected build restores host dispatch and has passed a runtime retest with user-confirmed world rendering and controls. See [the correction](docs/host-gl-crash.md). Presentation and gameplay rendering remain separate milestones. See [the adapter probe](docs/adapter-probe.md). See [the first in-game result](docs/metal-probe.md).
 
 ## Full adapter probe
 
@@ -90,4 +90,4 @@ The first task initializes GLSM and the real SDL backend, redirects a controlled
 
 ## Experimental window presentation
 
-`-Djulia.probe=window` opts into a three-frame Metal presentation experiment using PZ's existing GLFW Cocoa window. The default remains `adapter`. The window path compiles and has JVM regression coverage, but has not run in-game. First retest the host-dispatch fix with the default mode. See [the window boundary](docs/window-presentation.md).
+`-Djulia.probe=window` opts into a three-frame Metal presentation experiment using PZ's existing GLFW Cocoa window. The default remains `adapter`. The window path now passes a three-frame native test with 7,934,400 verified framebuffer pixels, followed by a normal full-size menu and working input. The full build passes 35 JVM tests. Gameplay still uses its original renderer. See [the window boundary](docs/window-presentation.md).
