@@ -7,7 +7,6 @@ import dev.fopwoc.julia.utils.io.Sha256;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -18,7 +17,6 @@ public final class ApprovedMods {
     private final Supplier<Class<?>[]> loadedClasses;
     private final Path output;
     private final HashMap<Path, String> accepted = new HashMap<>();
-    private final LinkedHashMap<Path, String> blocked = new LinkedHashMap<>();
     private ArchivePlan plan;
 
     public ApprovedMods(
@@ -29,7 +27,7 @@ public final class ApprovedMods {
         this.output = output;
     }
 
-    public synchronized boolean prepare(ModApprovalHooks.Request request) {
+    public synchronized void prepare(ModApprovalHooks.Request request) {
         Path archive = request.archive();
         String hash = "unknown";
         try {
@@ -41,20 +39,11 @@ public final class ApprovedMods {
             if (previous != null) {
                 if (!previous.equals(hash))
                     throw new IllegalStateException("An active mod archive changed; restart required");
-                return true;
+                return;
             }
             var next = ArchivePreparation.extend(plan, archive);
-            if (!next.ready()) {
-                var details = new StringBuilder("Unsupported graphics calls; Java mod was not loaded.\n");
-                for (var entry : next.entries())
-                    for (var blocker : entry.prepared().blockers())
-                        details.append(entry.prepared().name())
-                                .append(": ")
-                                .append(blocker)
-                                .append('\n');
-                next.blockers().forEach(reason -> details.append(reason).append('\n'));
-                return reject(archive, hash, request.packageName(), details.toString());
-            }
+            if (!next.ready())
+                throw new IllegalStateException("Cannot prepare graphics translation: " + next.blockers());
             var names = next.entries().stream()
                     .skip(plan.entries().size())
                     .map(entry -> entry.prepared().name().replace('/', '.'))
@@ -64,37 +53,34 @@ public final class ApprovedMods {
                     throw new IllegalStateException("Graphics consumer already loaded: " + loaded.getName());
             if (!hash.equals(Sha256.of(archive))) throw new IllegalStateException("Archive changed during preparation");
             transformer.publish(next);
-            plan = next;
             accepted.put(archive, hash);
-            blocked.remove(archive);
-            updateStatus();
+            var diagnostics = new StringBuilder();
+            for (var entry :
+                    next.entries().subList(plan.entries().size(), next.entries().size()))
+                entry.prepared()
+                        .unsupportedCalls()
+                        .forEach(reason -> diagnostics.append(reason).append('\n'));
+            if (!diagnostics.isEmpty()) report(archive, hash, request.packageName(), diagnostics.toString());
             LOG.log(
                     System.Logger.Level.INFO,
                     "Prepared approved Java mod {0}: {1} graphics classes",
                     request.packageName(),
                     names.size());
-            return true;
+            plan = next;
         } catch (Exception failure) {
             LOG.log(System.Logger.Level.ERROR, "Cannot prepare approved mod " + archive, failure);
-            return reject(archive, hash, request.packageName(), failure.toString());
+            report(archive, hash, request.packageName(), failure.toString());
+            throw new IllegalStateException("Julia cannot prepare graphics translation for " + archive, failure);
         }
     }
 
-    private boolean reject(Path archive, String hash, String name, String details) {
-        String reason = name + ": Java mod blocked by Julia; disable it until its graphics calls are supported.";
-        blocked.put(archive, reason);
-        updateStatus();
+    private void report(Path archive, String hash, String name, String details) {
         Path report = output.resolve("mod-" + hash + ".txt");
         try {
             Files.writeString(report, "mod=" + name + "\narchive=" + archive + "\nsha256=" + hash + "\n\n" + details);
-            LOG.log(System.Logger.Level.ERROR, "{0} Compatibility report: {1}", reason, report);
+            LOG.log(System.Logger.Level.DEBUG, "Graphics compatibility report: {0}", report);
         } catch (Exception failure) {
             LOG.log(System.Logger.Level.ERROR, "Cannot write mod compatibility report " + report, failure);
         }
-        return false;
-    }
-
-    private void updateStatus() {
-        System.setProperty("julia.mods.blocked", String.join("\n", blocked.values()));
     }
 }

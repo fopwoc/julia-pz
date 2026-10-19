@@ -18,17 +18,17 @@ public final class ArchivePreparation {
     private ArchivePreparation() {}
 
     public static ArchivePlan inspect(List<Path> inputs) throws IOException {
-        return new ArchivePlan(entries(inputs));
+        return new ArchivePlan(entries(inputs, false));
     }
 
     public static ArchivePlan extend(ArchivePlan current, Path archive) throws IOException {
         current.requireBytecode();
         var combined = new ArrayList<>(current.entries());
-        combined.addAll(entries(List.of(archive)));
+        combined.addAll(entries(List.of(archive), true));
         return new ArchivePlan(combined);
     }
 
-    private static List<ArchivePlan.Entry> entries(List<Path> inputs) throws IOException {
+    private static List<ArchivePlan.Entry> entries(List<Path> inputs, boolean deferred) throws IOException {
         var preparation = new RuntimePreparation();
         var graphics = new GraphicsClassScanner(RuntimePreparation::isGraphicsConsumer);
         var entries = new ArrayList<ArchivePlan.Entry>();
@@ -43,7 +43,10 @@ public final class ArchivePreparation {
                 if (!entry.equals(RENDER_THREAD_ENTRY)
                         && !entry.equals(LUA_EXPOSER + ".class")
                         && graphics.scan(bytes).isEmpty()) return;
-                entries.add(new ArchivePlan.Entry(archive, Sha256.of(bytes), preparation.prepare(bytes)));
+                entries.add(new ArchivePlan.Entry(
+                        archive,
+                        Sha256.of(bytes),
+                        deferred ? preparation.prepareMod(bytes) : preparation.prepare(bytes)));
             });
         }
         return entries;

@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.objectweb.asm.ClassWriter;
@@ -21,19 +20,14 @@ class ApprovedModsTest implements Opcodes {
     @TempDir
     Path directory;
 
-    @AfterEach
-    void clearStatus() {
-        System.clearProperty("julia.mods.blocked");
-    }
-
     @Test
     void publishesCompleteSupportedModsAndPreservesStartupEntries() throws Exception {
         var fixture = baseline(() -> new Class<?>[0]);
         byte[] draw = draw("mod/Supported", "glGetError");
         Path mod = jar("supported.jar", Map.of("mod/Supported", draw));
         var request = new ModApprovalHooks.Request(mod, "mod", Sha256.of(mod));
-        assertTrue(fixture.mods.prepare(request));
-        assertTrue(fixture.mods.prepare(request), "Repeated phases must not create duplicate consumers");
+        assertDoesNotThrow(() -> fixture.mods.prepare(request));
+        assertDoesNotThrow(() -> fixture.mods.prepare(request), "Repeated phases must not create duplicate consumers");
         assertTrue(fixture.transformer.transform(getClass().getClassLoader(), "mod/Supported", null, null, draw).length
                 > 1);
         assertTrue(fixture.transformer.transform(
@@ -44,37 +38,54 @@ class ApprovedModsTest implements Opcodes {
                                 draw("zombie/Baseline", "glGetError"))
                         .length
                 > 1);
-        assertEquals("", System.getProperty("julia.mods.blocked"));
     }
 
     @Test
-    void rejectsWholeUnsupportedArchiveBeforePublishingAnyOfItsClasses() throws Exception {
+    void publishesSupportedAndUnsupportedClassesWithoutAnApprovalVerdict() throws Exception {
         var fixture = baseline(() -> new Class<?>[0]);
         byte[] good = draw("mod/Good", "glGetError");
         Path mod = jar("unsupported.jar", Map.of("mod/Good", good, "mod/Bad", draw("mod/Bad", "glUnsupported")));
         String hash = Sha256.of(mod);
-        assertFalse(fixture.mods.prepare(new ModApprovalHooks.Request(mod, "unsupported", hash)));
-        assertEquals(
-                1, fixture.transformer.transform(getClass().getClassLoader(), "mod/Good", null, null, good).length);
+        assertDoesNotThrow(() -> fixture.mods.prepare(new ModApprovalHooks.Request(mod, "unsupported", hash)));
+        assertTrue(fixture.transformer.transform(getClass().getClassLoader(), "mod/Good", null, null, good).length > 1);
+        byte[] bad = draw("mod/Bad", "glUnsupported");
+        var loader = new ClassLoader(getClass().getClassLoader()) {
+            Class<?> define(byte[] bytes) {
+                return defineClass(null, bytes, 0, bytes.length);
+            }
+        };
+        var badType =
+                loader.define(fixture.transformer.transform(getClass().getClassLoader(), "mod/Bad", null, null, bad));
+        var failure = assertThrows(
+                java.lang.reflect.InvocationTargetException.class,
+                () -> badType.getMethod("draw").invoke(null));
+        assertInstanceOf(UnsupportedOperationException.class, failure.getCause());
+        assertTrue(failure.getCause().getMessage().contains("mod/Bad.draw"));
+        assertTrue(failure.getCause().getMessage().contains("glUnsupported"));
         String report = Files.readString(directory.resolve("mod-" + hash + ".txt"));
         assertTrue(report.contains("mod/Bad"));
         assertTrue(report.contains("glUnsupported"));
-        assertTrue(System.getProperty("julia.mods.blocked").contains("unsupported"));
     }
 
     @Test
     void refusesChangedApprovalAlreadyLoadedGraphicsAndDuplicateDefinitions() throws Exception {
         var fixture = baseline(() -> new Class<?>[] {ApprovedModsTest.class});
         Path mod = jar("changed.jar", Map.of("mod/Changed", draw("mod/Changed", "glGetError")));
-        assertFalse(fixture.mods.prepare(new ModApprovalHooks.Request(mod, "changed", "not-the-approved-hash")));
+        assertThrows(
+                IllegalStateException.class,
+                () -> fixture.mods.prepare(new ModApprovalHooks.Request(mod, "changed", "not-the-approved-hash")));
         Path loaded = jar(
                 "loaded.jar",
                 Map.of(
                         getClass().getName().replace('.', '/'),
                         draw(getClass().getName().replace('.', '/'), "glGetError")));
-        assertFalse(fixture.mods.prepare(new ModApprovalHooks.Request(loaded, "loaded", Sha256.of(loaded))));
+        assertThrows(
+                IllegalStateException.class,
+                () -> fixture.mods.prepare(new ModApprovalHooks.Request(loaded, "loaded", Sha256.of(loaded))));
         Path duplicate = jar("duplicate.jar", Map.of("zombie/Baseline", draw("zombie/Baseline", "glGetError")));
-        assertFalse(fixture.mods.prepare(new ModApprovalHooks.Request(duplicate, "duplicate", Sha256.of(duplicate))));
+        assertThrows(
+                IllegalStateException.class,
+                () -> fixture.mods.prepare(new ModApprovalHooks.Request(duplicate, "duplicate", Sha256.of(duplicate))));
         assertTrue(Files.readString(directory.resolve("mod-" + Sha256.of(duplicate) + ".txt"))
                 .contains("DUPLICATE_CLASS"));
     }
@@ -83,9 +94,11 @@ class ApprovedModsTest implements Opcodes {
     void refusesHotReplacementOfAnAlreadyPreparedArchive() throws Exception {
         var fixture = baseline(() -> new Class<?>[0]);
         Path mod = jar("active.jar", Map.of("mod/Old", draw("mod/Old", "glGetError")));
-        assertTrue(fixture.mods.prepare(new ModApprovalHooks.Request(mod, "active", Sha256.of(mod))));
+        assertDoesNotThrow(() -> fixture.mods.prepare(new ModApprovalHooks.Request(mod, "active", Sha256.of(mod))));
         jar("active.jar", Map.of("mod/New", draw("mod/New", "glGetError")));
-        assertFalse(fixture.mods.prepare(new ModApprovalHooks.Request(mod, "active", Sha256.of(mod))));
+        assertThrows(
+                IllegalStateException.class,
+                () -> fixture.mods.prepare(new ModApprovalHooks.Request(mod, "active", Sha256.of(mod))));
     }
 
     private record Fixture(PreparedTransformer transformer, ApprovedMods mods) {}

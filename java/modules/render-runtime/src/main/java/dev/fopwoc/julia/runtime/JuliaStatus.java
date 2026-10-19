@@ -11,8 +11,4 @@ public final class JuliaStatus {
     public static String getBackend() {
         return System.getProperty("julia.renderer.backend", "");
     }
-
-    public static String getBlockedMods() {
-        return System.getProperty("julia.mods.blocked", "");
-    }
 }

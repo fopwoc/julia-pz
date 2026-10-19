@@ -15,7 +15,7 @@ import org.objectweb.asm.tree.ClassNode;
 
 class ModLoadingPassTest implements Opcodes {
     @Test
-    void gatesClasspathAndPatchesWithoutAFrameOrIsolatedGraphicsSession() throws Exception {
+    void preparesBeforeClasspathAndPatchesWithoutAnApprovalVerdict() throws Exception {
         var source = fixture();
         var prepared = new RuntimePreparation().prepare(source);
         assertTrue(prepared.ready(), prepared.blockers().toString());
@@ -33,10 +33,13 @@ class ModLoadingPassTest implements Opcodes {
         var seen = new AtomicReference<ModApprovalHooks.Request>();
         ModApprovalHooks.install(request -> {
             seen.set(request);
-            return allow.get();
+            if (!allow.get()) throw new IllegalStateException("Preparation failed");
         });
         Path path = Path.of("approved.jar");
-        assertEquals(false, load.invoke(null, path, "example", "approved-hash", null));
+        var failure = assertThrows(
+                java.lang.reflect.InvocationTargetException.class,
+                () -> load.invoke(null, path, "example", "approved-hash", null));
+        assertEquals("Preparation failed", failure.getCause().getMessage());
         assertEquals(new ModApprovalHooks.Request(path, "example", "approved-hash"), seen.get());
         assertEquals(0, type.getField("published").getInt(null));
         assertEquals(0, type.getField("patched").getInt(null));

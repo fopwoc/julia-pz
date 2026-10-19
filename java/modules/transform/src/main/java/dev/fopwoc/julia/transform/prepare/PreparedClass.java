@@ -5,6 +5,7 @@ import java.util.Set;
 
 /** A checked candidate, never executable through this API while any blocker remains. */
 public final class PreparedClass {
+    private final List<String> unsupportedCalls;
     private final String name;
     private final byte[] bytecode;
     private final List<String> blockers;
@@ -19,12 +20,28 @@ public final class PreparedClass {
             int calls,
             boolean frameHooks,
             Set<String> requiredConsumers) {
+        this(name, bytecode, blockers, calls, frameHooks, requiredConsumers, List.of());
+    }
+
+    PreparedClass(
+            String name,
+            byte[] bytecode,
+            List<String> blockers,
+            int calls,
+            boolean frameHooks,
+            Set<String> requiredConsumers,
+            List<String> unsupportedCalls) {
+        this.unsupportedCalls = List.copyOf(unsupportedCalls);
         this.name = name;
         this.bytecode = bytecode.clone();
         this.blockers = List.copyOf(blockers);
         this.calls = calls;
         this.frameHooks = frameHooks;
         this.requiredConsumers = Set.copyOf(requiredConsumers);
+    }
+
+    public List<String> unsupportedCalls() {
+        return unsupportedCalls;
     }
 
     public String name() {

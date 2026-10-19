@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
  * <p>Owners are internal names, never class literals: the transform layer must not load backend classes.
  */
 public enum Endpoint {
+    UNSUPPORTED_GRAPHICS("dev/fopwoc/julia/runtime/UnsupportedGraphics", false),
     MOD_APPROVAL_HOOKS("dev/fopwoc/julia/runtime/ModApprovalHooks", false),
     LUA_STATUS("dev/fopwoc/julia/runtime/JuliaStatus", false),
     STATE_MANAGER("com/gtnewhorizons/angelica/glsm/GLStateManager", true),

@@ -59,7 +59,7 @@ videos, map tiles, character previews, world textures, wall cutaways, and the ch
 that previously fell to about 10 FPS now holds 60 FPS in the tester's scene after eliminating repeated index-buffer
 readbacks. This is a local result, not a general performance guarantee.
 
-The automated baseline passes 146 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
+The automated baseline passes 151 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
 defaults/reflection, streamed indices, texture views, stencil sampling, depth, viewport clipping, video uploads, initial
 presentation, and ImGui. These checks do not replace in-game validation.
 
@@ -70,11 +70,12 @@ outside game preparation and remains rejected if loaded into the game JVM.
 
 Limits include full-image same-format 2D texture views, a costly stencil-extraction fallback, rejected compute sampling
 of stencil views, and rejected linked-stage regeneration with shader storage blocks. Unplanned or changed graphics
-consumers are refused at load time. Approved ZombieBuddy JARs are checked before classpath publication and patch
-execution. Preparation publishes their graphics classes atomically, or refuses the whole Java mod with a report under
-`~/Zomboid/julia/run-*/mod-<sha256>.txt`. Unsupported mods should be disabled until their graphics calls are supported.
-The actual installed ViewPoint JAR is refused before its entry point runs in a windowless loader test; this does not
-establish ViewPoint rendering support. The Lua-only menu status and ViewPoint block notice are user-confirmed in Steam; ASCII separators avoid missing glyphs.
+consumers are refused at load time. ZombieBuddy owns mod approval. Julia prepares approved JARs before classpath
+publication and patch execution, translating supported graphics operations and replacing unsupported operations with
+logged exceptions at the call site. Unused unsupported branches do not stop a mod from loading. Preparation diagnostics
+are written under `~/Zomboid/julia/run-*/mod-<sha256>.txt`; failures to prepare translation throw explicitly.
+This does not establish ViewPoint rendering support. The Lua-only menu status is user-confirmed in Steam;
+ASCII separators avoid missing glyphs.
 
 ## Building
 
@@ -128,8 +129,7 @@ agent. Remove its `-javaagent` option to return to vanilla rendering. ZombieBudd
 
 The optional Lua-only Julia mod shows live renderer status at the bottom left of the main menu, such as
 `Julia active | Metal`, or `Julia inactive` when the renderer is absent. It requires no ZombieBuddy approval or Java JAR.
-If Julia blocks a Java mod, its package is identified beside the status; detailed reasons stay in the compatibility
-report. Enable this companion in the mod manager to show it. It does not activate the agent itself.
+Enable this companion in the mod manager to show it. It does not activate the agent itself.
 
 `activate` creates a fresh directory under `~/Zomboid/julia/run-*/` on every launch. For a controlled test,
 `activate=/absolute/path/new-run` selects an explicit fresh report directory. Logs default to `error`; `LOG_LEVEL`

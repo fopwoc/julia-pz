@@ -55,7 +55,6 @@ public final class GameStartup {
         });
         var mods = new ApprovedMods(plan, transformer, instrumentation::getAllLoadedClasses, output);
         ModApprovalHooks.install(mods::prepare);
-        System.clearProperty("julia.mods.blocked");
         instrumentation.addTransformer(transformer);
         System.setProperty("julia.startup", "active");
         LOG.log(

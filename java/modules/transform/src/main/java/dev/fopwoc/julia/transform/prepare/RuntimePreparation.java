@@ -9,8 +9,10 @@ import dev.fopwoc.julia.transform.pass.BridgePipeline;
 import dev.fopwoc.julia.transform.pass.DispatchPass;
 import dev.fopwoc.julia.transform.pass.FramePass;
 import dev.fopwoc.julia.transform.pass.ImGuiPass;
+import dev.fopwoc.julia.transform.pass.UnsupportedCallPass;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.TreeSet;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -30,12 +32,26 @@ public final class RuntimePreparation {
     }
 
     public synchronized PreparedClass prepare(byte[] original) throws IOException {
+        return prepare(original, false);
+    }
+
+    public synchronized PreparedClass prepareMod(byte[] original) throws IOException {
+        return prepare(original, true);
+    }
+
+    private PreparedClass prepare(byte[] original, boolean deferred) throws IOException {
         var node = new ClassNode();
         new ClassReader(original).accept(node, 0);
         if (upstream.shouldTransform(original)) upstream.transformClassNode(node.name.replace('/', '.'), node, true);
         var blockers = new TreeSet<String>();
         node = BridgePipeline.apply(node, blockers::add);
 
+        List<String> unsupported = List.of();
+        if (deferred) {
+            unsupported = UnsupportedCallPass.adapt(node, this::classify);
+            // Native capability storage may remain; its actual binding accesses now throw.
+            blockers.removeIf(reason -> reason.startsWith("CAPABILITY_BOUNDARY "));
+        }
         var snapshot = new ClassWriter(0);
         node.accept(snapshot);
         for (var reference : scanner.scan(snapshot.toByteArray())) {
@@ -60,7 +76,8 @@ public final class RuntimePreparation {
                 new ArrayList<>(blockers),
                 calls,
                 frames,
-                ImGuiPass.requiredConsumers(node));
+                ImGuiPass.requiredConsumers(node),
+                unsupported);
     }
 
     /** @return the blocker a remaining reference represents, or {@code null} when it is safe to route or keep */
