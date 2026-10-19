@@ -21,6 +21,8 @@ public final class ShaderPrograms implements AutoCloseable {
         String source = "";
         ShaderFrontend.Compiled compiled;
         boolean deleted;
+        boolean renamedTexture;
+        boolean compiledRenamedTexture;
         int attachments;
 
         Shader(int type) {
@@ -32,6 +34,7 @@ public final class ShaderPrograms implements AutoCloseable {
         final LinkedHashSet<Integer> attachments = new LinkedHashSet<>();
         final ArrayList<Integer> stages = new ArrayList<>();
         Map<String, float[]> initializers = Map.of();
+        boolean renamedTexture;
     }
 
     private final HashMap<Integer, Shader> shaders = new HashMap<>();
@@ -45,6 +48,27 @@ public final class ShaderPrograms implements AutoCloseable {
 
     public void programCreated(int id) {
         programs.put(id, new Program());
+    }
+
+    public void renamedTexture(int shader, boolean renamed) {
+        shaders.get(shader).renamedTexture = renamed;
+    }
+
+    public boolean renamedTexture(int program) {
+        var linked = programs.get(program);
+        return linked != null && linked.renamedTexture;
+    }
+
+    public String publicUniformName(int program, String name) {
+        return renamedTexture(program) && (name.equals("gtexture") || name.startsWith("gtexture["))
+                ? "texture" + name.substring("gtexture".length())
+                : name;
+    }
+
+    public String backendUniformName(int program, String name) {
+        return renamedTexture(program) && (name.equals("texture") || name.startsWith("texture["))
+                ? "gtexture" + name.substring("texture".length())
+                : name;
     }
 
     public boolean contains(int id) {
@@ -68,6 +92,7 @@ public final class ShaderPrograms implements AutoCloseable {
         if (frontend == null) frontend = new ShaderFrontend();
         var compiled = frontend.compile(shader.type, shader.source);
         shader.compiled = compiled;
+        shader.compiledRenamedTexture = shader.renamedTexture;
         if (!compiled.valid()) LOG.log(System.Logger.Level.ERROR, "Shader {0} compile failed: {1}", id, compiled.log());
     }
 
@@ -117,8 +142,11 @@ public final class ShaderPrograms implements AutoCloseable {
         var program = programs.get(id);
         var manager = BackendInternals.shaders();
         var compiled = new ArrayList<ShaderFrontend.Compiled>();
+        boolean renamedTexture = false;
         for (int shader : program.attachments) {
-            var part = shaders.get(shader).compiled;
+            var object = shaders.get(shader);
+            var part = object.compiled;
+            renamedTexture |= object.compiledRenamedTexture;
             if (part == null || !part.valid()) return fail(id, "Attached shader " + shader + " did not compile");
             compiled.add(part);
         }
@@ -144,6 +172,7 @@ public final class ShaderPrograms implements AutoCloseable {
             for (int shader : stages) manager.attachShader(id, shader);
             program.stages.clear();
             program.stages.addAll(stages);
+            program.renamedTexture = renamedTexture;
             stages.clear();
             // Normal program release owns these internal shader attachments from here on.
             for (int shader : program.stages) manager.deleteShader(shader);

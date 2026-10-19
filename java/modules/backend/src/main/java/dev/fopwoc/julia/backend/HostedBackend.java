@@ -6,6 +6,8 @@ import static org.lwjgl.opengl.GL11.GL_RGBA;
 import static org.lwjgl.opengl.GL11.GL_RGBA8;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL20.GL_ACTIVE_UNIFORMS;
+import static org.lwjgl.opengl.GL20.GL_ACTIVE_UNIFORM_MAX_LENGTH;
 import static org.lwjgl.opengl.GL20.GL_ATTACHED_SHADERS;
 import static org.lwjgl.opengl.GL20.GL_LINK_STATUS;
 import static org.lwjgl.opengl.GL30.GL_R8;
@@ -23,6 +25,8 @@ import dev.fopwoc.julia.backend.texture.TextureViews;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 
 /** Selects the real SDL backend for an explicitly created device without Minecraft's display gate. */
 public final class HostedBackend extends SDLGPURenderBackend {
@@ -39,6 +43,42 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     public TextureViews textureViews() {
         return textureViews;
+    }
+
+    public void renamedTexture(int shader, boolean renamed) {
+        shaderPrograms.renamedTexture(shader, renamed);
+    }
+
+    @Override
+    public int getUniformLocation(int program, CharSequence name) {
+        return super.getUniformLocation(program, shaderPrograms.backendUniformName(program, name.toString()));
+    }
+
+    @Override
+    public int getUniformLocation(int program, ByteBuffer name) {
+        return getUniformLocation(program, MemoryUtil.memASCII(name));
+    }
+
+    @Override
+    public String getActiveUniform(int program, int index, int capacity, IntBuffer sizeType) {
+        String name = publicUniformName(program, index, sizeType);
+        return capacity > 0 && name.length() > capacity ? name.substring(0, capacity) : name;
+    }
+
+    private String publicUniformName(int program, int index, IntBuffer sizeType) {
+        return shaderPrograms.publicUniformName(program, super.getActiveUniform(program, index, 0, sizeType));
+    }
+
+    @Override
+    public void getActiveUniform(
+            int program, int index, IntBuffer length, IntBuffer size, IntBuffer type, ByteBuffer name) {
+        try (var stack = MemoryStack.stackPush()) {
+            var sizeType = stack.mallocInt(2);
+            String publicName = publicUniformName(program, index, sizeType);
+            if (size != null && size.hasRemaining()) size.put(size.position(), sizeType.get(0));
+            if (type != null && type.hasRemaining()) type.put(type.position(), sizeType.get(1));
+            ShaderPrograms.write(publicName, length, name);
+        }
     }
 
     public String preprocessShaderSource(int type, String source) {
@@ -113,6 +153,12 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public int getProgrami(int program, int parameter) {
+        if (parameter == GL_ACTIVE_UNIFORM_MAX_LENGTH && shaderPrograms.renamedTexture(program)) {
+            int longest = 0;
+            for (int i = 0; i < super.getProgrami(program, GL_ACTIVE_UNIFORMS); i++)
+                longest = Math.max(longest, publicUniformName(program, i, null).length() + 1);
+            return longest;
+        }
         return parameter == GL_ATTACHED_SHADERS
                 ? shaderPrograms.attached(program)
                 : super.getProgrami(program, parameter);

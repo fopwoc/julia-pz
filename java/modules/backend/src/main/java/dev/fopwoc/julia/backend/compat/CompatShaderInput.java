@@ -13,17 +13,17 @@ public final class CompatShaderInput {
 
     private CompatShaderInput() {}
 
-    public static String transform(String source, int type, boolean fragment) {
+    public static String transform(String source, int type, boolean fragment, int shader) {
         BackendInternals.context();
         if (!(BackendManager.RENDER_BACKEND instanceof HostedBackend backend))
             throw new IllegalStateException("Expected Julia's hosted SDL backend");
         if (source.endsWith("\0")) source = source.substring(0, source.length() - 1);
         String resolved = backend.preprocessShaderSource(type, source);
-        // Upstream already maps public uniform queries from texture to gtexture. Use that
-        // identifier before it replaces texture2D calls, even on its core-shader fast path.
-        resolved = RENAMED_TEXTURE
-                .matcher(GlslTransformUtils.replaceTexture(resolved))
-                .replaceAll("gtexture");
+        // Preserve whether this shader declared the legacy identifier; real gtexture uniforms
+        // must keep their names when the application enumerates its linked uniforms.
+        resolved = GlslTransformUtils.replaceTexture(resolved);
+        backend.renamedTexture(shader, RENAMED_TEXTURE.matcher(resolved).find());
+        resolved = RENAMED_TEXTURE.matcher(resolved).replaceAll("gtexture");
         return CompatShaderTransformer.transform(resolved, type, fragment);
     }
 }

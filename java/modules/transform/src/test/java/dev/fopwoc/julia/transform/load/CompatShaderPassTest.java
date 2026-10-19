@@ -27,7 +27,8 @@ class CompatShaderPassTest {
                         assertEquals("glShaderSource", method.name);
                         assertEquals("(ILjava/lang/CharSequence;)V", method.desc);
                         assertEquals("transform", call.name);
-                        assertEquals("(Ljava/lang/String;IZ)Ljava/lang/String;", call.desc);
+                        assertEquals("(Ljava/lang/String;IZI)Ljava/lang/String;", call.desc);
+                        assertEquals(Opcodes.ILOAD, call.getPrevious().getOpcode());
                         routed++;
                     }
             assertEquals(1, routed);

@@ -55,7 +55,7 @@ public final class AdapterProbe {
                 verified_initializer_pixels=256
                 initializer_checks=scalar,integer,bool,uint,vector,matrix,array,queries,overrides,relink reset,current program and deferred deletion preservation
                 verified_compatibility_pixels=64
-                compatibility_checks=conditional uniforms,conditional function returns,legacy sampler name,uniform lookup
+                compatibility_checks=conditional uniforms,conditional function returns,legacy sampler names,reflected sampler binding,compiled-name snapshots,relink,genuine gtexture,truncated buffers,uniform lookup
                 verified_shader_link_pixels=256
                 shader_link_checks=separate objects,builtin scalar overrides and vector overloads,macro isolation,shared uniforms,compile snapshots,shared library deletion,detach,relink,syntax and unresolved-function failures
                 verified_map_quad_pixels=1024

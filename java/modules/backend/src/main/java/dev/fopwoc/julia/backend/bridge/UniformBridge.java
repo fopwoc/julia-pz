@@ -36,12 +36,12 @@ public final class UniformBridge {
         if (!size.hasRemaining() || !type.hasRemaining() || size.isReadOnly() || type.isReadOnly()) {
             throw new IllegalArgumentException("Uniform size/type outputs must each have a writable element");
         }
-        var name = MemoryUtil.memAlloc(Math.max(0, maxLength - 1));
+        var name = MemoryUtil.memAlloc(maxLength);
         try (var stack = MemoryStack.stackPush()) {
             var length = stack.callocInt(1);
             var actualSize = stack.callocInt(1);
             var actualType = stack.callocInt(1);
-            // The upstream backend writes absolute index zero. Scratch outputs preserve caller positions.
+            // Scratch outputs isolate the caller's positions; capacity includes the null terminator.
             GLStateManager.glGetActiveUniform(program, index, length, actualSize, actualType, name);
             size.put(size.position(), actualSize.get(0));
             type.put(type.position(), actualType.get(0));
