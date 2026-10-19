@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Prepares every graphics consumer across the supplied archives, retaining only in-memory bytecode. */
+/** Prepares in-process graphics consumers across the supplied archives, retaining only in-memory bytecode. */
 public final class ArchivePreparation {
     private static final String RENDER_THREAD_ENTRY = FramePass.RENDER_THREAD + ".class";
 
@@ -24,6 +24,10 @@ public final class ArchivePreparation {
             String archive = input.getFileName().toString();
             ClassArchive.forEachClass(input, (entry, bytes) -> {
                 if (GraphicsArchiveScanner.isBindingClass(entry)) return;
+                // ZombieBuddy also bundles a standalone native-GL approval executable. It is not
+                // a game consumer; the live transformer still rejects it if loaded in this JVM.
+                if (entry.equals("me/zed_0xff/zombie_buddy/frontend/ImguiApprovalMain.class")
+                        || entry.startsWith("me/zed_0xff/zombie_buddy/frontend/ImguiApprovalMain$")) return;
                 if (!entry.equals(RENDER_THREAD_ENTRY) && graphics.scan(bytes).isEmpty()) return;
                 entries.add(new ArchivePlan.Entry(archive, Sha256.of(bytes), preparation.prepare(bytes)));
             });

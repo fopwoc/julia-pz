@@ -25,8 +25,13 @@ class PreparedTransformerTest implements Opcodes {
     @Test
     void installsOnlyUnchangedPreparedBytesAndRefusesLateGraphicsConsumers() throws Exception {
         byte[] draw = draw("zombie/LiveFixture", "glGetError");
+        String approval = "me/zed_0xff/zombie_buddy/frontend/ImguiApprovalMain";
+        byte[] standalone = draw(approval, "glUnsupportedStandaloneCall");
         Path archive = directory.resolve("fixture.jar");
         try (var jar = new JarOutputStream(Files.newOutputStream(archive))) {
+            jar.putNextEntry(new JarEntry(approval + ".class"));
+            jar.write(standalone);
+            jar.closeEntry();
             jar.putNextEntry(new JarEntry("zombie/LiveFixture.class"));
             jar.write(draw);
             jar.closeEntry();
@@ -36,8 +41,11 @@ class PreparedTransformerTest implements Opcodes {
         }
         var plan = ArchivePreparation.inspect(List.of(archive));
         assertTrue(plan.ready(), plan.blockers().toString());
+        assertFalse(plan.entries().stream()
+                .anyMatch(entry -> entry.prepared().name().equals(approval)));
         var owner = getClass().getClassLoader();
         var transform = new PreparedTransformer(plan, owner);
+        assertEquals(1, transform.transform(owner, approval, null, null, standalone).length);
         var runtimeDomain = StartupHooks.class.getProtectionDomain();
         String runtimeName = "dev/fopwoc/julia/runtime/CapabilitySnapshot";
         byte[] runtimeBytes;

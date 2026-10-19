@@ -1,9 +1,9 @@
-name=Julia - Metal probe
+name=Julia
 id=Julia
 poster=poster.png
 icon=icon.png
 require=\ZombieBuddy
-description=Metal baseline and full GLSM readback with host GL-state restoration. Window presentation is an optional experimental probe.
+description=OpenGL compatibility renderer using SDL GPU and Metal. Requires the Julia startup agent before ZombieBuddy.
 javaJarFile=media/java/client/Julia.jar
 javaPkgName=dev.fopwoc.julia.zomboid
 ZBVersionMin=2.3.4

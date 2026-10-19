@@ -11,7 +11,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
-/** Startup agent that inventories graphics references in loaded game classes without changing them. */
+/** Installs live graphics redirection before game loading, or inventories consumers in audit mode. */
 public final class JuliaAgent {
     private static final System.Logger LOG = System.getLogger(JuliaAgent.class.getName());
 
@@ -19,13 +19,21 @@ public final class JuliaAgent {
 
     public static void premain(String arguments, Instrumentation instrumentation) throws Exception {
         LogConfiguration.configure();
-        LOG.log(System.Logger.Level.INFO, "Starting Julia audit agent");
+        LOG.log(System.Logger.Level.INFO, "Starting Julia agent");
         if (arguments == null || arguments.isBlank()) {
-            throw new IllegalArgumentException("Supply a new report path: -javaagent:julia-agent.jar=/path/report.tsv");
+            throw new IllegalArgumentException("Supply activate, activate=/path/new-run, or an audit report path");
         }
-        if (arguments.startsWith("activate=")) {
-            Path output = Path.of(arguments.substring("activate=".length())).toAbsolutePath();
-            Files.createDirectories(output);
+        if (arguments.equals("activate") || arguments.startsWith("activate=")) {
+            Path output;
+            if (arguments.equals("activate")) {
+                Path root = Path.of(System.getProperty("user.home"), "Zomboid", "julia");
+                Files.createDirectories(root);
+                output = Files.createTempDirectory(root, "run-");
+            } else {
+                output = Path.of(arguments.substring("activate=".length())).toAbsolutePath();
+                Files.createDirectories(output);
+            }
+            LOG.log(System.Logger.Level.INFO, "Preparing live renderer; output={0}", output);
             Path archive = Path.of(JuliaAgent.class
                     .getProtectionDomain()
                     .getCodeSource()
