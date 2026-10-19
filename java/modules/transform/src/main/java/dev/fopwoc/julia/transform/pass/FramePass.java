@@ -7,6 +7,7 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
 /** Exact version-checked PZ anchors; exceptions abort the active frame before escaping. */
@@ -49,6 +50,11 @@ public final class FramePass {
         }
         if (draw == null || swap == null || alreadyHooked)
             throw new IllegalArgumentException("Missing or previously transformed frame anchors");
+        bracket(method, draw, swap);
+        return true;
+    }
+
+    static void bracket(MethodNode method, MethodInsnNode draw, MethodInsnNode swap) {
         method.instructions.insertBefore(draw, new MethodInsnNode(Opcodes.INVOKESTATIC, HOOKS, "begin", "()V", false));
         method.instructions.insertBefore(
                 swap, new MethodInsnNode(Opcodes.INVOKESTATIC, HOOKS, "present", "()V", false));
@@ -66,6 +72,5 @@ public final class FramePass {
         method.instructions.add(cleanup);
         method.tryCatchBlocks.add(new TryCatchBlockNode(start, end, handler, null));
         method.maxStack = Math.max(1, method.maxStack);
-        return true;
     }
 }

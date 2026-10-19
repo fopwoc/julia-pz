@@ -59,13 +59,14 @@ videos, map tiles, character previews, world textures, wall cutaways, and the ch
 that previously fell to about 10 FPS now holds 60 FPS in the tester's scene after eliminating repeated index-buffer
 readbacks. This is a local result, not a general performance guarantee.
 
-The automated baseline passes 135 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
+The automated baseline passes 137 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
 defaults/reflection, streamed indices, texture views, stencil sampling, depth, viewport clipping, video uploads, initial
 presentation, and ImGui. These checks do not replace in-game validation.
 
 The installed PZ and ZombieBuddy archives prepare together with zero blockers; a separate JVM smoke test initializes
-both agents. Steam gameplay with both agents still needs live validation. ZombieBuddy's standalone native-GL approval
-executable is outside game preparation and remains rejected if loaded into the game JVM.
+both agents. A Steam launch with both agents reaches the menu and loads a save in local testing. The approval UI's
+separate frame-loop adapter still needs a visual retry. ZombieBuddy's standalone native-GL approval executable is
+outside game preparation and remains rejected if loaded into the game JVM.
 
 Limits include full-image same-format 2D texture views, a costly stencil-extraction fallback, rejected compute sampling
 of stencil views, and rejected linked-stage regeneration with shader storage blocks. Unplanned or changed graphics
