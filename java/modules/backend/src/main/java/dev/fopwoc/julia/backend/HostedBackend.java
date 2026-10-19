@@ -296,14 +296,21 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     private FloatBuffer matrixUpload(int location, FloatBuffer value, int size) {
         if (location == -1) return null;
+        var context = BackendInternals.context();
         try {
-            return MatrixUniformUploads.prepare(BackendInternals.context().boundProgramObj, location, size, value);
+            return MatrixUniformUploads.prepare(context.boundProgramObj, location, size, value);
         } catch (IllegalArgumentException invalid) {
             if (error == 0) error = GL_INVALID_OPERATION;
             LOG.log(
                     System.Logger.Level.DEBUG,
-                    "Rejected matrix uniform upload at location {0}: {1}",
+                    "Rejected matrix uniform upload: program={0}, uniform={1}, location={2}, size={3}, count={4}: {5}",
+                    context.boundProgram,
+                    context.boundProgramObj == null
+                            ? "<none>"
+                            : context.boundProgramObj.locationToName.getOrDefault(location, "<unknown>"),
                     location,
+                    size,
+                    value.remaining() / (size * size),
                     invalid.getMessage());
             return null;
         }
