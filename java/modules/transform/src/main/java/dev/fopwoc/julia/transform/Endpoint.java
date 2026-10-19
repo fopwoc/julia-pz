@@ -22,6 +22,7 @@ public enum Endpoint {
     DEBUG_CALLBACK_BRIDGE("dev/fopwoc/julia/backend/bridge/DebugCallbackBridge", false),
     PROGRAM_RESOURCE_BRIDGE("dev/fopwoc/julia/backend/bridge/ProgramResourceBridge", false),
     UNIFORM_BRIDGE("dev/fopwoc/julia/backend/bridge/UniformBridge", false),
+    RESOURCE_ARRAY_BRIDGE("dev/fopwoc/julia/backend/bridge/ResourceArrayBridge", false),
     QUERY_BRIDGE("dev/fopwoc/julia/backend/bridge/QueryBridge", false),
     UNIFORM_QUERY_BRIDGE("dev/fopwoc/julia/backend/bridge/UniformQueryBridge", false),
     UNIFORM_UPLOAD_BRIDGE("dev/fopwoc/julia/backend/bridge/UniformUploadBridge", false),

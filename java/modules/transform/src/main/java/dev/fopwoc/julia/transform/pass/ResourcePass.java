@@ -13,6 +13,13 @@ import org.objectweb.asm.tree.MethodInsnNode;
 /** Only the exact observed resource overloads enter the bounded bridge implementations. */
 public final class ResourcePass {
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
+            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glGenTextures([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glDeleteTextures([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glDeleteFramebuffers([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glDrawBuffers([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL20.glUniform1iv(I[I)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL30.glUniform1iv(I[I)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43.glUniform1iv(I[I)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
             Map.entry(Endpoint.STATE_MANAGER.owner() + ".glGenQueries([I)V", Endpoint.QUERY_BRIDGE),
             Map.entry(Endpoint.STATE_MANAGER.owner() + ".glDeleteQueries([I)V", Endpoint.QUERY_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL33.glGetQueryObjecti64(II)J", Endpoint.QUERY_BRIDGE),

@@ -15,6 +15,7 @@ public final class UniformOverloadPass {
     private static final String STATE_MANAGER = Endpoint.STATE_MANAGER.owner();
     private static final Set<String> METHODS = Set.of(
             "glUniform1(I[F)V",
+            "glUniformMatrix3(IZ[F)V",
             "glUniformMatrix4(IZ[F)V",
             "glGetActiveUniform(IIILjava/nio/IntBuffer;Ljava/nio/IntBuffer;)Ljava/lang/String;");
 

@@ -59,9 +59,9 @@ videos, map tiles, character previews, world textures, wall cutaways, and the ch
 that previously fell to about 10 FPS now holds 60 FPS in the tester's scene after eliminating repeated index-buffer
 readbacks. This is a local result, not a general performance guarantee.
 
-The automated baseline passes 164 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
+The automated baseline passes 165 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
 defaults/reflection, streamed indices, texture views, stencil sampling, depth, viewport clipping, video uploads, initial
-presentation, ImGui, and real Metal timer queries. Timer checks verify pending/completed results, elapsed queries,
+presentation, ImGui, array resource APIs, multiple draw buffers, and real Metal timer queries. Timer checks verify pending/completed results, elapsed queries,
 query reuse, and that CPU sleeps are excluded from measured GPU time. These checks do not replace in-game validation.
 
 The installed PZ and ZombieBuddy archives prepare together with zero blockers; a separate JVM smoke test initializes

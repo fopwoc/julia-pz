@@ -19,6 +19,18 @@ public final class UniformBridge {
         }
     }
 
+    public static void glUniformMatrix3(int location, boolean transpose, float[] values) {
+        // LWJGL derives count by integer division; incomplete trailing matrices are ignored.
+        int count = values.length / 9 * 9;
+        var buffer = MemoryUtil.memAllocFloat(count);
+        try {
+            buffer.put(values, 0, count).flip();
+            GLStateManager.glUniformMatrix3(location, transpose, buffer);
+        } finally {
+            MemoryUtil.memFree(buffer);
+        }
+    }
+
     public static void glUniformMatrix4(int location, boolean transpose, float[] values) {
         // LWJGL derives count by integer division; incomplete trailing matrices are ignored.
         int count = values.length / 16 * 16;
