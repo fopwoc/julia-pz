@@ -1,5 +1,6 @@
 package dev.fopwoc.julia.host;
 
+import dev.fopwoc.julia.runtime.FatalGraphics;
 import dev.fopwoc.julia.runtime.ModApprovalHooks;
 import dev.fopwoc.julia.transform.prepare.ArchivePlan;
 import dev.fopwoc.julia.transform.prepare.ArchivePreparation;
@@ -68,9 +69,8 @@ public final class ApprovedMods {
                     names.size());
             plan = next;
         } catch (Exception failure) {
-            LOG.log(System.Logger.Level.ERROR, "Cannot prepare approved mod " + archive, failure);
             report(archive, hash, request.packageName(), failure.toString());
-            throw new IllegalStateException("Julia cannot prepare graphics translation for " + archive, failure);
+            throw FatalGraphics.failure("Julia cannot prepare graphics translation for " + archive, failure);
         }
     }
 

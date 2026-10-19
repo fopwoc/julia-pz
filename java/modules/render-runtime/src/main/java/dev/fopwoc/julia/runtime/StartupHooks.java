@@ -32,7 +32,7 @@ public final class StartupHooks {
             runtime = Objects.requireNonNull(initializer.get());
         } catch (RuntimeException | Error error) {
             failure = error;
-            throw error;
+            throw FatalGraphics.failure("Graphics runtime lifecycle failed", error);
         } finally {
             starting = false;
         }
@@ -44,9 +44,9 @@ public final class StartupHooks {
         try {
             if (runtime != null) runtime.close();
         } catch (RuntimeException | Error error) {
-            throw error;
+            throw FatalGraphics.failure("Graphics runtime lifecycle failed", error);
         } catch (Exception error) {
-            throw new IllegalStateException("Graphics shutdown failed", error);
+            throw FatalGraphics.failure("Graphics shutdown failed", error);
         } finally {
             runtime = null;
             initializer = null;

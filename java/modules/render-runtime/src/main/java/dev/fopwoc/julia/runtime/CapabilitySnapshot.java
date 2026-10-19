@@ -26,7 +26,10 @@ public final class CapabilitySnapshot implements AutoCloseable {
             StartupHooks.ensure();
             snapshot = active;
         }
-        if (snapshot == null) throw new IllegalStateException("Graphics capabilities are not initialized");
+        if (snapshot == null)
+            throw FatalGraphics.failure(
+                    "Graphics capabilities are not initialized",
+                    new IllegalStateException("Graphics capabilities are not initialized"));
         return snapshot.flags;
     }
 

@@ -31,6 +31,10 @@ public final class RenderDispatch {
 
     private static MethodHandle resolve(String owner, String name, MethodType type)
             throws ReflectiveOperationException {
-        return RenderSession.current().target(owner, name, type);
+        try {
+            return RenderSession.current().target(owner, name, type);
+        } catch (Throwable failure) {
+            throw FatalGraphics.failure("Cannot dispatch graphics operation: " + owner + "." + name + type, failure);
+        }
     }
 }

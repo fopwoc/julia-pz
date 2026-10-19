@@ -59,7 +59,7 @@ videos, map tiles, character previews, world textures, wall cutaways, and the ch
 that previously fell to about 10 FPS now holds 60 FPS in the tester's scene after eliminating repeated index-buffer
 readbacks. This is a local result, not a general performance guarantee.
 
-The automated baseline passes 155 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
+The automated baseline passes 159 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
 defaults/reflection, streamed indices, texture views, stencil sampling, depth, viewport clipping, video uploads, initial
 presentation, and ImGui. These checks do not replace in-game validation.
 
@@ -74,8 +74,11 @@ Limits include full-image same-format 2D texture views, a costly stencil-extract
 of stencil views, and rejected linked-stage regeneration with shader storage blocks. Unplanned or changed graphics
 consumers are refused at load time. ZombieBuddy owns mod approval. Julia prepares approved JARs before classpath
 publication and patch execution, translating supported graphics operations and replacing unsupported operations with
-logged exceptions at the call site. Unused unsupported branches do not stop a mod from loading. Preparation diagnostics
-are written under `~/Zomboid/julia/run-*/mod-<sha256>.txt`; failures to prepare translation throw explicitly.
+fatal diagnostics at the call site. Unused unsupported branches do not stop a mod from loading.
+In a live agent session, any translation, backend, frame, or graphics-preparation failure writes and flushes
+`fatal-error.txt` in that run's directory, then immediately halts Java with exit code 70. Mod exception handlers,
+cleanup, and shutdown hooks cannot continue with a broken renderer. Standalone library tests and offscreen probes
+do not arm this live-process policy. Preparation diagnostics are written under `~/Zomboid/julia/run-*/mod-<sha256>.txt`; failures to prepare translation are fatal.
 This does not establish ViewPoint rendering support. The Lua-only menu status is user-confirmed in Steam;
 ASCII separators avoid missing glyphs.
 

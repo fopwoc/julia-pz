@@ -1,5 +1,6 @@
 package dev.fopwoc.julia.host;
 
+import dev.fopwoc.julia.runtime.FatalGraphics;
 import dev.fopwoc.julia.runtime.ForeignWindow;
 import dev.fopwoc.julia.runtime.IsolatedTargets;
 import dev.fopwoc.julia.runtime.RenderSession;
@@ -42,6 +43,7 @@ final class LiveRuntime implements AutoCloseable, RenderSession.Frames {
             runtime.recording = true;
             return runtime;
         } catch (Exception | Error failure) {
+            FatalGraphics.failure("Live graphics initialization failed", failure);
             try {
                 runtime.close();
             } catch (Exception | Error cleanup) {
@@ -61,11 +63,9 @@ final class LiveRuntime implements AutoCloseable, RenderSession.Frames {
             method.invoke(null, arguments);
         } catch (InvocationTargetException failure) {
             var cause = failure.getCause();
-            if (cause instanceof RuntimeException exception) throw exception;
-            if (cause instanceof Error error) throw error;
-            throw new IllegalStateException("Runtime operation failed: " + method.getName(), cause);
+            throw FatalGraphics.failure("Runtime operation failed: " + method.getName(), cause);
         } catch (ReflectiveOperationException failure) {
-            throw new IllegalStateException("Cannot invoke runtime operation", failure);
+            throw FatalGraphics.failure("Cannot invoke runtime operation: " + method.getName(), failure);
         } finally {
             thread.setContextClassLoader(previous);
         }

@@ -73,6 +73,7 @@ public final class RenderSession implements AutoCloseable {
         if (method == null) {
             method = targets.resolve(owner, name, type);
             if (!method.type().equals(type)) throw new IllegalStateException("Render target type mismatch: " + symbol);
+            method = FatalGraphics.guard(method, owner + "." + name + type);
             methods.put(symbol, method);
         }
         return method;
@@ -103,6 +104,7 @@ public final class RenderSession implements AutoCloseable {
     }
 
     private void fail(Throwable failure) {
+        FatalGraphics.failure("Render frame failed", failure);
         boolean frameOpen = state == State.FRAME;
         state = State.FAILED;
         if (frameOpen) {

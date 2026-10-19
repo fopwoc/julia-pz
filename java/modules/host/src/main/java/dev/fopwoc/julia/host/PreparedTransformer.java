@@ -2,6 +2,7 @@ package dev.fopwoc.julia.host;
 
 import dev.fopwoc.julia.audit.scan.GraphicsArchiveScanner;
 import dev.fopwoc.julia.audit.scan.GraphicsClassScanner;
+import dev.fopwoc.julia.runtime.FatalGraphics;
 import dev.fopwoc.julia.runtime.StartupHooks;
 import dev.fopwoc.julia.transform.prepare.ArchivePlan;
 import dev.fopwoc.julia.transform.prepare.RuntimePreparation;
@@ -52,13 +53,13 @@ public final class PreparedTransformer implements ClassFileTransformer {
             LOG.log(System.Logger.Level.DEBUG, "Installing prepared class {0}", name);
             return entry.prepared().requireBytecode();
         } catch (Throwable failure) {
-            LOG.log(System.Logger.Level.ERROR, "Cannot safely transform " + name, failure);
+            FatalGraphics.failure("Cannot safely transform " + name, failure);
             return new byte[] {0};
         }
     }
 
     private static byte[] reject(String name, String reason) {
-        LOG.log(System.Logger.Level.ERROR, "Refusing class {0}: {1}", name, reason);
+        FatalGraphics.failure("Cannot transform graphics consumer " + name, new IllegalStateException(reason));
         // Empty arrays allocate a null JVMTI buffer and are ignored. A nonempty invalid class fails definition closed.
         return new byte[] {0};
     }
