@@ -2,6 +2,7 @@ package dev.fopwoc.julia.probe.scene;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL20.glGetUniformi;
 import static org.lwjgl.opengl.GL30.*;
 
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
@@ -125,12 +126,7 @@ final class ShaderCompatibilityChecks {
             glShaderSource(fragment, genuine);
             for (int revision = 0; revision < 2; revision++) {
                 if (revision == 1) {
-                    glUseProgram(0);
-                    glDeleteProgram(program);
-                    program = glCreateProgram();
                     glCompileShader(fragment);
-                    glAttachShader(program, vertex);
-                    glAttachShader(program, fragment);
                 }
                 // Changing source without compiling must retain names from the compiled snapshot.
                 glLinkProgram(program);
@@ -144,6 +140,12 @@ final class ShaderCompatibilityChecks {
                     reflectedNames.add(reflected);
                     longest = Math.max(longest, reflected.length() + 1);
                     if (reflected.equals(expectedName)) found = i;
+                }
+                if (revision == 1) {
+                    if (glGetUniformLocation(program, "amount") != -1 || reflectedNames.contains("CutawayStencil"))
+                        throw new IllegalStateException("Relink retained uniforms from the previous executable");
+                    if (glGetUniformi(program, glGetUniformLocation(program, "gtexture")) != 0)
+                        throw new IllegalStateException("Relink retained the previous sampler assignment");
                 }
                 if (found < 0)
                     throw new IllegalStateException(

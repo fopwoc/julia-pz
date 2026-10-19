@@ -18,6 +18,7 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 import dev.fopwoc.julia.backend.shader.MatrixUniformUploads;
+import dev.fopwoc.julia.backend.shader.ProgramLinkState;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.texture.ClientPixels;
@@ -127,8 +128,12 @@ public final class HostedBackend extends SDLGPURenderBackend {
     @Override
     public void linkProgram(int program) {
         if (shaderPrograms.link(program)) {
+            ProgramLinkState.reset(BackendInternals.shaders().getProgram(program));
             super.linkProgram(program);
-            if (super.getProgrami(program, GL_LINK_STATUS) != 0) shaderPrograms.initializeUniforms(program);
+            if (super.getProgrami(program, GL_LINK_STATUS) != 0) {
+                ProgramLinkState.linked(BackendInternals.shaders().getProgram(program), BackendInternals.context());
+                shaderPrograms.initializeUniforms(program);
+            }
         }
     }
 
