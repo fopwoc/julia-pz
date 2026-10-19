@@ -98,6 +98,7 @@ public final class AdapterScene {
             backend.onFrameBegin();
             frameOpen = true;
             Files.deleteIfExists(output.resolve("resource-checks.txt"));
+            InitialFrameChecks.run();
             ResourceChecks.run();
             ClientPointerChecks.run();
             ViewChecks.run();

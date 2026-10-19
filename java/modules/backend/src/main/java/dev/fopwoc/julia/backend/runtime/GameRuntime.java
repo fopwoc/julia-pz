@@ -46,6 +46,8 @@ public final class GameRuntime {
                     () -> size(runtime.window.handle(), false),
                     "Julia live renderer");
             beforeCall();
+            InitialFrame.present(runtime.session.backend());
+            beforeCall();
             runtime.status("READY");
             LOG.log(
                     System.Logger.Level.INFO,

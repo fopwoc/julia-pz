@@ -40,6 +40,8 @@ public final class AdapterProbe {
                 frames_drawn=%d
                 verified_pixels=%d
                 api=LWJGL -> typed RenderDispatch -> isolated GLStateManager
+                verified_initial_frame_pixels=128
+                initial_frame_checks=opaque black startup,empty frame preservation,clear color restoration
                 verified_resource_pixels=%d
                 capability_checks=backend snapshot,absent vendor flag
                 view_checks=shared writes,nested views,parent deletion,independent state,256 stencil values,view FBO writes
