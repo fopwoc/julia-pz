@@ -3,6 +3,7 @@ package dev.fopwoc.julia.host;
 import dev.fopwoc.julia.transform.load.CompatShaderPass;
 import dev.fopwoc.julia.transform.load.FrameContinuityPass;
 import dev.fopwoc.julia.transform.load.LegacyNamespacePass;
+import dev.fopwoc.julia.transform.load.QuadIndexUploadPass;
 import dev.fopwoc.julia.transform.load.SceneTransform;
 import dev.fopwoc.julia.transform.load.ShaderSourcePass;
 import dev.fopwoc.julia.transform.load.StencilReferencePass;
@@ -55,6 +56,7 @@ final class RuntimeLoader extends URLClassLoader {
             bytes = ShaderSourcePass.adapt(name, bytes);
             bytes = CompatShaderPass.adapt(name, bytes);
             bytes = FrameContinuityPass.adapt(name, bytes);
+            bytes = QuadIndexUploadPass.adapt(name, bytes);
             bytes = StencilReferencePass.adapt(name, bytes);
             return defineClass(name, bytes, 0, bytes.length);
         } catch (IOException | RuntimeException failure) {
