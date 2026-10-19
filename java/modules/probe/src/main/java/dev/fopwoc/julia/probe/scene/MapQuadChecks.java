@@ -139,7 +139,10 @@ final class MapQuadChecks {
                     // Each map tile can be a distinct run, reusing the converter's scratch EBO.
                     for (int tile = 0; tile < 8; tile++) {
                         glBindTexture(GL_TEXTURE_2D, tile % 2 == 0 ? image : alternate);
+                        int submissions = BackendInternals.frames().frame().midFrameSubmitsThisFrame;
                         glDrawRangeElements(GL_QUADS, 4 + tile * 4, 8 + tile * 4, 4, GL_UNSIGNED_SHORT, 6L + tile * 8L);
+                        if (BackendInternals.frames().frame().midFrameSubmitsThisFrame != submissions)
+                            throw new IllegalStateException("Uploaded quad indices caused a blocking GPU readback");
                         if (run >= 4) BackendInternals.submitPendingCommands();
                     }
                     if (glGetInteger(GL_ARRAY_BUFFER_BINDING) != vertices

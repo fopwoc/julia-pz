@@ -6,6 +6,7 @@ import static org.lwjgl.opengl.GL11.GL_RGBA;
 import static org.lwjgl.opengl.GL11.GL_RGBA8;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL20.GL_ACTIVE_UNIFORMS;
 import static org.lwjgl.opengl.GL20.GL_ACTIVE_UNIFORM_MAX_LENGTH;
 import static org.lwjgl.opengl.GL20.GL_ATTACHED_SHADERS;
@@ -17,6 +18,7 @@ import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
+import dev.fopwoc.julia.backend.buffer.IndexBufferUploads;
 import dev.fopwoc.julia.backend.shader.MatrixUniformUploads;
 import dev.fopwoc.julia.backend.shader.ProgramLinkState;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
@@ -192,6 +194,15 @@ public final class HostedBackend extends SDLGPURenderBackend {
     @Override
     public void getShaderSource(int shader, IntBuffer length, ByteBuffer output) {
         ShaderPrograms.write(shaderPrograms.source(shader), length, output);
+    }
+
+    @Override
+    public void bufferData(int target, ByteBuffer data, int usage) {
+        int name =
+                target == GL_ELEMENT_ARRAY_BUFFER ? BackendInternals.context().getBoundBuffer(target) : 0;
+        boolean remember = name != 0 && data != null && data.hasRemaining() && !isBufferImmutable(name);
+        super.bufferData(target, data, usage);
+        if (remember) IndexBufferUploads.remember(name, data);
     }
 
     @Override

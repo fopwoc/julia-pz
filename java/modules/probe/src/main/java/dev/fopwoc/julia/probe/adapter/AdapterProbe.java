@@ -59,7 +59,7 @@ public final class AdapterProbe {
                 verified_shader_link_pixels=256
                 shader_link_checks=separate objects,builtin scalar overrides and vector overloads,macro isolation,shared uniforms,compile snapshots,shared library deletion,detach,relink,syntax and unresolved-function failures
                 verified_map_quad_pixels=1024
-                map_quad_checks=streamed position/color/UV VBO,textured tiles,MVP upload,separate runs,index offsets,buffer binding restoration,default framebuffer survives GPU readbacks,texture switches,repeated mid-frame submissions
+                map_quad_checks=streamed position/color/UV VBO,textured tiles,MVP upload,separate runs,no index GPU readbacks,index offsets,buffer binding restoration,default framebuffer survives GPU readbacks,texture switches,repeated mid-frame submissions
                 verified_quad_pixels=192
                 quad_checks=ranged indexed quads,all index widths,nonzero EBO offset,binding restoration
                 verified_program_resource_pixels=64
