@@ -16,6 +16,7 @@ import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL31.GL_MAX_TEXTURE_BUFFER_SIZE;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BINDING_BUFFER;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
+import static org.lwjgl.opengl.GL41.GL_NUM_PROGRAM_BINARY_FORMATS;
 import static org.lwjgl.opengl.GL43.GL_DEPTH_STENCIL_TEXTURE_MODE;
 import static org.lwjgl.opengl.GL43.GL_MAX_VERTEX_ATTRIB_BINDINGS;
 import static org.lwjgl.opengl.GL43.GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT;
@@ -102,6 +103,8 @@ public final class HostedBackend extends SDLGPURenderBackend {
             return textureBindings.get(state, state.activeTextureUnit, target);
         }
         return switch (parameter) {
+            // Julia does not expose OpenGL program binaries; its internal shader cache is separate.
+            case GL_NUM_PROGRAM_BINARY_FORMATS -> 0;
             case GL_UNPACK_IMAGE_HEIGHT -> volumeUnpack().imageHeight;
             case GL_UNPACK_SKIP_IMAGES -> volumeUnpack().skipImages;
             case GL_UNPACK_SWAP_BYTES -> volumeUnpack().swapBytes ? GL_TRUE : GL_FALSE;

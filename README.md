@@ -91,6 +91,8 @@ consumers are refused at load time. ZombieBuddy owns mod approval. Julia prepare
 publication and patch execution, translating supported graphics operations and replacing unsupported operations with
 fatal diagnostics at the call site. Unused unsupported branches do not stop a mod from loading. Unknown integer
 and floating-point backend state queries throw instead of returning invented zero limits.
+`GL_NUM_PROGRAM_BINARY_FORMATS` explicitly reports zero: Julia does not expose OpenGL program binaries. A user PZ3D
+retry reached this previously unhandled capability query; scalar/array/buffer queries and source linking now pass offscreen.
 In a live agent session, any translation, backend, frame, or graphics-preparation failure writes and flushes
 `fatal-error.txt` in that run's directory, then immediately halts Java with exit code 70. Mod exception handlers,
 cleanup, and shutdown hooks cannot continue with a broken renderer. Standalone library tests and offscreen probes
