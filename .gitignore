@@ -10,3 +10,6 @@ local.properties
 
 # Built by `./gradlew assemble` (81 MB with the bundled graphics runtime); releases ship it.
 /42/media/java/client/*.jar
+
+# Machine-local build and Steam deployment helper.
+/local-test.sh
