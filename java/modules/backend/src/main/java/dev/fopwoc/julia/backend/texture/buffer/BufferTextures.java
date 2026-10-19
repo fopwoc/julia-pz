@@ -7,6 +7,7 @@ import static org.lwjgl.opengl.GL43.*;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.texture.SamplerLayout;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.WeakHashMap;
@@ -27,7 +28,7 @@ public final class BufferTextures implements AutoCloseable {
     private BufferTextureDriver driver;
     private final HashMap<Integer, View> views = new HashMap<>();
     private final HashSet<Integer> ordinaryTextures = new HashSet<>();
-    private final WeakHashMap<ProgramObject, BufferSamplerLayout> layouts = new WeakHashMap<>();
+    private final WeakHashMap<ProgramObject, SamplerLayout> layouts = new WeakHashMap<>();
     private final int[] bound = new int[32];
     private int boundBuffer;
     private int alignment;
@@ -157,10 +158,10 @@ public final class BufferTextures implements AutoCloseable {
         BackendInternals.context().samplerBindGen++;
     }
 
-    private BufferSamplerLayout layout(ProgramObject program) {
+    private SamplerLayout layout(ProgramObject program) {
         var layout = layouts.get(program);
         if (layout == null || !layout.matches(program)) {
-            layout = new BufferSamplerLayout(program);
+            layout = new SamplerLayout(program);
             layouts.put(program, layout);
         }
         return layout;
@@ -173,9 +174,13 @@ public final class BufferTextures implements AutoCloseable {
     public int samplerBinding(ContextState state, int unit) {
         if (unit < 0 || unit >= bound.length)
             throw new IllegalArgumentException("Sampler texture unit out of range: " + unit);
+        if (BackendInternals.textureBindings().samplerOverride(state)) return state.boundTexture(unit);
         var program = state.boundProgramObj;
-        if (program == null || !program.linked || (layout(program).bufferUnits(program) & 1 << unit) == 0)
-            return state.boundTexture(unit);
+        if (program == null || !program.linked)
+            return BackendInternals.textureBindings().get(state, unit, GL_TEXTURE_2D);
+        if ((layout(program).bufferUnits(program) & 1 << unit) == 0)
+            return BackendInternals.textureBindings()
+                    .get(state, unit, layout(program).ordinaryTarget(program, unit));
         int name = bound[unit];
         if (name == 0) throw new IllegalStateException("No buffer texture bound to sampler unit " + unit);
         return name;

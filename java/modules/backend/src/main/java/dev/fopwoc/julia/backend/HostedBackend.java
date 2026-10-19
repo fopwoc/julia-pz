@@ -35,6 +35,7 @@ import dev.fopwoc.julia.backend.shader.ProgramLinkState;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.texture.ClientPixels;
+import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.texture.TextureObjects;
 import dev.fopwoc.julia.backend.texture.TextureViews;
 import dev.fopwoc.julia.backend.texture.VolumeUnpack;
@@ -53,6 +54,12 @@ public final class HostedBackend extends SDLGPURenderBackend {
     private int error;
 
     private final ShaderPrograms shaderPrograms = new ShaderPrograms();
+    private final TextureBindings textureBindings = new TextureBindings();
+
+    public TextureBindings textureBindings() {
+        return textureBindings;
+    }
+
     private final TextureObjects textureObjects = new TextureObjects();
     private final WeakHashMap<ContextState, VolumeUnpack> volumeUnpack = new WeakHashMap<>();
 
@@ -89,6 +96,11 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public int getInteger(int parameter) {
+        int target = TextureBindings.queryTarget(parameter);
+        if (target != 0) {
+            var state = BackendInternals.context();
+            return textureBindings.get(state, state.activeTextureUnit, target);
+        }
         return switch (parameter) {
             case GL_UNPACK_IMAGE_HEIGHT -> volumeUnpack().imageHeight;
             case GL_UNPACK_SKIP_IMAGES -> volumeUnpack().skipImages;
@@ -180,6 +192,13 @@ public final class HostedBackend extends SDLGPURenderBackend {
         if (target == GL_TEXTURE_BUFFER)
             return bufferTextures.levelParameter(
                     bufferTextures.boundTexture(BackendInternals.context().activeTextureUnit), level, parameter);
+        if (parameter == GL_TEXTURE_DEPTH && TextureBindings.selectable(target)) {
+            var state = BackendInternals.context();
+            var meta = BackendInternals.resources()
+                    .getTextureMeta(textureBindings.get(state, state.activeTextureUnit, target));
+            if (meta == null || level < 0 || level >= meta.levels()) return 0;
+            return target == GL_TEXTURE_3D ? Math.max(1, meta.depth() >> Math.min(level, 30)) : meta.depth();
+        }
         return super.getTexLevelParameteri(target, level, parameter);
     }
 
@@ -462,8 +481,21 @@ public final class HostedBackend extends SDLGPURenderBackend {
     }
 
     @Override
+    public void bindTextureUnit(int unit, int name) {
+        var state = BackendInternals.context();
+        if (name == 0) {
+            textureBindings.unbindUnit(state, unit);
+            bufferTextures.bindTexture(unit, 0);
+        } else if (bufferTextures.contains(name)) bufferTextures.bindTexture(unit, name);
+        else textureBindings.bind(state, unit, textureObjects.target(name), name);
+        super.bindTextureUnit(unit, name);
+    }
+
+    @Override
     public void bindTexture(int target, int name) {
         textureObjects.bound(name, target);
+        var state = BackendInternals.context();
+        textureBindings.bind(state, state.activeTextureUnit, target, name);
         textureViews.bound(name);
         bufferTextures.ordinaryTextureBound(name);
         super.bindTexture(target, name);
@@ -533,6 +565,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void deleteTextures(int name) {
+        textureBindings.deleted(BackendInternals.context(), name);
         textureObjects.deleted(name);
         bufferTextures.deleteTexture(name);
         long handle = BackendInternals.resources().getTextureHandle(name);

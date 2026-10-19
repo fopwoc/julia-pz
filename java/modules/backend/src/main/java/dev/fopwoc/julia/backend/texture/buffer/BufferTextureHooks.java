@@ -15,6 +15,8 @@ public final class BufferTextureHooks {
     }
 
     public static int samplerBinding(ContextState state, int unit) {
+        // Unread moved samplers use -1; they have no texture dependency.
+        if (unit == -1) return 0;
         return BackendInternals.bufferTextures().samplerBinding(state, unit);
     }
 

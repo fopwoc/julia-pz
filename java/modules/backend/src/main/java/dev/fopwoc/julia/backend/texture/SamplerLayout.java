@@ -1,25 +1,35 @@
-package dev.fopwoc.julia.backend.texture.buffer;
+package dev.fopwoc.julia.backend.texture;
 
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL12.*;
+import static org.lwjgl.opengl.GL13.*;
+import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL31.*;
-import static org.lwjgl.util.spvc.Spv.SpvDimBuffer;
+import static org.lwjgl.opengl.GL32.*;
+import static org.lwjgl.opengl.GL40.*;
+import static org.lwjgl.util.spvc.Spv.*;
 import static org.lwjgl.util.spvc.Spvc.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.sampler.SamplerLookup;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.spvc.SpvcReflectedResource;
 
-final class BufferSamplerLayout {
-    final ByteBuffer vertex, fragment, compute;
+/** Reflected sampler targets and buffer types, cached by compiled stages and sampler-unit assignments. */
+public final class SamplerLayout {
+    private final ByteBuffer vertex, fragment, compute;
     private final Map<String, Integer> names = new HashMap<>();
+    private final Map<String, Integer> targets = new HashMap<>();
+    private final int[] unitTargets = new int[32];
     private int generation = Integer.MIN_VALUE;
     private int bufferMask;
 
-    BufferSamplerLayout(ProgramObject program) {
+    public SamplerLayout(ProgramObject program) {
         vertex = program.vertexSpirv;
         fragment = program.fragmentSpirv;
         compute = program.computeSpirv;
@@ -28,22 +38,31 @@ final class BufferSamplerLayout {
         read(compute);
     }
 
-    boolean matches(ProgramObject program) {
+    public boolean matches(ProgramObject program) {
         return vertex == program.vertexSpirv && fragment == program.fragmentSpirv && compute == program.computeSpirv;
     }
 
-    int uniformType(String name, int fallback) {
+    public int uniformType(String name, int fallback) {
         return names.getOrDefault(name, fallback);
     }
 
-    int bufferUnits(ProgramObject program) {
+    public int bufferUnits(ProgramObject program) {
         SamplerLookup.resolvedUnits(program, false);
         if (generation == program.samplerUnitsGeneration) return bufferMask;
         int buffers = 0, ordinary = 0;
+        Arrays.fill(unitTargets, 0);
         for (var name : program.allSamplerNames) {
             int assigned = program.samplerTextureUnits.getInt(name);
-            int unit = assigned < 0 ? 0 : assigned;
-            if (unit >= 32) throw new IllegalArgumentException("Sampler texture unit out of range: " + unit);
+            int unit = assigned == -1 ? 0 : assigned;
+            if (unit < 0 || unit >= 32)
+                throw new IllegalArgumentException("Sampler texture unit out of range: " + unit);
+            int target = targets.getOrDefault(name, 0);
+            if (target == 0 && name.endsWith("]"))
+                target = targets.getOrDefault(name.substring(0, name.lastIndexOf('[')), 0);
+            if (target == 0) throw new UnsupportedOperationException("Sampler target reflection missing: " + name);
+            if (unitTargets[unit] != 0 && unitTargets[unit] != target)
+                throw new IllegalStateException("Different sampler targets share a texture unit");
+            unitTargets[unit] = target;
             if (names.containsKey(name)) buffers |= 1 << unit;
             else ordinary |= 1 << unit;
         }
@@ -51,6 +70,11 @@ final class BufferSamplerLayout {
         bufferMask = buffers;
         generation = program.samplerUnitsGeneration;
         return buffers;
+    }
+
+    public int ordinaryTarget(ProgramObject program, int unit) {
+        bufferUnits(program);
+        return unitTargets[unit] == 0 ? GL_TEXTURE_2D : unitTargets[unit];
     }
 
     private void read(ByteBuffer spirv) {
@@ -73,7 +97,23 @@ final class BufferSamplerLayout {
                 var list = SpvcReflectedResource.create(pointer.get(0), Math.toIntExact(count.get(0)));
                 for (var resource : list) {
                     long type = spvc_compiler_get_type_handle(compiler, resource.type_id());
-                    if (spvc_type_get_image_dimension(type) != SpvDimBuffer) continue;
+                    int dimension = spvc_type_get_image_dimension(type);
+                    boolean array = spvc_type_get_image_arrayed(type);
+                    int target = switch (dimension) {
+                        case SpvDimBuffer -> GL_TEXTURE_BUFFER;
+                        case SpvDim1D -> array ? GL_TEXTURE_1D_ARRAY : GL_TEXTURE_1D;
+                        case SpvDim2D ->
+                            spvc_type_get_image_multisampled(type)
+                                    ? (array ? GL_TEXTURE_2D_MULTISAMPLE_ARRAY : GL_TEXTURE_2D_MULTISAMPLE)
+                                    : (array ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D);
+                        case SpvDim3D -> GL_TEXTURE_3D;
+                        case SpvDimCube -> array ? GL_TEXTURE_CUBE_MAP_ARRAY : GL_TEXTURE_CUBE_MAP;
+                        case SpvDimRect -> GL_TEXTURE_RECTANGLE;
+                        default ->
+                            throw new UnsupportedOperationException("Sampler dimension not implemented: " + dimension);
+                    };
+                    targets.put(resource.nameString(), target);
+                    if (dimension != SpvDimBuffer) continue;
                     if (spvc_type_get_num_array_dimensions(type) != 0)
                         throw new UnsupportedOperationException(
                                 "Arrays of buffer-texture samplers are not implemented");
@@ -96,6 +136,6 @@ final class BufferSamplerLayout {
     }
 
     private static void check(int result) {
-        if (result != SPVC_SUCCESS) throw new IllegalStateException("Buffer sampler reflection failed: " + result);
+        if (result != SPVC_SUCCESS) throw new IllegalStateException("Sampler reflection failed: " + result);
     }
 }
