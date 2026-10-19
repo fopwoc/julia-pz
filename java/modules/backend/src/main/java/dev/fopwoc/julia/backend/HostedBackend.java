@@ -12,7 +12,11 @@ import static org.lwjgl.opengl.GL20.GL_ACTIVE_UNIFORM_MAX_LENGTH;
 import static org.lwjgl.opengl.GL20.GL_ATTACHED_SHADERS;
 import static org.lwjgl.opengl.GL20.GL_LINK_STATUS;
 import static org.lwjgl.opengl.GL30.GL_R8;
+import static org.lwjgl.opengl.GL31.GL_MAX_TEXTURE_BUFFER_SIZE;
+import static org.lwjgl.opengl.GL31.GL_TEXTURE_BINDING_BUFFER;
+import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
 import static org.lwjgl.opengl.GL43.GL_DEPTH_STENCIL_TEXTURE_MODE;
+import static org.lwjgl.opengl.GL43.GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
@@ -28,6 +32,7 @@ import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.texture.ClientPixels;
 import dev.fopwoc.julia.backend.texture.TextureViews;
+import dev.fopwoc.julia.backend.texture.buffer.BufferTextures;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -41,6 +46,56 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     private final ShaderPrograms shaderPrograms = new ShaderPrograms();
     private final TextureViews textureViews = new TextureViews();
+    private final BufferTextures bufferTextures =
+            new BufferTextures(() -> Platform.current().createBufferTextureDriver());
+
+    public BufferTextures bufferTextures() {
+        return bufferTextures;
+    }
+
+    @Override
+    public int getInteger(int parameter) {
+        return switch (parameter) {
+            case GL_MAX_TEXTURE_BUFFER_SIZE -> bufferTextures.limit();
+            case GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT -> bufferTextures.alignment();
+            case GL_TEXTURE_BINDING_BUFFER -> bufferTextures.boundTexture(BackendInternals.context().activeTextureUnit);
+            case GL_TEXTURE_BUFFER -> bufferTextures.boundBuffer();
+            default -> super.getInteger(parameter);
+        };
+    }
+
+    @Override
+    public void bindBuffer(int target, int name) {
+        if (target == GL_TEXTURE_BUFFER) bufferTextures.bindBuffer(name);
+        else super.bindBuffer(target, name);
+    }
+
+    @Override
+    public void bufferSubData(int target, long offset, ByteBuffer data) {
+        endComputeDispatchBatch();
+        bufferTextures.beforeSubData(BackendInternals.context().getBoundBuffer(target));
+        super.bufferSubData(target, offset, data);
+    }
+
+    @Override
+    public void deleteBuffers(int name) {
+        bufferTextures.deletedBuffer(name);
+        super.deleteBuffers(name);
+    }
+
+    @Override
+    public void deleteBuffers(IntBuffer names) {
+        for (int i = names.position(); i < names.limit(); i++) deleteBuffers(names.get(i));
+    }
+
+    @Override
+    public int getTexLevelParameteri(int target, int level, int parameter) {
+        if (target == GL_TEXTURE_BUFFER)
+            return bufferTextures.levelParameter(
+                    bufferTextures.boundTexture(BackendInternals.context().activeTextureUnit), level, parameter);
+        return super.getTexLevelParameteri(target, level, parameter);
+    }
+
     private final ProgramResourceCache programResources = new ProgramResourceCache();
 
     private final TimerQueries timerQueries =
@@ -125,7 +180,14 @@ public final class HostedBackend extends SDLGPURenderBackend {
     }
 
     private String publicUniformName(int program, int index, IntBuffer sizeType) {
-        return shaderPrograms.publicUniformName(program, super.getActiveUniform(program, index, 0, sizeType));
+        String name = super.getActiveUniform(program, index, 0, sizeType);
+        if (sizeType != null && sizeType.remaining() >= 2) {
+            int at = sizeType.position() + 1;
+            sizeType.put(
+                    at,
+                    bufferTextures.uniformType(BackendInternals.shaders().getProgram(program), name, sizeType.get(at)));
+        }
+        return shaderPrograms.publicUniformName(program, name);
     }
 
     @Override
@@ -301,8 +363,21 @@ public final class HostedBackend extends SDLGPURenderBackend {
     }
 
     @Override
+    public void bindImageTexture(int unit, int texture, int level, boolean layered, int layer, int access, int format) {
+        if (bufferTextures.contains(texture))
+            throw new UnsupportedOperationException("Buffer texture image load/store is not implemented");
+        super.bindImageTexture(unit, texture, level, layered, layer, access, format);
+    }
+
+    @Override
+    public boolean isTexture(int name) {
+        return bufferTextures.contains(name) || super.isTexture(name);
+    }
+
+    @Override
     public void bindTexture(int target, int name) {
         textureViews.bound(name);
+        bufferTextures.ordinaryTextureBound(name);
         super.bindTexture(target, name);
     }
 
@@ -370,6 +445,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void deleteTextures(int name) {
+        bufferTextures.deleteTexture(name);
         long handle = BackendInternals.resources().getTextureHandle(name);
         textureViews.beforeDelete(name);
         super.deleteTextures(name);
@@ -480,6 +556,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
         // Rebuild cached encoder bindings rather than treating pointer equality as state continuity.
         invalidateStateMirror();
         super.onFrameBegin();
+        bufferTextures.beginFrame();
     }
 
     @Override
@@ -487,6 +564,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
         // The upstream relay is static and would otherwise retain the host callback after device shutdown.
         DebugMessageRelay.setListener(null, 0L, false);
         timerQueries.close();
+        bufferTextures.close();
         programResources.clear();
         shaderPrograms.close();
         try {

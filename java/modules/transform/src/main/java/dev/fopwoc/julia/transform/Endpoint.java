@@ -35,6 +35,8 @@ public enum Endpoint {
     COMMAND_BUFFER_STATE("dev/fopwoc/julia/backend/compat/CommandBufferState", false),
     COMPAT_SHADER_INPUT("dev/fopwoc/julia/backend/compat/CompatShaderInput", false),
     SHADER_SOURCES("dev/fopwoc/julia/backend/compat/ShaderSources", false),
+    BUFFER_TEXTURE_BRIDGE("dev/fopwoc/julia/backend/bridge/BufferTextureBridge", false),
+    BUFFER_TEXTURE_HOOKS("dev/fopwoc/julia/backend/texture/buffer/BufferTextureHooks", false),
     TEXTURE_VIEW_HOOKS("dev/fopwoc/julia/backend/texture/TextureViewHooks", false),
     TEXTURE_COPY_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureCopyBridge", false);
 

@@ -24,10 +24,14 @@ public final class TextureViewHooks {
     }
 
     public static void prepare(ContextState state) {
+        BackendInternals.bufferTextures().prepare(state);
         BackendInternals.views().prepare(state);
     }
 
     public static long samplingHandle(ResourceManager resources, int name) {
-        return BackendInternals.views().samplingHandle(name);
+        var buffers = BackendInternals.bufferTextures();
+        return buffers.contains(name)
+                ? buffers.samplingHandle(name)
+                : BackendInternals.views().samplingHandle(name);
     }
 }

@@ -148,7 +148,7 @@ public final class TextureViews implements AutoCloseable {
         var done = new HashSet<Long>();
         for (boolean fragment : new boolean[] {false, true}) {
             for (int unit : SamplerLookup.resolvedUnits(program, fragment)) {
-                int name = state.boundTexture(unit);
+                int name = BackendInternals.bufferTextures().samplerBinding(state, unit);
                 if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) != GL_STENCIL_INDEX) continue;
                 long handle = BackendInternals.resources().getTextureHandle(name);
                 if (handle == 0 || !done.add(handle)) continue;

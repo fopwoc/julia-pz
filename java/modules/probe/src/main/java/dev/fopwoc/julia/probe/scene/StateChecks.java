@@ -33,6 +33,8 @@ final class StateChecks {
     static void run() {
         capabilities();
         unsupportedQueries();
+        if (glGetInteger(GL_MAX_TEXTURE_BUFFER_SIZE) <= 0)
+            throw new IllegalStateException("Buffer texture limit is unavailable");
         depthAlias();
         arrayAllocation();
     }
@@ -42,13 +44,13 @@ final class StateChecks {
             try (var stack = MemoryStack.stackPush()) {
                 boolean rejected = false;
                 try {
-                    if (buffered) glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE, stack.mallocInt(1));
-                    else glGetInteger(GL_MAX_TEXTURE_BUFFER_SIZE);
+                    if (buffered) glGetIntegerv(Integer.MAX_VALUE, stack.mallocInt(1));
+                    else glGetInteger(Integer.MAX_VALUE);
                 } catch (UnsupportedOperationException expected) {
-                    rejected = expected.getMessage().contains("pname=0x8c2b");
+                    rejected = expected.getMessage().contains("pname=0x7fffffff");
                 }
                 if (!rejected)
-                    throw new IllegalStateException("Unsupported buffer-texture limit returned a fabricated value");
+                    throw new IllegalStateException("Unknown integer state query returned a fabricated value");
             }
         }
         boolean rejected = false;

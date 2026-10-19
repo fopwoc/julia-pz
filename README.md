@@ -61,18 +61,22 @@ readbacks. This is a local result, not a general performance guarantee.
 
 The automated baseline passes 165 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
 defaults/reflection, streamed indices, texture views, stencil sampling, depth, viewport clipping, video uploads, initial
-presentation, ImGui, array resource APIs, multiple draw buffers, and real Metal timer queries. Timer checks verify pending/completed results, elapsed queries,
-query reuse, and that CPU sleeps are excluded from measured GPU time. These checks do not replace in-game validation.
+presentation, ImGui, array resource APIs, multiple draw buffers, native buffer textures, and real Metal timer queries. Timer checks verify pending/completed results, elapsed queries,
+query reuse, and that CPU sleeps are excluded from measured GPU time. Buffer-texture checks verify 2,560 pixels
+plus compute results across R/RG/RGBA 32-bit float, signed, and unsigned formats, with shared updates, ranges,
+storage replacement, pending draws, deletion, sampler reflection, and a million-texel view. These checks do not replace in-game validation.
 
 The installed PZ and ZombieBuddy archives prepare together with zero blockers; a separate JVM smoke test initializes
 both agents. A Steam launch with both agents reaches the menu and loads a save in local testing. The approval UI's
 separate frame-loop adapter and ViewPoint's setup window are visually confirmed. Host update callbacks draw before
 Metal presentation, and ImGui uses the logical target size before final Retina scaling. The latest Steam retry
-loads a test save and reaches ViewPoint renderer initialization; buffer textures are the next missing feature.
+loads a test save and reaches ViewPoint renderer initialization. Native buffer textures now pass offscreen checks;
+this implementation has not yet been retried with ViewPoint in Steam.
 ZombieBuddy's standalone native-GL approval executable is outside game preparation and remains rejected if loaded
 into the game JVM.
 
-Limits include full-image same-format 2D texture views, a costly stencil-extraction fallback, rejected compute sampling
+Limits include buffer textures restricted to the nine R/RG/RGBA 32-bit formats (no sampler arrays or image load/store),
+full-image same-format 2D texture views, a costly stencil-extraction fallback, rejected compute sampling
 of stencil views, and rejected linked-stage regeneration with shader storage blocks. Unplanned or changed graphics
 consumers are refused at load time. ZombieBuddy owns mod approval. Julia prepares approved JARs before classpath
 publication and patch execution, translating supported graphics operations and replacing unsupported operations with
@@ -90,7 +94,7 @@ ASCII separators avoid missing glyphs.
 The repository root is the mod folder (`common/`, `42/mod.info`). The Gradle build lives in `java/`. You need
 JDK 25, and the build works on macOS and Linux only. macOS builds also require CMake 3.24+ and the Xcode
 command-line toolchain. The first build downloads a SHA-256-pinned SDL 3.4.12 source archive and builds Julia's
-Metal timestamp extension; later builds reuse the native build directory. Linux retains the upstream SDL binary;
+Metal timestamp and buffer-texture extensions; later builds reuse the native build directory. Linux retains the upstream SDL binary;
 its native timer provider and game-window integration are not implemented yet.
 
 ```sh

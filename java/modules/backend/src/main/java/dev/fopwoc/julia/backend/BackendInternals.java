@@ -11,6 +11,7 @@ import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.texture.TextureViews;
+import dev.fopwoc.julia.backend.texture.buffer.BufferTextures;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -154,6 +155,10 @@ public final class BackendInternals {
 
     public static ProgramResourceCache programResources() {
         return ownedBackend().programResources();
+    }
+
+    public static BufferTextures bufferTextures() {
+        return ownedBackend().bufferTextures();
     }
 
     public static TextureViews views() {
