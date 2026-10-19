@@ -16,11 +16,14 @@ import static org.lwjgl.opengl.GL31.GL_MAX_TEXTURE_BUFFER_SIZE;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BINDING_BUFFER;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
 import static org.lwjgl.opengl.GL43.GL_DEPTH_STENCIL_TEXTURE_MODE;
+import static org.lwjgl.opengl.GL43.GL_MAX_VERTEX_ATTRIB_BINDINGS;
 import static org.lwjgl.opengl.GL43.GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT;
+import static org.lwjgl.opengl.GL43.GL_VERTEX_BINDING_DIVISOR;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
+import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 import dev.fopwoc.julia.backend.buffer.IndexBufferUploads;
 import dev.fopwoc.julia.backend.diagnostic.ModelDrawTrace;
@@ -33,6 +36,7 @@ import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.texture.ClientPixels;
 import dev.fopwoc.julia.backend.texture.TextureViews;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextures;
+import dev.fopwoc.julia.backend.vertex.VertexInputs;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -56,12 +60,62 @@ public final class HostedBackend extends SDLGPURenderBackend {
     @Override
     public int getInteger(int parameter) {
         return switch (parameter) {
+            case GL_MAX_VERTEX_ATTRIB_BINDINGS -> ContextState.MAX_VERTEX_ATTRIBS;
             case GL_MAX_TEXTURE_BUFFER_SIZE -> bufferTextures.limit();
             case GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT -> bufferTextures.alignment();
             case GL_TEXTURE_BINDING_BUFFER -> bufferTextures.boundTexture(BackendInternals.context().activeTextureUnit);
             case GL_TEXTURE_BUFFER -> bufferTextures.boundBuffer();
             default -> super.getInteger(parameter);
         };
+    }
+
+    @Override
+    public int getIntegerIndexed(int parameter, int index) {
+        return parameter == GL_VERTEX_BINDING_DIVISOR
+                ? VertexInputs.divisor(index)
+                : super.getIntegerIndexed(parameter, index);
+    }
+
+    @Override
+    public void vertexAttribFormat(int attribute, int size, int type, boolean normalized, int offset) {
+        VertexInputs.modernAttribute(attribute);
+        super.vertexAttribFormat(attribute, size, type, normalized, offset);
+    }
+
+    @Override
+    public void vertexAttribIFormat(int attribute, int size, int type, int offset) {
+        VertexInputs.modernAttribute(attribute);
+        super.vertexAttribIFormat(attribute, size, type, offset);
+    }
+
+    @Override
+    public void vertexAttribBinding(int attribute, int binding) {
+        VertexInputs.validateBinding(binding);
+        VertexInputs.modernAttribute(attribute);
+        super.vertexAttribBinding(attribute, binding);
+    }
+
+    @Override
+    public void bindVertexBuffer(int binding, int buffer, long offset, int stride) {
+        VertexInputs.modernBinding(binding);
+        super.bindVertexBuffer(binding, buffer, offset, stride);
+    }
+
+    @Override
+    public void vertexAttribPointer(int attribute, int size, int type, boolean normalized, int stride, long offset) {
+        VertexInputs.legacyPointer(attribute);
+        super.vertexAttribPointer(attribute, size, type, normalized, stride, offset);
+    }
+
+    @Override
+    public void vertexAttribIPointer(int attribute, int size, int type, int stride, long offset) {
+        VertexInputs.legacyPointer(attribute);
+        super.vertexAttribIPointer(attribute, size, type, stride, offset);
+    }
+
+    @Override
+    public void vertexAttribDivisor(int attribute, int divisor) {
+        VertexInputs.attributeDivisor(attribute, divisor);
     }
 
     @Override

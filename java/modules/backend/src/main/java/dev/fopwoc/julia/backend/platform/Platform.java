@@ -4,7 +4,9 @@ import dev.fopwoc.julia.backend.query.TimestampDriver;
 import dev.fopwoc.julia.backend.query.macos.MetalTimestamps;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextureDriver;
 import dev.fopwoc.julia.backend.texture.macos.MetalBufferTextures;
+import dev.fopwoc.julia.backend.vertex.macos.MetalVertexInputs;
 import java.util.Locale;
+import org.lwjgl.sdl.SDL_GPUGraphicsPipelineCreateInfo;
 import org.lwjgl.system.Configuration;
 import org.lwjgl.system.JNI;
 import org.lwjgl.system.macosx.LibSystem;
@@ -12,6 +14,11 @@ import org.lwjgl.system.macosx.LibSystem;
 /** Host operating system facts the graphics runtime depends on: GPU driver and video-thread rules. */
 public enum Platform {
     MACOS("metal") {
+        @Override
+        public long createGraphicsPipeline(long device, SDL_GPUGraphicsPipelineCreateInfo info, int[] divisors) {
+            return MetalVertexInputs.create(device, info, divisors);
+        }
+
         @Override
         public BufferTextureDriver createBufferTextureDriver() {
             return new MetalBufferTextures();
@@ -65,6 +72,10 @@ public enum Platform {
     public void requireVideoThread() {}
 
     public void configureNativeLibraries() {}
+
+    public long createGraphicsPipeline(long device, SDL_GPUGraphicsPipelineCreateInfo info, int[] divisors) {
+        throw new UnsupportedOperationException("Vertex input pipeline creation is not implemented on " + this);
+    }
 
     public BufferTextureDriver createBufferTextureDriver() {
         throw new UnsupportedOperationException("Native buffer textures are not implemented on " + this);

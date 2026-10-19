@@ -62,6 +62,7 @@ if (nativeClassifier.startsWith("natives-macos")) {
         inputs.file(nativeRoot.file("CMakeLists.txt"))
         inputs.file(nativeRoot.file("gpu_timestamps.m"))
         inputs.file(nativeRoot.file("gpu_buffer_textures.m"))
+        inputs.file(nativeRoot.file("gpu_vertex_input.m"))
         outputs.file(nativeLibrary)
         commandLine("cmake", "--build", nativeBuild.asFile.absolutePath, "--target", "SDL3-shared", "--parallel", "8")
     }

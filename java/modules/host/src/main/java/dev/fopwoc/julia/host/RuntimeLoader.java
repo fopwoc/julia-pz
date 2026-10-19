@@ -10,6 +10,7 @@ import dev.fopwoc.julia.transform.load.ShaderSourcePass;
 import dev.fopwoc.julia.transform.load.StencilReferencePass;
 import dev.fopwoc.julia.transform.load.StrictQueryPass;
 import dev.fopwoc.julia.transform.load.TextureViewPass;
+import dev.fopwoc.julia.transform.load.VertexInputPass;
 import dev.fopwoc.julia.transform.load.WindowQueryPass;
 import java.io.IOException;
 import java.net.URL;
@@ -57,6 +58,7 @@ final class RuntimeLoader extends URLClassLoader {
             bytes = StrictQueryPass.adapt(name, bytes);
             bytes = TextureViewPass.adapt(name, bytes);
             bytes = BufferTexturePass.adapt(name, bytes);
+            bytes = VertexInputPass.adapt(name, bytes);
             bytes = ShaderSourcePass.adapt(name, bytes);
             bytes = CompatShaderPass.adapt(name, bytes);
             bytes = FrameContinuityPass.adapt(name, bytes);
