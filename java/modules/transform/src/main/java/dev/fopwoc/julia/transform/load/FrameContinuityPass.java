@@ -1,11 +1,13 @@
 package dev.fopwoc.julia.transform.load;
 
+import dev.fopwoc.julia.transform.Endpoint;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 
 /** A replacement command buffer within the same frame must load the existing default-framebuffer contents. */
 public final class FrameContinuityPass {
@@ -19,6 +21,15 @@ public final class FrameContinuityPass {
         for (var method : node.methods) {
             if (!method.name.equals("reacquireCommandBuffer") || !method.desc.equals("()V")) continue;
             for (var instruction : method.instructions.toArray()) {
+                if (instruction.getOpcode() == Opcodes.RETURN)
+                    method.instructions.insertBefore(
+                            instruction,
+                            new MethodInsnNode(
+                                    Opcodes.INVOKESTATIC,
+                                    Endpoint.COMMAND_BUFFER_STATE.owner(),
+                                    "reacquired",
+                                    "()V",
+                                    false));
                 if (!(instruction instanceof FieldInsnNode field)
                         || field.getOpcode() != Opcodes.PUTFIELD
                         || !field.owner.equals("com/gtnewhorizons/angelica/sdlgpu/frame/FrameManager$FrameState")

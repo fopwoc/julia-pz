@@ -19,7 +19,7 @@ final class MapQuadChecks {
     static void run() {
         int vs = glCreateShader(GL_VERTEX_SHADER), fs = glCreateShader(GL_FRAGMENT_SHADER), program = glCreateProgram();
         int vertices = glGenBuffers(), indices = glGenBuffers(), image = glGenTextures(), target = glGenTextures();
-        int fbo = glGenFramebuffers();
+        int fbo = glGenFramebuffers(), alternate = glGenTextures();
         boolean ownedFinalTarget = false;
         try (var stack = MemoryStack.stackPush()) {
             glShaderSource(vs, """
@@ -80,7 +80,22 @@ final class MapQuadChecks {
                     GL_RGBA,
                     GL_UNSIGNED_BYTE,
                     stack.bytes(
-                            (byte) 255, (byte) 0, (byte) 0, (byte) 255, (byte) 0, (byte) 255, (byte) 0, (byte) 255));
+                            (byte) 255, (byte) 0, (byte) 0, (byte) 255, (byte) 0, (byte) 0, (byte) 255, (byte) 255));
+            glBindTexture(GL_TEXTURE_2D, alternate);
+            glTexImage2D(
+                    GL_TEXTURE_2D,
+                    0,
+                    GL_RGBA8,
+                    2,
+                    1,
+                    0,
+                    GL_RGBA,
+                    GL_UNSIGNED_BYTE,
+                    stack.bytes(
+                            (byte) 0, (byte) 255, (byte) 0, (byte) 255, (byte) 0, (byte) 255, (byte) 0, (byte) 255));
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glBindTexture(GL_TEXTURE_2D, image);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glViewport(0, 0, 8, 8);
@@ -115,7 +130,7 @@ final class MapQuadChecks {
             }
             for (int framebuffer : new int[] {0, fbo}) {
                 glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-                for (int run = 0; run < 2; run++) {
+                for (int run = 0; run < 8; run++) {
                     for (int id = 0; id < 8; id++) {
                         int local = id % 4, tile = id / 4;
                         int offset = (id + 4) * 9;
@@ -130,8 +145,11 @@ final class MapQuadChecks {
                     glClearColor(0, 0, 1, 1);
                     glClear(GL_COLOR_BUFFER_BIT);
                     // Each map tile can be a distinct run, reusing the converter's scratch EBO.
-                    for (int tile = 0; tile < 2; tile++)
+                    for (int tile = 0; tile < 2; tile++) {
+                        glBindTexture(GL_TEXTURE_2D, tile == 0 ? image : alternate);
                         glDrawRangeElements(GL_QUADS, 4 + tile * 4, 8 + tile * 4, 4, GL_UNSIGNED_SHORT, 6L + tile * 8L);
+                        BackendInternals.submitPendingCommands();
+                    }
                     if (glGetInteger(GL_ARRAY_BUFFER_BINDING) != vertices
                             || glGetInteger(GL_ELEMENT_ARRAY_BUFFER_BINDING) != indices)
                         throw new IllegalStateException("Map quad conversion changed buffer bindings");
@@ -163,6 +181,7 @@ final class MapQuadChecks {
             glDeleteFramebuffers(fbo);
             glDeleteTextures(target);
             glDeleteTextures(image);
+            glDeleteTextures(alternate);
             glDeleteBuffers(vertices);
             glDeleteBuffers(indices);
             glDeleteProgram(program);

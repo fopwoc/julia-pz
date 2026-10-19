@@ -67,7 +67,7 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
   Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
   Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
-- The current offline checks pass 132 JVM tests and verify 39,506 pixels on windowless Metal. The camera-depth fix is user-confirmed in PZ.
+- The current offline checks pass 133 JVM tests and verify 40,274 pixels on windowless Metal. The camera-depth fix and stable character-preview background are user-confirmed in PZ.
 - ImGui draw handoffs stay on the game side, calling the prepared renderer and then freeing the owned draw data.
   The archive gate requires that renderer to be included and prepared. A separate windowless probe uses the supplied
   archive's actual ImGui JNI and GL renderer: 2,048 pixels verify font-atlas sampling, texture switching, clipping,
@@ -100,8 +100,7 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   is scaled to the Retina drawable. Full-size UI, aligned input and animated menu video are user-confirmed. Ranged indexed quads now use the existing quad conversion, with both triangle
   halves verified offscreen for every index width. Invalid matrix uploads return a GL error before touching staging,
   preventing the observed bone-palette overflow from aborting the renderer. The latest live retry renders the world,
-  floors and sprites correctly according to the user after restoring uniform defaults. The menu map selector remains
-  black, the character-preview background flickers, and character surfaces now render correctly after camera-depth clamping. Capability reads on the game-logic thread now use an immutable
+  floors and sprites correctly according to the user after restoring uniform defaults. The menu map selector still has missing tiles, the character-preview background is now stable, and character surfaces now render correctly after camera-depth clamping. Capability reads on the game-logic thread now use an immutable
   shared snapshot; only GPU operations enter render-thread dispatch. World entry no longer raises the prior
   capability-thread exception. These results establish partial rendering, not gameplay correctness.
 - Video-style CPU texture pointers now upload their pixels instead of being mistaken for PBO offsets. Windowless
@@ -122,14 +121,17 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   front/back/disabled culling on both texture and default framebuffers. No winding override was introduced; the
   depth-range fix is now user-confirmed to restore the character's outer surfaces.
 - Revisiting the ranged-quad fix now covers map-style streamed interleaved position/color/UV buffers, texture
-  sampling, matrix uploads, nonzero index offsets and separate tile runs. These verify 256 pixels;
+  sampling, matrix uploads, nonzero index offsets and separate tile runs. These now verify 1,024 pixels across texture switches and repeated partial submissions;
   extending the same test to the default framebuffer reproduced disappearing tiles after a GPU index readback. Matrix rejection debug
   messages include the program, uniform name and matrix count to distinguish the guard from a draw-state defect.
 - Replacing a GPU command buffer within a frame now preserves the default framebuffer's clear history. Previously,
   quad index readbacks reset `clearedThisFrame`, causing subsequent default-framebuffer draws to clear earlier
   contents. The map-style native regression fails before this change and preserves both tiles afterward. The change
-  is pinned to the command-buffer replacement method; normal new-frame clearing is untouched. In-game confirmation
-  of the map selector and preview-background flicker is still pending.
+  is pinned to the command-buffer replacement method; normal new-frame clearing is untouched. The live retry restores the preview background and partial map rendering; some map tiles remain missing.
+- Every mid-frame command-buffer replacement now invalidates cached vertex/fragment uniform pushes. SDL can recycle
+  the same native command-buffer address, which previously made the cache treat a fresh recording as already
+  populated. A repeated map-tile draw regression fails before this change and passes afterward. Its effect on the
+  remaining live map gaps awaits a retry.
 - Startup transformation excludes trusted shared-runtime classes by code source. Rejected consumers return nonempty
   invalid class bytes: empty arrays were ignored by JVMTI instead of preventing class definition.
 - Viewpoint and other mods that use modern OpenGL come after vanilla.
