@@ -9,12 +9,12 @@ local function drawJuliaStatus()
     if active then
         local backend = JuliaStatus.getBackend()
         if backend == "metal" then backend = "Metal" end
-        text = "Julia active · " .. backend
+        text = "Julia active | " .. backend
         red, green, blue = 0.65, 0.85, 0.7
         local blocked = JuliaStatus.getBlockedMods()
         if blocked ~= "" then
             local name = blocked:match("^[^:]+") or "Java mod"
-            text = text .. " · " .. name .. " blocked"
+            text = text .. " | " .. name .. " blocked"
             red, green, blue = 1, 0.75, 0.35
         end
     end

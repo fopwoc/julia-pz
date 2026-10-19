@@ -74,7 +74,7 @@ consumers are refused at load time. Approved ZombieBuddy JARs are checked before
 execution. Preparation publishes their graphics classes atomically, or refuses the whole Java mod with a report under
 `~/Zomboid/julia/run-*/mod-<sha256>.txt`. Unsupported mods should be disabled until their graphics calls are supported.
 The actual installed ViewPoint JAR is refused before its entry point runs in a windowless loader test; this does not
-establish ViewPoint rendering support. The Lua-only menu status companion still needs an in-game visual check.
+establish ViewPoint rendering support. The Lua-only menu status and ViewPoint block notice are user-confirmed in Steam; ASCII separators avoid missing glyphs.
 
 ## Building
 
@@ -127,7 +127,7 @@ launcher. Julia activates before the in-game mod list is available: disabling it
 agent. Remove its `-javaagent` option to return to vanilla rendering. ZombieBuddy approvals remain in force.
 
 The optional Lua-only Julia mod shows live renderer status at the bottom left of the main menu, such as
-`Julia active · Metal`, or `Julia inactive` when the renderer is absent. It requires no ZombieBuddy approval or Java JAR.
+`Julia active | Metal`, or `Julia inactive` when the renderer is absent. It requires no ZombieBuddy approval or Java JAR.
 If Julia blocks a Java mod, its package is identified beside the status; detailed reasons stay in the compatibility
 report. Enable this companion in the mod manager to show it. It does not activate the agent itself.
 
