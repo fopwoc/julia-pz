@@ -22,6 +22,10 @@ public final class ClientPixels implements AutoCloseable {
         this.format = format;
     }
 
+    public static ClientPixels transparent(int width, int height, PixelStoreState store) {
+        return new ClientPixels(MemoryUtil.memCalloc(requiredBytes(width, height, 4, store)), true, GL_RGBA);
+    }
+
     public static ClientPixels borrow(
             long address, int width, int height, int format, int type, PixelStoreState store) {
         int pixelBytes = PixelOps.glPixelSize(format, type);

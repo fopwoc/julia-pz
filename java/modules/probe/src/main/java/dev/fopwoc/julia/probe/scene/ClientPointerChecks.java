@@ -4,6 +4,7 @@ import static org.lwjgl.opengl.GL11.*;
 
 import dev.fopwoc.julia.backend.BackendInternals;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
+import java.nio.ByteBuffer;
 import org.lwjgl.sdl.SDLGPU;
 import org.lwjgl.system.MemoryUtil;
 
@@ -11,10 +12,30 @@ import org.lwjgl.system.MemoryUtil;
 final class ClientPointerChecks {
     private ClientPointerChecks() {}
 
+    private static void requireTransparent(int texture) {
+        var pixels = ResourceReadback.layer(texture, 0);
+        for (int i = 0; i < pixels.length; i++)
+            if (pixels[i] != 0)
+                throw new IllegalStateException("Empty video texture byte " + i + " got " + (pixels[i] & 255));
+    }
+
     static void run() {
         int texture = glGenTextures();
         try {
             glBindTexture(GL_TEXTURE_2D, texture);
+            var poison = MemoryUtil.memAlloc(4 * 2 * 4);
+            try {
+                for (int pixel = 0; pixel < 8; pixel++) poison.putInt(pixel * 4, -1);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 4, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, poison);
+                ResourceReadback.layer(texture, 0);
+            } finally {
+                MemoryUtil.memFree(poison);
+            }
+            // PZ allocates video storage before its asynchronous decoder supplies the first frame.
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 4, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer) null);
+            requireTransparent(texture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 3, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0L);
+            requireTransparent(texture);
             for (int test = 0; test < 3; test++) {
                 int channels = test == 1 ? 3 : 4;
                 int stride = test == 2 ? 20 : 12;
@@ -35,6 +56,8 @@ final class ClientPointerChecks {
                     glPixelStorei(GL_UNPACK_ROW_LENGTH, test == 2 ? 5 : 0);
                     glPixelStorei(GL_UNPACK_SKIP_ROWS, test == 2 ? 1 : 0);
                     glPixelStorei(GL_UNPACK_SKIP_PIXELS, test == 2 ? 1 : 0);
+                    if (test == 0)
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 3, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer) null);
                     long pointer = MemoryUtil.memAddress(source) + 1;
                     glTexImage2D(
                             GL_TEXTURE_2D,

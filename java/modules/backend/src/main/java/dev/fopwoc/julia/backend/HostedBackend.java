@@ -2,6 +2,9 @@ package dev.fopwoc.julia.backend;
 
 import static org.lwjgl.opengl.GL11.GL_INVALID_OPERATION;
 import static org.lwjgl.opengl.GL11.GL_RED;
+import static org.lwjgl.opengl.GL11.GL_RGBA;
+import static org.lwjgl.opengl.GL11.GL_RGBA8;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
 import static org.lwjgl.opengl.GL20.GL_ATTACHED_SHADERS;
 import static org.lwjgl.opengl.GL20.GL_LINK_STATUS;
@@ -169,16 +172,22 @@ public final class HostedBackend extends SDLGPURenderBackend {
             int pixelFormat,
             int type,
             ByteBuffer data) {
-        super.texImage2D(
-                target,
-                level,
-                format == GL_RED && type == GL_UNSIGNED_BYTE ? GL_R8 : format,
-                width,
-                height,
-                border,
-                pixelFormat,
-                type,
-                data);
+        int storageFormat = format == GL_RED && type == GL_UNSIGNED_BYTE ? GL_R8 : format;
+        if (data == null
+                && target == GL_TEXTURE_2D
+                && (format == GL_RGBA || format == GL_RGBA8)
+                && pixelFormat == GL_RGBA
+                && type == GL_UNSIGNED_BYTE
+                && width > 0
+                && height > 0) {
+            // PZ samples empty video storage before decoding its first frame. Keep initialization
+            // in the same upload queue as decoded frames so it cannot overwrite a later frame.
+            try (var empty = ClientPixels.transparent(width, height, BackendInternals.context().pixelStore)) {
+                super.texImage2D(target, level, storageFormat, width, height, border, pixelFormat, type, empty.data());
+            }
+        } else {
+            super.texImage2D(target, level, storageFormat, width, height, border, pixelFormat, type, data);
+        }
     }
 
     @Override
@@ -193,8 +202,12 @@ public final class HostedBackend extends SDLGPURenderBackend {
             int type,
             long pixels) {
         var state = BackendInternals.context();
-        if (state.boundPixelUnpackBuffer != 0 || pixels == 0) {
+        if (state.boundPixelUnpackBuffer != 0) {
             super.texImage2D(target, level, format, width, height, border, pixelFormat, type, pixels);
+            return;
+        }
+        if (pixels == 0) {
+            texImage2D(target, level, format, width, height, border, pixelFormat, type, (ByteBuffer) null);
             return;
         }
         try (var client = ClientPixels.borrow(pixels, width, height, pixelFormat, type, state.pixelStore)) {

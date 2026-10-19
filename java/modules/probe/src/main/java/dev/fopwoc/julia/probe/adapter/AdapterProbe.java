@@ -44,8 +44,8 @@ public final class AdapterProbe {
                 capability_checks=backend snapshot,absent vendor flag
                 view_checks=shared writes,nested views,parent deletion,independent state,256 stencil values,view FBO writes
                 verified_view_pixels=1152
-                verified_client_pointer_pixels=18
-                client_pointer_checks=RGBA video uploads,padded RGB rows,unpack row length and skips,caller memory reuse
+                verified_client_pointer_pixels=32
+                client_pointer_checks=transparent empty storage,first decoded frame ordering,RGBA video uploads,padded RGB rows,unpack row length and skips,caller memory reuse
                 verified_culling_pixels=768
                 culling_checks=CCW and CW,front/back/disabled culling,fragment face classification,texture and default framebuffers
                 verified_depth_range_pixels=128
