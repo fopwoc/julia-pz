@@ -7,6 +7,7 @@ import dev.fopwoc.julia.transform.load.QuadIndexUploadPass;
 import dev.fopwoc.julia.transform.load.SceneTransform;
 import dev.fopwoc.julia.transform.load.ShaderSourcePass;
 import dev.fopwoc.julia.transform.load.StencilReferencePass;
+import dev.fopwoc.julia.transform.load.StrictQueryPass;
 import dev.fopwoc.julia.transform.load.TextureViewPass;
 import dev.fopwoc.julia.transform.load.WindowQueryPass;
 import java.io.IOException;
@@ -52,6 +53,7 @@ final class RuntimeLoader extends URLClassLoader {
             }
             bytes = LegacyNamespacePass.adapt(name, bytes);
             bytes = WindowQueryPass.adapt(name, bytes);
+            bytes = StrictQueryPass.adapt(name, bytes);
             bytes = TextureViewPass.adapt(name, bytes);
             bytes = ShaderSourcePass.adapt(name, bytes);
             bytes = CompatShaderPass.adapt(name, bytes);

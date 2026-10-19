@@ -66,8 +66,9 @@ query reuse, and that CPU sleeps are excluded from measured GPU time. These chec
 
 The installed PZ and ZombieBuddy archives prepare together with zero blockers; a separate JVM smoke test initializes
 both agents. A Steam launch with both agents reaches the menu and loads a save in local testing. The approval UI's
-separate frame-loop adapter is visually confirmed. Host update callbacks now draw before Metal presentation, and
-ImGui uses the logical target size before final Retina scaling; the mod setup window needs an in-game retry.
+separate frame-loop adapter and ViewPoint's setup window are visually confirmed. Host update callbacks draw before
+Metal presentation, and ImGui uses the logical target size before final Retina scaling. The latest Steam retry
+loads a test save and reaches ViewPoint renderer initialization; buffer textures are the next missing feature.
 ZombieBuddy's standalone native-GL approval executable is outside game preparation and remains rejected if loaded
 into the game JVM.
 
@@ -75,7 +76,8 @@ Limits include full-image same-format 2D texture views, a costly stencil-extract
 of stencil views, and rejected linked-stage regeneration with shader storage blocks. Unplanned or changed graphics
 consumers are refused at load time. ZombieBuddy owns mod approval. Julia prepares approved JARs before classpath
 publication and patch execution, translating supported graphics operations and replacing unsupported operations with
-fatal diagnostics at the call site. Unused unsupported branches do not stop a mod from loading.
+fatal diagnostics at the call site. Unused unsupported branches do not stop a mod from loading. Unknown integer
+and floating-point backend state queries throw instead of returning invented zero limits.
 In a live agent session, any translation, backend, frame, or graphics-preparation failure writes and flushes
 `fatal-error.txt` in that run's directory, then immediately halts Java with exit code 70. Mod exception handlers,
 cleanup, and shutdown hooks cannot continue with a broken renderer. Standalone library tests and offscreen probes

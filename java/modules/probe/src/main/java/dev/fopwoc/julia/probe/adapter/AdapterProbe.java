@@ -46,6 +46,7 @@ public final class AdapterProbe {
                 array_api_checks=texture arrays,resource deletion,method references,two draw buffers,integer arrays,mat3 transpose,incomplete matrix tail,empty arrays
                 verified_resource_pixels=%d
                 capability_checks=backend snapshot,absent vendor flag
+                unsupported_query_checks=integer scalar,integer buffer,float scalar,exact rejected enum
                 view_checks=shared writes,nested views,parent deletion,independent state,256 stencil values,view FBO writes
                 verified_view_pixels=1152
                 verified_client_pointer_pixels=32

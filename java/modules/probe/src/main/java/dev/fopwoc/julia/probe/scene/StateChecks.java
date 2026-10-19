@@ -10,16 +10,21 @@ import static org.lwjgl.opengl.GL11.glBindTexture;
 import static org.lwjgl.opengl.GL11.glDeleteTextures;
 import static org.lwjgl.opengl.GL11.glGenTextures;
 import static org.lwjgl.opengl.GL11.glGetDouble;
+import static org.lwjgl.opengl.GL11.glGetFloat;
+import static org.lwjgl.opengl.GL11.glGetInteger;
+import static org.lwjgl.opengl.GL11.glGetIntegerv;
 import static org.lwjgl.opengl.GL11.glGetTexLevelParameteri;
 import static org.lwjgl.opengl.GL15.glBindBuffer;
 import static org.lwjgl.opengl.GL15.glDeleteBuffers;
 import static org.lwjgl.opengl.GL15.glGenBuffers;
 import static org.lwjgl.opengl.GL21.GL_PIXEL_UNPACK_BUFFER;
 import static org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY;
+import static org.lwjgl.opengl.GL31.GL_MAX_TEXTURE_BUFFER_SIZE;
 
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL43;
+import org.lwjgl.system.MemoryStack;
 
 /** Capability snapshot, scalar aliases, and storage-only allocation through the redirected API. */
 final class StateChecks {
@@ -27,8 +32,33 @@ final class StateChecks {
 
     static void run() {
         capabilities();
+        unsupportedQueries();
         depthAlias();
         arrayAllocation();
+    }
+
+    private static void unsupportedQueries() {
+        for (boolean buffered : new boolean[] {false, true}) {
+            try (var stack = MemoryStack.stackPush()) {
+                boolean rejected = false;
+                try {
+                    if (buffered) glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE, stack.mallocInt(1));
+                    else glGetInteger(GL_MAX_TEXTURE_BUFFER_SIZE);
+                } catch (UnsupportedOperationException expected) {
+                    rejected = expected.getMessage().contains("pname=0x8c2b");
+                }
+                if (!rejected)
+                    throw new IllegalStateException("Unsupported buffer-texture limit returned a fabricated value");
+            }
+        }
+        boolean rejected = false;
+        try {
+            glGetFloat(0x7fffffff);
+        } catch (UnsupportedOperationException expected) {
+            rejected = expected.getMessage().contains("pname=0x7fffffff");
+        }
+        if (!rejected)
+            throw new IllegalStateException("Unknown floating-point state query returned a fabricated value");
     }
 
     /** The backend's advertised snapshot, including a vendor flag it must not claim. */
