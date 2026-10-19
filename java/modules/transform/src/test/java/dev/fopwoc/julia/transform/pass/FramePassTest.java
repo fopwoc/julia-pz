@@ -52,6 +52,41 @@ class FramePassTest {
     }
 
     @Test
+    void presentsHostUpdateOverlaysInTheSameFrame() throws Exception {
+        var type = load(fixture(true));
+        var events = new ArrayList<String>();
+        SpriteRenderer.fail = false;
+        Display.onUpdate = () -> events.add("overlay");
+        try (var session = session(events)) {
+            assertNotNull(session);
+            type.getMethod("lockStepRenderStep").invoke(null);
+        } finally {
+            Display.onUpdate = () -> {};
+        }
+        assertEquals(List.of("begin", "overlay", "present", "close"), events);
+    }
+
+    @Test
+    void abortsOverlayFailuresWithoutPresentingAnIncompleteFrame() throws Exception {
+        var type = load(fixture(true));
+        var events = new ArrayList<String>();
+        SpriteRenderer.fail = false;
+        Display.onUpdate = () -> {
+            throw new IllegalStateException("overlay failure");
+        };
+        try (var session = session(events)) {
+            assertNotNull(session);
+            var failure = assertThrows(
+                    InvocationTargetException.class,
+                    () -> type.getMethod("lockStepRenderStep").invoke(null));
+            assertEquals("overlay failure", failure.getCause().getMessage());
+        } finally {
+            Display.onUpdate = () -> {};
+        }
+        assertEquals(List.of("begin", "abort", "close"), events);
+    }
+
+    @Test
     void rejectsMissingAndAlreadyTransformedAnchors() {
         var missing = new ClassNode();
         new ClassReader(fixture(false)).accept(missing, 0);

@@ -28,6 +28,7 @@ public final class BridgePipeline {
         DebugCallbackPass.adapt(node);
         TextureAllocationPass.adapt(node);
         ImGuiPass.adapt(node);
+        ImGuiScalePass.adapt(node);
         try {
             ApprovalPass.adapt(node);
         } catch (IllegalArgumentException failure) {

@@ -56,8 +56,8 @@ public final class FramePass {
 
     static void bracket(MethodNode method, MethodInsnNode draw, MethodInsnNode swap) {
         method.instructions.insertBefore(draw, new MethodInsnNode(Opcodes.INVOKESTATIC, HOOKS, "begin", "()V", false));
-        method.instructions.insertBefore(
-                swap, new MethodInsnNode(Opcodes.INVOKESTATIC, HOOKS, "present", "()V", false));
+        // Mods draw overlays from Display.update advice; submit only after those hooks finish.
+        method.instructions.insert(swap, new MethodInsnNode(Opcodes.INVOKESTATIC, HOOKS, "present", "()V", false));
         var start = new LabelNode();
         var end = new LabelNode();
         var handler = new LabelNode();
