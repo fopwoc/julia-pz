@@ -132,6 +132,10 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   the same native command-buffer address, which previously made the cache treat a fresh recording as already
   populated. A repeated map-tile draw regression fails before this change and passes afterward. Its effect on the
   remaining live map gaps awaits a retry.
+- For a bounded CPU-side draw trace, set `-Djulia.trace.quads=N` (maximum 4,096) with `LOG_LEVEL=info`.
+  The trace records ranged-quad draw state, texture handles/metadata, uniform values and available buffer shadows;
+  it performs no GPU readbacks and changes no bindings. It is disabled by default. The latest live map still has
+  stationary gaps despite the two submission fixes, so further tile-state diagnosis is required.
 - Startup transformation excludes trusted shared-runtime classes by code source. Rejected consumers return nonempty
   invalid class bytes: empty arrays were ignored by JVMTI instead of preventing class definition.
 - Viewpoint and other mods that use modern OpenGL come after vanilla.
