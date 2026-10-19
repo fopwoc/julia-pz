@@ -6,6 +6,8 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
+import dev.fopwoc.julia.backend.BackendInternals;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.nio.ByteBuffer;
 import org.lwjgl.system.MemoryStack;
@@ -18,6 +20,7 @@ final class MapQuadChecks {
         int vs = glCreateShader(GL_VERTEX_SHADER), fs = glCreateShader(GL_FRAGMENT_SHADER), program = glCreateProgram();
         int vertices = glGenBuffers(), indices = glGenBuffers(), image = glGenTextures(), target = glGenTextures();
         int fbo = glGenFramebuffers();
+        boolean ownedFinalTarget = false;
         try (var stack = MemoryStack.stackPush()) {
             glShaderSource(vs, """
                     #version 330 core
@@ -104,34 +107,50 @@ final class MapQuadChecks {
             glVertexAttribPointer(0, 3, GL_FLOAT, false, 36, 0L);
             glVertexAttribPointer(1, 4, GL_FLOAT, true, 36, 12L);
             glVertexAttribPointer(2, 2, GL_FLOAT, false, 36, 28L);
-            for (int run = 0; run < 2; run++) {
-                for (int id = 0; id < 8; id++) {
-                    int local = id % 4, tile = id / 4;
-                    int offset = (id + 4) * 9;
-                    float x = ((local + 1) & 2) / 2 + tile - 1;
-                    float y = (local & 2) - 1;
-                    data.put(offset, x).put(offset + 1, y).put(offset + 2, 0);
-                    for (int c = 0; c < 4; c++) data.put(offset + 3 + c, c == 3 || run == 0 ? 1 : 0.5f);
-                    data.put(offset + 7, tile == 0 ? 0.25f : 0.75f).put(offset + 8, 0.5f);
-                }
-                glBufferData(GL_ARRAY_BUFFER, data, GL_STREAM_DRAW);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, elements, GL_STREAM_DRAW);
-                glClearColor(0, 0, 1, 1);
-                glClear(GL_COLOR_BUFFER_BIT);
-                // Each map tile can be a distinct run, reusing the converter's scratch EBO.
-                for (int tile = 0; tile < 2; tile++)
-                    glDrawRangeElements(GL_QUADS, 4 + tile * 4, 8 + tile * 4, 4, GL_UNSIGNED_SHORT, 6L + tile * 8L);
-                if (glGetInteger(GL_ARRAY_BUFFER_BINDING) != vertices
-                        || glGetInteger(GL_ELEMENT_ARRAY_BUFFER_BINDING) != indices)
-                    throw new IllegalStateException("Map quad conversion changed buffer bindings");
-                var pixels = ResourceReadback.layer(target, 0);
-                for (int i = 0; i < 64; i++)
-                    for (int c = 0; c < 4; c++) {
-                        int expected = c == 3 ? 255 : c == (i % 8 < 4 ? 0 : 1) ? run == 0 ? 255 : 128 : 0;
-                        if ((pixels[i * 4 + c] & 255) != expected)
-                            throw new IllegalStateException("Map quad run=" + run + " pixel=" + i + " channel=" + c
-                                    + " got=" + (pixels[i * 4 + c] & 255) + " expected=" + expected);
+            var resources = BackendInternals.resources();
+            var finalTarget = BackendInternals.frames().finalTarget();
+            if (!finalTarget.isReady()) {
+                ownedFinalTarget = true;
+                finalTarget.create(SDLGPUGate.device(), resources, 8, 8, resources.mapTextureFormat(GL_RGBA8));
+            }
+            for (int framebuffer : new int[] {0, fbo}) {
+                glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+                for (int run = 0; run < 2; run++) {
+                    for (int id = 0; id < 8; id++) {
+                        int local = id % 4, tile = id / 4;
+                        int offset = (id + 4) * 9;
+                        float x = ((local + 1) & 2) / 2 + tile - 1;
+                        float y = (local & 2) - 1;
+                        data.put(offset, x).put(offset + 1, y).put(offset + 2, 0);
+                        for (int c = 0; c < 4; c++) data.put(offset + 3 + c, c == 3 || run == 0 ? 1 : 0.5f);
+                        data.put(offset + 7, tile == 0 ? 0.25f : 0.75f).put(offset + 8, 0.5f);
                     }
+                    glBufferData(GL_ARRAY_BUFFER, data, GL_STREAM_DRAW);
+                    glBufferData(GL_ELEMENT_ARRAY_BUFFER, elements, GL_STREAM_DRAW);
+                    glClearColor(0, 0, 1, 1);
+                    glClear(GL_COLOR_BUFFER_BIT);
+                    // Each map tile can be a distinct run, reusing the converter's scratch EBO.
+                    for (int tile = 0; tile < 2; tile++)
+                        glDrawRangeElements(GL_QUADS, 4 + tile * 4, 8 + tile * 4, 4, GL_UNSIGNED_SHORT, 6L + tile * 8L);
+                    if (glGetInteger(GL_ARRAY_BUFFER_BINDING) != vertices
+                            || glGetInteger(GL_ELEMENT_ARRAY_BUFFER_BINDING) != indices)
+                        throw new IllegalStateException("Map quad conversion changed buffer bindings");
+                    byte[] pixels;
+                    if (framebuffer == 0) {
+                        var readback = stack.malloc(8 * 8 * 4);
+                        glReadPixels(0, 0, 8, 8, GL_RGBA, GL_UNSIGNED_BYTE, readback);
+                        pixels = new byte[readback.remaining()];
+                        readback.get(pixels);
+                    } else pixels = ResourceReadback.layer(target, 0);
+                    for (int i = 0; i < 64; i++)
+                        for (int c = 0; c < 4; c++) {
+                            int expected = c == 3 ? 255 : c == (i % 8 < 4 ? 0 : 1) ? run == 0 ? 255 : 128 : 0;
+                            if ((pixels[i * 4 + c] & 255) != expected)
+                                throw new IllegalStateException("Map quad framebuffer=" + framebuffer + " run=" + run
+                                        + " pixel=" + i + " channel=" + c + " got=" + (pixels[i * 4 + c] & 255)
+                                        + " expected=" + expected);
+                        }
+                }
             }
         } finally {
             for (int attrib = 0; attrib < 3; attrib++) glDisableVertexAttribArray(attrib);
@@ -140,6 +159,7 @@ final class MapQuadChecks {
             glBindTexture(GL_TEXTURE_2D, 0);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            if (ownedFinalTarget) BackendInternals.frames().destroyFinalTarget();
             glDeleteFramebuffers(fbo);
             glDeleteTextures(target);
             glDeleteTextures(image);
