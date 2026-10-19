@@ -19,6 +19,7 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 import dev.fopwoc.julia.backend.buffer.IndexBufferUploads;
+import dev.fopwoc.julia.backend.diagnostic.ModelDrawTrace;
 import dev.fopwoc.julia.backend.shader.MatrixUniformUploads;
 import dev.fopwoc.julia.backend.shader.ProgramLinkState;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
@@ -203,6 +204,24 @@ public final class HostedBackend extends SDLGPURenderBackend {
         boolean remember = name != 0 && data != null && data.hasRemaining() && !isBufferImmutable(name);
         super.bufferData(target, data, usage);
         if (remember) IndexBufferUploads.remember(name, data);
+    }
+
+    @Override
+    public void drawElements(int mode, int count, int type, long indices) {
+        super.drawElements(mode, count, type, indices);
+        ModelDrawTrace.record(count);
+    }
+
+    @Override
+    public void drawElementsInstanced(int mode, int count, int type, long indices, int instances) {
+        super.drawElementsInstanced(mode, count, type, indices, instances);
+        ModelDrawTrace.record(count);
+    }
+
+    @Override
+    public void drawElementsBaseVertex(int mode, int count, int type, long indices, int baseVertex) {
+        super.drawElementsBaseVertex(mode, count, type, indices, baseVertex);
+        ModelDrawTrace.record(count);
     }
 
     @Override
