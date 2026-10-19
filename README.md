@@ -67,7 +67,7 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   validation-relay delivery, UTF-8 messages, full-width user pointers, replacement, unregistration and shutdown cleanup.
   Messages are injected into the relay for this check; actual driver diagnostics depend on validation being enabled.
   Only the observed direct GL43/KHR registration form is bridged; other callback APIs remain outside this coverage.
-- The current offline checks pass 131 JVM tests and verify 38,354 pixels on windowless Metal. The uniform-initializer fix has not
+- The current offline checks pass 132 JVM tests and verify 39,250 pixels on windowless Metal. The camera-depth fix has not
   been tested inside PZ.
 - ImGui draw handoffs stay on the game side, calling the prepared renderer and then freeing the owned draw data.
   The archive gate requires that renderer to be included and prepared. A separate windowless probe uses the supplied
@@ -100,9 +100,9 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   survive the first frame boundary. Live vanilla testing reaches the menu through Metal; the host's logical render size
   is scaled to the Retina drawable. Full-size UI, aligned input and animated menu video are user-confirmed. Ranged indexed quads now use the existing quad conversion, with both triangle
   halves verified offscreen for every index width. Invalid matrix uploads return a GL error before touching staging,
-  preventing the observed bone-palette overflow from aborting the renderer. The latest live retry reaches the world
-  and renders textured characters without freezing. The map remains black, characters flicker, floors are white,
-  and some sprites and face culling look incorrect. Capability reads on the game-logic thread now use an immutable
+  preventing the observed bone-palette overflow from aborting the renderer. The latest live retry renders the world,
+  floors and sprites correctly according to the user after restoring uniform defaults. The menu map selector remains
+  black, the character-preview background flickers, and characters appear to have reversed face visibility. Capability reads on the game-logic thread now use an immutable
   shared snapshot; only GPU operations enter render-thread dispatch. World entry no longer raises the prior
   capability-thread exception. These results establish partial rendering, not gameplay correctness.
 - Video-style CPU texture pointers now upload their pixels instead of being mistaken for PBO offsets. Windowless
@@ -116,7 +116,12 @@ ZombieBuddy mod entry still runs probes. The startup path is not ready for gamep
   the actual program staging without rebinding it. Checks cover 32-bit float/int/uint/bool scalars, vectors, matrices
   and arrays, queries before binding, explicit overrides, relinking and a different current program pending deletion.
   Other initializer types are rejected. This fixes an offscreen reproducer of missing defaults; PZ's chunk shader
-  relies on `useTexture = 1`, making this a candidate fix for white floors pending an in-game retry.
+  relies on `useTexture = 1`; the live retry now has textured floors and proper world rendering according to the user.
+- Camera depth ranges clamp each endpoint to `[0, 1]` before entering GLSM's state cache and the native viewport.
+  PZ passes `(-10, 10)` for its model camera; a regression caught both layers retaining those invalid values.
+  Offscreen checks now verify near/far depth ordering and independently verify CW/CCW face classification with
+  front/back/disabled culling on both texture and default framebuffers. No winding override was introduced; the
+  depth-range fix is a candidate for the remaining character-surface defect, pending an in-game retry.
 - Startup transformation excludes trusted shared-runtime classes by code source. Rejected consumers return nonempty
   invalid class bytes: empty arrays were ignored by JVMTI instead of preventing class definition.
 - Viewpoint and other mods that use modern OpenGL come after vanilla.

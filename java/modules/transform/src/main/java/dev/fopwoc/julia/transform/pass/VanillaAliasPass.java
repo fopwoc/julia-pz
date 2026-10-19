@@ -24,7 +24,9 @@ public final class VanillaAliasPass {
             for (var instruction : method.instructions.toArray()) {
                 if (!(instruction instanceof MethodInsnNode call) || call.getOpcode() != Opcodes.INVOKESTATIC) continue;
                 String key = call.owner + "." + call.name + call.desc;
-                if (key.equals("org/lwjgl/opengl/GL43.glClearDepthf(F)V")) {
+                if (key.equals(GLSM + ".glDepthRange(DD)V")) {
+                    call.owner = Endpoint.DEPTH_RANGE_BRIDGE.owner();
+                } else if (key.equals("org/lwjgl/opengl/GL43.glClearDepthf(F)V")) {
                     method.instructions.insertBefore(call, new InsnNode(Opcodes.F2D));
                     call.owner = GLSM;
                     call.name = "glClearDepth";
