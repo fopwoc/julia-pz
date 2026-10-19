@@ -40,7 +40,7 @@ public final class DispatchPass {
             for (var instruction : method.instructions.toArray()) {
                 if (instruction instanceof MethodInsnNode call
                         && Endpoint.contains(call.owner)
-                        && !Endpoint.CAPABILITY_BRIDGE.is(call.owner)) {
+                        && !Endpoint.shared(call.owner)) {
                     if (call.getOpcode() != Opcodes.INVOKESTATIC)
                         throw new IllegalArgumentException("Nonstatic backend call");
                     checkDescriptor(call.desc);
@@ -82,7 +82,7 @@ public final class DispatchPass {
     private static Object constant(ClassNode node, List<MethodNode> helpers, Object value) {
         if (value instanceof Handle handle
                 && Endpoint.contains(handle.getOwner())
-                && !Endpoint.CAPABILITY_BRIDGE.is(handle.getOwner())) {
+                && !Endpoint.shared(handle.getOwner())) {
             return helperHandle(node, helpers, handle);
         }
         if (value instanceof ConstantDynamic dynamic) {

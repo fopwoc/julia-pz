@@ -33,6 +33,12 @@ public final class BridgePipeline {
         } catch (IllegalArgumentException failure) {
             blockers.accept("APPROVAL_BOUNDARY " + failure.getMessage());
         }
+        try {
+            ModLoadingPass.adapt(node);
+            LuaStatusPass.adapt(node);
+        } catch (IllegalArgumentException failure) {
+            blockers.accept("HOST_INTEGRATION " + failure.getMessage());
+        }
         ShutdownPass.adapt(node);
         return node;
     }

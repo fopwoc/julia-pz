@@ -1,5 +1,6 @@
 package dev.fopwoc.julia.host;
 
+import dev.fopwoc.julia.runtime.ModApprovalHooks;
 import dev.fopwoc.julia.runtime.StartupHooks;
 import dev.fopwoc.julia.transform.prepare.ArchivePreparation;
 import dev.fopwoc.julia.utils.logging.LogConfiguration;
@@ -52,6 +53,9 @@ public final class GameStartup {
                 throw new IllegalStateException("Live graphics startup failed", failure);
             }
         });
+        var mods = new ApprovedMods(plan, transformer, instrumentation::getAllLoadedClasses, output);
+        ModApprovalHooks.install(mods::prepare);
+        System.clearProperty("julia.mods.blocked");
         instrumentation.addTransformer(transformer);
         System.setProperty("julia.startup", "active");
         LOG.log(

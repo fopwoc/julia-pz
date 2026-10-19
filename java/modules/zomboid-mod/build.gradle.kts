@@ -25,19 +25,13 @@ tasks.jar {
     from(configurations.runtimeClasspath) { into("lib") }
 }
 
-/** Puts the built JAR where `mod.info` expects it, so the repository folder is a runnable mod. */
-val installModJar by tasks.registering(Copy::class) {
-    from(tasks.jar)
-    into(modRoot.dir("42/media/java/client"))
-}
-
-/** The installed mod folder, zipped as the Workshop sees it, for releases and manual installs. */
+/** Lua-only status companion for Workshop/manual installs; rendering lives in the separate startup agent. */
 val modZip by tasks.registering(Zip::class) {
-    dependsOn(installModJar)
     archiveFileName = "Julia.zip"
     destinationDirectory = layout.buildDirectory.dir("distributions")
     from(modRoot) {
         include("common/**", "42/**", "licenses/**", "LICENSE", "COPYRIGHT", "THIRD_PARTY.md")
+        exclude("42/media/java/**")
         into("Julia")
     }
 }

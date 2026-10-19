@@ -6,6 +6,7 @@ import static org.lwjgl.sdl.SDLVideo.SDL_GetWindowSize;
 import static org.lwjgl.sdl.SDLVideo.SDL_GetWindowSizeInPixels;
 
 import com.gtnewhorizons.angelica.glsm.profiling.DebugCounters;
+import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import dev.fopwoc.julia.backend.BackendInternals;
 import dev.fopwoc.julia.backend.utils.Sdl;
@@ -48,6 +49,7 @@ public final class GameRuntime {
             beforeCall();
             InitialFrame.present(runtime.session.backend());
             beforeCall();
+            System.setProperty("julia.renderer.backend", SDLGPUGate.device().getDriverName());
             runtime.status("READY");
             LOG.log(
                     System.Logger.Level.INFO,
@@ -122,6 +124,7 @@ public final class GameRuntime {
             }
         }
         current = null;
+        System.clearProperty("julia.renderer.backend");
         if (failure instanceof Error error) throw error;
         if (failure != null) throw new IllegalStateException("Game renderer cleanup failed", failure);
         LOG.log(System.Logger.Level.INFO, "Live renderer closed; borrowed window restored");

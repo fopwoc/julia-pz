@@ -15,16 +15,22 @@ import java.util.Map;
 /** Publishes only preflighted, byte-identical consumers. Transformer exceptions alone would silently retain native GL. */
 public final class PreparedTransformer implements ClassFileTransformer {
     private static final System.Logger LOG = System.getLogger(PreparedTransformer.class.getName());
-    private final Map<String, ArchivePlan.Entry> entries = new HashMap<>();
+    private volatile Map<String, ArchivePlan.Entry> entries;
     private final GraphicsClassScanner graphics = new GraphicsClassScanner(RuntimePreparation::isGraphicsConsumer);
     private final ClassLoader consumerLoader;
     private final CodeSource runtimeSource =
             StartupHooks.class.getProtectionDomain().getCodeSource();
 
     public PreparedTransformer(ArchivePlan plan, ClassLoader consumerLoader) {
-        plan.requireBytecode();
         this.consumerLoader = consumerLoader;
-        for (var entry : plan.entries()) entries.put(entry.prepared().name(), entry);
+        publish(plan);
+    }
+
+    public void publish(ArchivePlan plan) {
+        plan.requireBytecode();
+        var next = new HashMap<String, ArchivePlan.Entry>();
+        for (var entry : plan.entries()) next.put(entry.prepared().name(), entry);
+        entries = Map.copyOf(next);
     }
 
     @Override

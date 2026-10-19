@@ -59,18 +59,22 @@ videos, map tiles, character previews, world textures, wall cutaways, and the ch
 that previously fell to about 10 FPS now holds 60 FPS in the tester's scene after eliminating repeated index-buffer
 readbacks. This is a local result, not a general performance guarantee.
 
-The automated baseline passes 137 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
+The automated baseline passes 146 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
 defaults/reflection, streamed indices, texture views, stencil sampling, depth, viewport clipping, video uploads, initial
 presentation, and ImGui. These checks do not replace in-game validation.
 
 The installed PZ and ZombieBuddy archives prepare together with zero blockers; a separate JVM smoke test initializes
 both agents. A Steam launch with both agents reaches the menu and loads a save in local testing. The approval UI's
-separate frame-loop adapter still needs a visual retry. ZombieBuddy's standalone native-GL approval executable is
+separate frame-loop adapter is visually confirmed. ZombieBuddy's standalone native-GL approval executable is
 outside game preparation and remains rejected if loaded into the game JVM.
 
 Limits include full-image same-format 2D texture views, a costly stencil-extraction fallback, rejected compute sampling
 of stencil views, and rejected linked-stage regeneration with shader storage blocks. Unplanned or changed graphics
-consumers are refused at load time. Additional Java rendering mods need explicit preparation support.
+consumers are refused at load time. Approved ZombieBuddy JARs are checked before classpath publication and patch
+execution. Preparation publishes their graphics classes atomically, or refuses the whole Java mod with a report under
+`~/Zomboid/julia/run-*/mod-<sha256>.txt`. Unsupported mods should be disabled until their graphics calls are supported.
+The actual installed ViewPoint JAR is refused before its entry point runs in a windowless loader test; this does not
+establish ViewPoint rendering support. The Lua-only menu status companion still needs an in-game visual check.
 
 ## Building
 
@@ -80,10 +84,12 @@ JDK 25, and the build works on macOS and Linux only.
 ```sh
 cd java
 ./gradlew check                    # tests; never launches the game or opens a window
-./gradlew assemble                 # → ../42/media/java/client/Julia.jar, plus modules/zomboid-mod/build/distributions/Julia.zip
+./gradlew :agent:jar               # → modules/agent/build/libs/julia-agent.jar
+./gradlew :zomboid-mod:modZip      # → modules/zomboid-mod/build/distributions/Julia.zip (Lua status companion)
 ```
 
-After `assemble`, the repository folder is a complete mod. Symlink or copy it into the PZ `mods` directory as `Julia`.
+The repository folder is the Lua status companion. Copy it into the PZ `mods` directory as `Julia`, or extract the ZIP.
+The agent is installed separately; building never modifies the live game.
 
 These native probes run only when requested and open no window:
 
@@ -108,28 +114,28 @@ Logging defaults to `error`. Set `LOG_LEVEL=warn|info|debug` to see more.
 
 ## In the game
 
-Copy the built `java/modules/agent/build/libs/julia-agent.jar` into the game's Java directory beside `ZombieBuddy.jar`.
-On macOS this is `Project Zomboid.app/Contents/Java`. Set Steam's Project Zomboid launch options to:
+Copy the built `java/modules/agent/build/libs/julia-agent.jar` into the game's Java directory.
+On macOS this is `Project Zomboid.app/Contents/Java`. With ZombieBuddy installed, use these Steam launch options:
 
 ```text
 -XstartOnFirstThread -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --
 ```
 
-Julia must register before ZombieBuddy loads or patches game classes. Keep the final `--`, required by the macOS
+ZombieBuddy is optional: omit its `-javaagent` option when it is not installed. When using both agents, Julia must
+register first. Keep the final `--`, required by the macOS
 launcher. Julia activates before the in-game mod list is available: disabling its mod-list entry does not disable the
 agent. Remove its `-javaagent` option to return to vanilla rendering. ZombieBuddy approvals remain in force.
 
-The optional Julia mod-list entry reports that the early renderer is active. Its archive is built by
-`./gradlew :zomboid-mod:jar`; copy the resulting `Julia.jar` to `42/media/java/client/` in the installed Julia mod folder.
-Enable Julia and ZombieBuddy in the mod manager; approve the updated archive if ZombieBuddy asks. Normal startup no
-longer runs the old probes.
+The optional Lua-only Julia mod shows live renderer status at the bottom left of the main menu, such as
+`Julia active · Metal`, or `Julia inactive` when the renderer is absent. It requires no ZombieBuddy approval or Java JAR.
+If Julia blocks a Java mod, its package is identified beside the status; detailed reasons stay in the compatibility
+report. Enable this companion in the mod manager to show it. It does not activate the agent itself.
 
 `activate` creates a fresh directory under `~/Zomboid/julia/run-*/` on every launch. For a controlled test,
 `activate=/absolute/path/new-run` selects an explicit fresh report directory. Logs default to `error`; `LOG_LEVEL`
 enables more detail. Keep test saves separate until the desired mod combination has been validated.
 
-Without the agent, probes are explicit: `-Djulia.probe=adapter` for offscreen checks or `-Djulia.probe=window` for the
-experimental presentation check. `-Djulia.outputDir` and `-Djulia.modJar` override probe paths.
+Diagnostic Java entry points remain in the development modules; they are not included in the Lua companion ZIP.
 
 ## License
 

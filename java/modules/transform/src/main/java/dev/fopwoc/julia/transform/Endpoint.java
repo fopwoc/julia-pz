@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
  * <p>Owners are internal names, never class literals: the transform layer must not load backend classes.
  */
 public enum Endpoint {
+    MOD_APPROVAL_HOOKS("dev/fopwoc/julia/runtime/ModApprovalHooks", false),
+    LUA_STATUS("dev/fopwoc/julia/runtime/JuliaStatus", false),
     STATE_MANAGER("com/gtnewhorizons/angelica/glsm/GLStateManager", true),
     DEBUG_SHIM("com/gtnewhorizons/angelica/sdlgpu/compat/AwareGLDebugShim", true),
     DEPTH_RANGE_BRIDGE("dev/fopwoc/julia/backend/bridge/DepthRangeBridge", false),
@@ -60,6 +62,11 @@ public enum Endpoint {
 
     public static boolean contains(String internalName) {
         return BY_OWNER.containsKey(internalName);
+    }
+
+    /** Shared JDK-only endpoints are callable without entering the graphics thread or isolated loader. */
+    public static boolean shared(String owner) {
+        return contains(owner) && owner.startsWith("dev/fopwoc/julia/runtime/");
     }
 
     public static Set<String> owners() {
