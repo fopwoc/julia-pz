@@ -10,7 +10,9 @@ import com.gtnewhorizons.angelica.sdlgpu.resource.FBOClearTracker;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
+import dev.fopwoc.julia.backend.texture.TextureObjects;
 import dev.fopwoc.julia.backend.texture.TextureViews;
+import dev.fopwoc.julia.backend.texture.VolumeUnpack;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextures;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -159,6 +161,14 @@ public final class BackendInternals {
 
     public static BufferTextures bufferTextures() {
         return ownedBackend().bufferTextures();
+    }
+
+    public static TextureObjects textureObjects() {
+        return ownedBackend().textureObjects();
+    }
+
+    public static VolumeUnpack volumeUnpack() {
+        return ownedBackend().volumeUnpack();
     }
 
     public static TextureViews views() {

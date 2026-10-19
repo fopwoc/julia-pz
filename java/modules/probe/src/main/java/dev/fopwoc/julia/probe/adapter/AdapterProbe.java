@@ -42,6 +42,7 @@ public final class AdapterProbe {
                 api=LWJGL -> typed RenderDispatch -> isolated GLStateManager
                 verified_initial_frame_pixels=128
                 initial_frame_checks=opaque black startup,empty frame preservation,clear color restoration
+                verified_named_texture_pixels=377
                 verified_divisor_pixels=1248
                 verified_buffer_texture_pixels=2560
                 buffer_texture_checks=nine 32-bit formats,vertex/fragment/compute reads,range alignment,shared updates,reallocation,deletion,pending draw ordering,separate target bindings,million-texel view,invalid ranges and formats

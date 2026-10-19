@@ -6,6 +6,7 @@ import static org.lwjgl.opengl.GL11.GL_RGBA;
 import static org.lwjgl.opengl.GL11.GL_RGBA8;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL12.*;
 import static org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL20.GL_ACTIVE_UNIFORMS;
 import static org.lwjgl.opengl.GL20.GL_ACTIVE_UNIFORM_MAX_LENGTH;
@@ -34,12 +35,15 @@ import dev.fopwoc.julia.backend.shader.ProgramLinkState;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.texture.ClientPixels;
+import dev.fopwoc.julia.backend.texture.TextureObjects;
 import dev.fopwoc.julia.backend.texture.TextureViews;
+import dev.fopwoc.julia.backend.texture.VolumeUnpack;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextures;
 import dev.fopwoc.julia.backend.vertex.VertexInputs;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.WeakHashMap;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
@@ -49,9 +53,35 @@ public final class HostedBackend extends SDLGPURenderBackend {
     private int error;
 
     private final ShaderPrograms shaderPrograms = new ShaderPrograms();
+    private final TextureObjects textureObjects = new TextureObjects();
+    private final WeakHashMap<ContextState, VolumeUnpack> volumeUnpack = new WeakHashMap<>();
+
     private final TextureViews textureViews = new TextureViews();
     private final BufferTextures bufferTextures =
             new BufferTextures(() -> Platform.current().createBufferTextureDriver());
+
+    public TextureObjects textureObjects() {
+        return textureObjects;
+    }
+
+    public VolumeUnpack volumeUnpack() {
+        return volumeUnpack.computeIfAbsent(BackendInternals.context(), ignored -> new VolumeUnpack());
+    }
+
+    @Override
+    public int createTextures(int target) {
+        return textureObjects.create(target);
+    }
+
+    @Override
+    public void pixelStorei(int parameter, int value) {
+        if (parameter == GL_UNPACK_IMAGE_HEIGHT || parameter == GL_UNPACK_SKIP_IMAGES) {
+            if (value < 0) throw new IllegalArgumentException("Negative pixel unpack value");
+            if (parameter == GL_UNPACK_IMAGE_HEIGHT) volumeUnpack().imageHeight = value;
+            else volumeUnpack().skipImages = value;
+        } else if (parameter == GL_UNPACK_SWAP_BYTES) volumeUnpack().swapBytes = value != 0;
+        else super.pixelStorei(parameter, value);
+    }
 
     public BufferTextures bufferTextures() {
         return bufferTextures;
@@ -60,6 +90,9 @@ public final class HostedBackend extends SDLGPURenderBackend {
     @Override
     public int getInteger(int parameter) {
         return switch (parameter) {
+            case GL_UNPACK_IMAGE_HEIGHT -> volumeUnpack().imageHeight;
+            case GL_UNPACK_SKIP_IMAGES -> volumeUnpack().skipImages;
+            case GL_UNPACK_SWAP_BYTES -> volumeUnpack().swapBytes ? GL_TRUE : GL_FALSE;
             case GL_MAX_VERTEX_ATTRIB_BINDINGS -> ContextState.MAX_VERTEX_ATTRIBS;
             case GL_MAX_TEXTURE_BUFFER_SIZE -> bufferTextures.limit();
             case GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT -> bufferTextures.alignment();
@@ -425,11 +458,12 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public boolean isTexture(int name) {
-        return bufferTextures.contains(name) || super.isTexture(name);
+        return textureObjects.contains(name) || bufferTextures.contains(name) || super.isTexture(name);
     }
 
     @Override
     public void bindTexture(int target, int name) {
+        textureObjects.bound(name, target);
         textureViews.bound(name);
         bufferTextures.ordinaryTextureBound(name);
         super.bindTexture(target, name);
@@ -499,6 +533,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void deleteTextures(int name) {
+        textureObjects.deleted(name);
         bufferTextures.deleteTexture(name);
         long handle = BackendInternals.resources().getTextureHandle(name);
         textureViews.beforeDelete(name);

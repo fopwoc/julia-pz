@@ -1,0 +1,133 @@
+package dev.fopwoc.julia.backend.texture;
+
+import static org.lwjgl.opengl.EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL12.*;
+import static org.lwjgl.opengl.GL14.*;
+import static org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY;
+import static org.lwjgl.opengl.GL43.GL_DEPTH_STENCIL_TEXTURE_MODE;
+import static org.lwjgl.sdl.SDLGPU.*;
+
+import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
+import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
+import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.utils.Sdl;
+import java.util.HashMap;
+
+/** Object identity and immutable allocation without modifying active units or texture bindings. */
+public final class TextureObjects {
+    private final HashMap<Integer, Integer> targets = new HashMap<>();
+
+    public void bound(int name, int target) {
+        if (name == 0) return;
+        Integer previous = targets.putIfAbsent(name, target);
+        if (previous != null && previous != target) throw new IllegalArgumentException("Texture target cannot change");
+    }
+
+    public boolean contains(int name) {
+        return targets.containsKey(name);
+    }
+
+    public void deleted(int name) {
+        targets.remove(name);
+    }
+
+    public int target(int name) {
+        var meta = BackendInternals.resources().getTextureMeta(name);
+        Integer target = targets.get(name);
+        if (target == null && meta != null) target = meta.glTarget();
+        if (name == 0 || target == null) throw new IllegalArgumentException("Named texture does not exist: " + name);
+        return target;
+    }
+
+    public int create(int target) {
+        requireTarget(target);
+        int name = BackendManager.RENDER_BACKEND.genTextures();
+        bound(name, target);
+        BackendInternals.views().bound(name);
+        return name;
+    }
+
+    public void storage(int name, int levels, int format, int width, int height, int depth, boolean volume) {
+        int target = target(name);
+        if (volume ? target != GL_TEXTURE_3D && target != GL_TEXTURE_2D_ARRAY : target != GL_TEXTURE_2D)
+            throw new IllegalArgumentException("Texture storage dimensionality does not match its target");
+        int largest = Math.max(width, height);
+        if (target == GL_TEXTURE_3D) largest = Math.max(largest, depth);
+        if (width <= 0
+                || height <= 0
+                || depth <= 0
+                || levels <= 0
+                || levels > 32 - Integer.numberOfLeadingZeros(largest))
+            throw new IllegalArgumentException("Invalid immutable texture dimensions or mip count");
+        var resources = BackendInternals.resources();
+        var views = BackendInternals.views();
+        views.beforeAllocation(name);
+        int sdlFormat = TextureUploadFormat.storage(format);
+        int sdlType = target == GL_TEXTURE_2D
+                ? SDL_GPU_TEXTURETYPE_2D
+                : target == GL_TEXTURE_3D ? SDL_GPU_TEXTURETYPE_3D : SDL_GPU_TEXTURETYPE_2D_ARRAY;
+        int usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        // Volume uploads need sampler storage; 2D attachments also need their matching target usage.
+        if (TextureUploadFormat.depth(format)) usage |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+        else if (target != GL_TEXTURE_3D) usage |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+        if (!SDL_GPUTextureSupportsFormat(SDLGPUGate.device().getDevice(), sdlFormat, sdlType, usage))
+            throw new UnsupportedOperationException(
+                    "Unsupported immutable texture format/target/usage: " + format + "/" + target + "/" + usage);
+        BackendInternals.clears().scrubPendingClearsForTexture(BackendInternals.context(), name);
+        resources.releaseTextureHandleForRealloc(name);
+        Sdl.require(
+                resources.createTextureWithSdlFormat(
+                        name, target, sdlFormat, format, width, height, depth, levels, usage),
+                "Allocate named texture storage");
+        resources.refreshTextureReferences(name);
+        views.immutable(name);
+    }
+
+    public void parameter(int name, int parameter, int value) {
+        int target = target(name);
+        if ((parameter == GL_TEXTURE_WRAP_S || parameter == GL_TEXTURE_WRAP_T || parameter == GL_TEXTURE_WRAP_R)
+                && value != GL_REPEAT
+                && value != GL_CLAMP_TO_EDGE
+                && value != GL_MIRRORED_REPEAT)
+            throw new UnsupportedOperationException("Named texture wrap mode not implemented: " + value);
+        if (parameter == GL_TEXTURE_MAX_LEVEL && value < 0)
+            throw new IllegalArgumentException("Negative texture maximum level");
+        switch (parameter) {
+            case GL_TEXTURE_BASE_LEVEL -> {
+                if (value != 0)
+                    throw new UnsupportedOperationException("Nonzero named texture base level is not implemented");
+                return;
+            }
+            case GL_TEXTURE_MIN_FILTER,
+                    GL_TEXTURE_MAG_FILTER,
+                    GL_TEXTURE_WRAP_S,
+                    GL_TEXTURE_WRAP_T,
+                    GL_TEXTURE_WRAP_R,
+                    GL_TEXTURE_MAX_LEVEL,
+                    GL_TEXTURE_COMPARE_MODE,
+                    GL_TEXTURE_COMPARE_FUNC,
+                    GL_DEPTH_STENCIL_TEXTURE_MODE,
+                    GL_TEXTURE_MIN_LOD,
+                    GL_TEXTURE_MAX_LOD,
+                    GL_TEXTURE_MAX_ANISOTROPY_EXT -> {}
+            default -> throw new UnsupportedOperationException("Named texture parameter not implemented: " + parameter);
+        }
+        BackendManager.RENDER_BACKEND.textureParameteri(name, target, parameter, value);
+    }
+
+    public void parameter(int name, int parameter, float value) {
+        if (!Float.isFinite(value)) throw new IllegalArgumentException("Non-finite named texture parameter");
+        if (parameter == GL_TEXTURE_MIN_LOD
+                || parameter == GL_TEXTURE_MAX_LOD
+                || parameter == GL_TEXTURE_LOD_BIAS
+                || parameter == GL_TEXTURE_MAX_ANISOTROPY_EXT)
+            BackendManager.RENDER_BACKEND.textureParameterf(name, target(name), parameter, value);
+        else parameter(name, parameter, Math.round(value));
+    }
+
+    private static void requireTarget(int target) {
+        if (target != GL_TEXTURE_2D && target != GL_TEXTURE_3D && target != GL_TEXTURE_2D_ARRAY)
+            throw new UnsupportedOperationException("Named texture target not implemented: " + target);
+    }
+}

@@ -103,6 +103,7 @@ public final class AdapterScene {
             ArrayApiChecks.run();
             BufferTextureChecks.run(output);
             DivisorChecks.run(output);
+            NamedTextureChecks.run(output);
             TimerQueryChecks.run(output);
             ClientPointerChecks.run();
             ViewChecks.run();

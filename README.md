@@ -59,25 +59,30 @@ videos, map tiles, character previews, world textures, wall cutaways, and the ch
 that previously fell to about 10 FPS now holds 60 FPS in the tester's scene after eliminating repeated index-buffer
 readbacks. This is a local result, not a general performance guarantee.
 
-The automated baseline passes 170 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
+The automated baseline passes 175 JVM tests plus the windowless Metal suite. Checks cover shader linking, uniform
 defaults/reflection, streamed indices, texture views, stencil sampling, depth, viewport clipping, video uploads, initial
-presentation, ImGui, array resource APIs, multiple draw buffers, native buffer textures, instanced vertex bindings, and real Metal timer queries. Timer checks verify pending/completed results, elapsed queries,
+presentation, ImGui, array resource APIs, multiple draw buffers, native buffer textures, named texture storage/uploads, instanced vertex bindings, and real Metal timer queries. Timer checks verify pending/completed results, elapsed queries,
 query reuse, and that CPU sleeps are excluded from measured GPU time. Buffer-texture checks verify 2,560 pixels
 plus compute results across R/RG/RGBA 32-bit float, signed, and unsigned formats, with shared updates, ranges,
 storage replacement, pending draws, deletion, sampler reflection, and a million-texel view. Instancing checks verify
 1,248 pixels across shared bindings, per-vertex and per-instance fetches, full-width unsigned divisors, indexed draws,
-pipeline reuse, VAO switching, and legacy attribute rebinding. These checks do not replace in-game validation.
+pipeline reuse, VAO switching, and legacy attribute rebinding. Named-texture checks verify 377 pixels across 2D,
+array and volume storage, mip levels, integer/float/half-float transfers, padded pixel layouts, byte swapping, and
+draw/upload ordering while preserving texture-unit bindings. These checks do not replace in-game validation.
 
 The installed PZ and ZombieBuddy archives prepare together with zero blockers; a separate JVM smoke test initializes
 both agents. A Steam launch with both agents reaches the menu and loads a save in local testing. The approval UI's
 separate frame-loop adapter and ViewPoint's setup window are visually confirmed. Host update callbacks draw before
 Metal presentation, and ImGui uses the logical target size before final Retina scaling. The latest Steam retry
-loads a test save and passes ViewPoint buffer-texture initialization, then halts at `glVertexBindingDivisor`.
-Instanced vertex bindings now pass offscreen checks; this implementation has not yet been retried in Steam.
+passes ViewPoint buffer-texture and vertex-binding initialization, then halts during save loading at `glCreateTextures`.
+Named-texture creation, parameters, immutable storage and uploads now pass offscreen checks; this implementation
+has not yet been retried in Steam.
 ZombieBuddy's standalone native-GL approval executable is outside game preparation and remains rejected if loaded
 into the game JVM.
 
-Limits include vertex-write compute replay rejecting divisors above 65,535 (ordinary native vertex fetch retains
+Limits include named textures restricted to 2D, 2D arrays and 3D targets, explicitly supported sized storage formats
+and matching client transfer formats (plus RGB8 promotion and BGRA8 conversion), rejected client uploads with pixel-unpack
+buffers bound, rejected nonzero named texture base levels and unsupported wrap modes (including clamp-to-border), vertex-write compute replay rejecting divisors above 65,535 (ordinary native vertex fetch retains
 all 32 unsigned bits), buffer textures restricted to the nine R/RG/RGBA 32-bit formats (no sampler arrays or image load/store),
 full-image same-format 2D texture views, a costly stencil-extraction fallback, rejected compute sampling
 of stencil views, and rejected linked-stage regeneration with shader storage blocks. Unplanned or changed graphics

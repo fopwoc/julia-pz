@@ -13,6 +13,37 @@ import org.objectweb.asm.tree.MethodInsnNode;
 /** Only the exact observed resource overloads enter the bounded bridge implementations. */
 public final class ResourcePass {
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
+            Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(I)I", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(ILjava/nio/IntBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(I[I)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glTextureParameteri(III)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glTextureParameterf(IIF)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glTextureStorage2D(IIIII)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glTextureStorage3D(IIIIII)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glTextureSubImage2D(IIIIIIIILjava/nio/ByteBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glTextureSubImage2D(IIIIIIIILjava/nio/IntBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glTextureSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glTextureSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glTextureSubImage3D(IIIIIIIIIILjava/nio/ByteBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glTextureSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glTextureSubImage3D(IIIIIIIIIILjava/nio/FloatBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glTextureSubImage3D(IIIIIIIIIILjava/nio/ShortBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL43.glVertexBindingDivisor(II)V", Endpoint.VERTEX_BINDING_BRIDGE),
             Map.entry(Endpoint.STATE_MANAGER.owner() + ".glVertexAttribDivisor(II)V", Endpoint.VERTEX_BINDING_BRIDGE),
             Map.entry(
