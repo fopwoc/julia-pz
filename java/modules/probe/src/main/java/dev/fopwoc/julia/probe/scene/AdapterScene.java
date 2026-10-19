@@ -110,6 +110,7 @@ public final class AdapterScene {
             UniformInitializerChecks.run();
             CullingChecks.run();
             DepthRangeChecks.run();
+            UiViewportChecks.run();
             Files.writeString(output.resolve("resource-checks.txt"), ResourceChecks.REPORT);
 
             if (window) {

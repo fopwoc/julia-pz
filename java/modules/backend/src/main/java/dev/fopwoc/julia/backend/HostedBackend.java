@@ -207,6 +207,15 @@ public final class HostedBackend extends SDLGPURenderBackend {
     }
 
     @Override
+    public void viewport(int x, int y, int width, int height) {
+        super.viewport(x, y, width, height);
+        // SDL still needs a clipping rectangle when GL scissor testing is disabled.
+        // Upstream derives it from the viewport, so both native states must change together.
+        var state = BackendInternals.context();
+        if (!state.scissorEnabled) state.scissorDirty = true;
+    }
+
+    @Override
     public void drawElements(int mode, int count, int type, long indices) {
         super.drawElements(mode, count, type, indices);
         ModelDrawTrace.record(count);
