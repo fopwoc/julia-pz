@@ -1,12 +1,25 @@
 package dev.fopwoc.julia.backend.platform;
 
+import dev.fopwoc.julia.backend.query.TimestampDriver;
+import dev.fopwoc.julia.backend.query.macos.MetalTimestamps;
 import java.util.Locale;
+import org.lwjgl.system.Configuration;
 import org.lwjgl.system.JNI;
 import org.lwjgl.system.macosx.LibSystem;
 
 /** Host operating system facts the graphics runtime depends on: GPU driver and video-thread rules. */
 public enum Platform {
     MACOS("metal") {
+        @Override
+        public TimestampDriver createTimestampDriver() {
+            return new MetalTimestamps();
+        }
+
+        @Override
+        public void configureNativeLibraries() {
+            Configuration.SDL_LIBRARY_NAME.set("SDL3Julia");
+        }
+
         @Override
         public void requireVideoThread() {
             // Cocoa only permits SDL video initialization on the process main thread.
@@ -43,6 +56,12 @@ public enum Platform {
 
     /** Fails fast where the platform restricts which thread may initialize SDL video. */
     public void requireVideoThread() {}
+
+    public void configureNativeLibraries() {}
+
+    public TimestampDriver createTimestampDriver() {
+        throw new UnsupportedOperationException("Native GPU timestamps are not implemented on " + this);
+    }
 
     public void requireImplemented() {
         if (this != MACOS) throw new UnsupportedOperationException("The graphics runtime is not yet ported to " + this);

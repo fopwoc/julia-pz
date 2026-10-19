@@ -217,6 +217,18 @@ public final class BackendInternals {
     }
 
     /** Submit queued uploads before the consuming commands, including when a diagnostic ends a frame early. */
+    public static long timestampCommandBuffer() {
+        ownedBackend().endComputeDispatchBatch();
+        var state = context();
+        var manager = frames();
+        clears().materializeAllPendingClears(state);
+        if (state.pendingSwapchainClear || state.pendingSwapchainDepthClear || state.pendingSwapchainStencilClear)
+            manager.ensureFbo0RenderPass(manager.frame(), state);
+        manager.endRenderPassIfActive(manager.frame());
+        manager.endCopyPassIfActive();
+        return manager.getCommandBuffer();
+    }
+
     public static void submitPendingCommands() {
         try {
             SUBMIT_PENDING_COMMANDS.invokeExact((SDLGPURenderBackend) ownedBackend());

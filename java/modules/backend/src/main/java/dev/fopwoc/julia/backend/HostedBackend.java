@@ -20,6 +20,8 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 import dev.fopwoc.julia.backend.buffer.IndexBufferUploads;
 import dev.fopwoc.julia.backend.diagnostic.ModelDrawTrace;
+import dev.fopwoc.julia.backend.platform.Platform;
+import dev.fopwoc.julia.backend.query.TimerQueries;
 import dev.fopwoc.julia.backend.shader.MatrixUniformUploads;
 import dev.fopwoc.julia.backend.shader.ProgramLinkState;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
@@ -40,6 +42,59 @@ public final class HostedBackend extends SDLGPURenderBackend {
     private final ShaderPrograms shaderPrograms = new ShaderPrograms();
     private final TextureViews textureViews = new TextureViews();
     private final ProgramResourceCache programResources = new ProgramResourceCache();
+
+    private final TimerQueries timerQueries =
+            new TimerQueries(() -> Platform.current().createTimestampDriver());
+
+    @Override
+    public int genQueries() {
+        return timerQueries.generate();
+    }
+
+    @Override
+    public void genQueries(IntBuffer names) {
+        for (int i = names.position(); i < names.limit(); i++) names.put(i, genQueries());
+    }
+
+    @Override
+    public void deleteQueries(int name) {
+        timerQueries.delete(name);
+    }
+
+    @Override
+    public boolean isQuery(int name) {
+        return timerQueries.isQuery(name);
+    }
+
+    @Override
+    public void queryCounter(int name, int target) {
+        timerQueries.timestamp(name, target);
+    }
+
+    @Override
+    public void beginQuery(int target, int name) {
+        timerQueries.begin(target, name);
+    }
+
+    @Override
+    public void endQuery(int target) {
+        timerQueries.end(target);
+    }
+
+    @Override
+    public int getQueryObjecti(int name, int parameter) {
+        return (int) timerQueries.get(name, parameter);
+    }
+
+    @Override
+    public long getQueryObjectui64(int name, int parameter) {
+        return timerQueries.get(name, parameter);
+    }
+
+    @Override
+    public void getQueryObjectui(int name, int parameter, IntBuffer result) {
+        result.put(result.position(), getQueryObjecti(name, parameter));
+    }
 
     public ProgramResourceCache programResources() {
         return programResources;
@@ -431,6 +486,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
     public void shutdown() {
         // The upstream relay is static and would otherwise retain the host callback after device shutdown.
         DebugMessageRelay.setListener(null, 0L, false);
+        timerQueries.close();
         programResources.clear();
         shaderPrograms.close();
         try {

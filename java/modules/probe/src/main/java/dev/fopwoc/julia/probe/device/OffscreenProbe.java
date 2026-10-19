@@ -41,6 +41,7 @@ public final class OffscreenProbe {
         Configuration.SHARED_LIBRARY_EXTRACT_PATH.set(output.resolve("natives").toString());
         var platform = Platform.current();
         platform.requireImplemented();
+        platform.configureNativeLibraries();
         platform.requireVideoThread();
         SDLHints.SDL_SetHint(SDLHints.SDL_HINT_MAC_BACKGROUND_APP, "1");
         Sdl.require(SDLInit.SDL_Init(SDLInit.SDL_INIT_VIDEO), "SDL_Init");

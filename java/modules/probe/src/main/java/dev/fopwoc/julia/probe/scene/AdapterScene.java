@@ -100,6 +100,7 @@ public final class AdapterScene {
             Files.deleteIfExists(output.resolve("resource-checks.txt"));
             InitialFrameChecks.run();
             ResourceChecks.run();
+            TimerQueryChecks.run(output);
             ClientPointerChecks.run();
             ViewChecks.run();
             ProgramResourceChecks.run();

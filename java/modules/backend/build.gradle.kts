@@ -25,7 +25,9 @@ dependencies {
     for (module in listOf("lwjgl", "lwjgl-sdl", "lwjgl-shaderc", "lwjgl-spvc", "lwjgl-opengl")) {
         val coordinates = "org.lwjgl:$module:${libs.versions.lwjgl.get()}"
         api(coordinates)
-        runtimeOnly("$coordinates:$nativeClassifier")
+        if (module != "lwjgl-sdl" || !nativeClassifier.startsWith("natives-macos")) {
+            runtimeOnly("$coordinates:$nativeClassifier")
+        }
     }
     implementation(variantOf(libs.lwjgl3ify) { classifier("dev") }) { isTransitive = false }
 
@@ -39,4 +41,41 @@ dependencies {
     runtimeOnly(libs.log4j.api)
     runtimeOnly(libs.log4j.core)
     runtimeOnly(libs.guava)
+}
+
+
+// Keep the extension and SDL on the same ABI. No private native layout is read from Java.
+if (nativeClassifier.startsWith("natives-macos")) {
+    val nativeRoot = rootProject.layout.projectDirectory.dir("../native/sdl")
+    val nativeBuild = nativeRoot.dir("build")
+    val nativeLibrary = nativeBuild.file("lib/libSDL3Julia.0.dylib")
+    val configureSdl by tasks.registering(Exec::class) {
+        inputs.file(nativeRoot.file("CMakeLists.txt"))
+        outputs.file(nativeBuild.file("CMakeCache.txt"))
+        commandLine("cmake", "-S", nativeRoot.asFile.absolutePath, "-B", nativeBuild.asFile.absolutePath,
+            "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${nativeBuild.dir("lib").asFile.absolutePath}",
+            "-DSDL_HIDAPI_LIBUSB=OFF",
+            "-DCMAKE_OSX_ARCHITECTURES=${if (nativeClassifier.endsWith("arm64")) "arm64" else "x86_64"}")
+    }
+    val buildSdl by tasks.registering(Exec::class) {
+        dependsOn(configureSdl)
+        inputs.file(nativeRoot.file("CMakeLists.txt"))
+        inputs.file(nativeRoot.file("gpu_timestamps.m"))
+        outputs.file(nativeLibrary)
+        commandLine("cmake", "--build", nativeBuild.asFile.absolutePath, "--target", "SDL3-shared", "--parallel", "8")
+    }
+    tasks.processResources {
+        dependsOn(buildSdl)
+        val architecture = if (nativeClassifier.endsWith("arm64")) "arm64" else "x64"
+        inputs.property("nativeLibraryName", "libSDL3Julia.dylib")
+        doFirst {
+            delete(destinationDir.resolve("macos/$architecture/org/lwjgl/sdl/libSDL3.dylib"))
+            delete(destinationDir.resolve("macos/$architecture/org/lwjgl/sdl/libSDL3-Julia.dylib"))
+        }
+        from(nativeLibrary) {
+            into("macos/$architecture/org/lwjgl/sdl")
+            rename { "libSDL3Julia.dylib" }
+        }
+        from(rootProject.file("../licenses/SDL.txt")) { into("META-INF/licenses") }
+    }
 }
