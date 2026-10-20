@@ -4,14 +4,9 @@ local function drawJuliaStatus()
     if screen.versionBtn and not screen.versionBtn:getIsVisible() then return end
 
     local active = JuliaStatus and JuliaStatus.isActive()
-    local text = "Julia inactive"
+    local text = JuliaStatus and JuliaStatus.label() or "Julia inactive"
     local red, green, blue = 0.7, 0.7, 0.7
-    if active then
-        local backend = JuliaStatus.getBackend()
-        if backend == "metal" then backend = "Metal" end
-        text = "Julia active | " .. backend
-        red, green, blue = 0.65, 0.85, 0.7
-    end
+    if active then red, green, blue = 0.65, 0.85, 0.7 end
 
     local height = getTextManager():getFontHeight(UIFont.Small)
     getTextManager():DrawString(UIFont.Small, 12, getCore():getScreenHeight() - height - 8,

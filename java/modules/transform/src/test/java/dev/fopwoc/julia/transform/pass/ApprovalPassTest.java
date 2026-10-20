@@ -85,6 +85,68 @@ class ApprovalPassTest implements Opcodes {
         assertThrows(IllegalArgumentException.class, () -> ApprovalPass.adapt(node));
     }
 
+    @Test
+    void drawsJuliaStatusOverTheApprovalDialogBeforeImGuiRenders() {
+        var node = imguiContext(true);
+        ApprovalPass.adapt(node);
+        var render = node.methods.stream()
+                .filter(m -> m.name.equals("render"))
+                .findFirst()
+                .orElseThrow();
+        var calls = new ArrayList<String>();
+        for (var instruction : render.instructions)
+            if (instruction instanceof MethodInsnNode call) calls.add(call.owner + "." + call.name);
+        assertEquals(
+                List.of(
+                        ApprovalPass.DIALOG + ".draw",
+                        "imgui/ImGui.getForegroundDrawList",
+                        "imgui/ImGui.getIO",
+                        "imgui/ImGuiIO.getDisplaySizeY",
+                        "imgui/ImGui.getTextLineHeight",
+                        "dev/fopwoc/julia/runtime/JuliaStatus.label",
+                        "imgui/ImDrawList.addText",
+                        "imgui/ImGui.render"),
+                calls);
+    }
+
+    @Test
+    void leavesAnUnrecognizedApprovalFrameWithoutAStatusLine() {
+        var node = imguiContext(false);
+        ApprovalPass.adapt(node);
+        for (var method : node.methods)
+            for (var instruction : method.instructions)
+                assertFalse(instruction instanceof MethodInsnNode call && call.name.equals("addText"));
+    }
+
+    /** ZombieBuddy's owned ImGui frame: optional dialog draw, ImGui render, and the two framebuffer-size queries. */
+    private static ClassNode imguiContext(boolean dialogFirst) {
+        var writer = type(ApprovalPass.CONTEXT);
+        var render = writer.visitMethod(ACC_PUBLIC, "render", "(L" + ApprovalPass.DIALOG + ";)V", null, null);
+        render.visitCode();
+        if (dialogFirst) {
+            render.visitVarInsn(ALOAD, 1);
+            render.visitMethodInsn(INVOKEVIRTUAL, ApprovalPass.DIALOG, "draw", "()V", false);
+        }
+        render.visitMethodInsn(INVOKESTATIC, "imgui/ImGui", "render", "()V", false);
+        render.visitInsn(RETURN);
+        render.visitMaxs(1, 2);
+        render.visitEnd();
+        for (String helper : List.of("size", "fontSize")) {
+            var size = writer.visitMethod(ACC_PUBLIC | ACC_STATIC, helper, "(J[I[I)V", null, null);
+            size.visitCode();
+            size.visitVarInsn(LLOAD, 0);
+            size.visitVarInsn(ALOAD, 2);
+            size.visitVarInsn(ALOAD, 3);
+            size.visitMethodInsn(INVOKESTATIC, "org/lwjgl/glfw/GLFW", "glfwGetFramebufferSize", "(J[I[I)V", false);
+            size.visitInsn(RETURN);
+            size.visitMaxs(4, 4);
+            size.visitEnd();
+        }
+        var node = new ClassNode();
+        new ClassReader(writer.toByteArray()).accept(node, 0);
+        return node;
+    }
+
     private static ClassNode frontend(boolean update) {
         var writer = type(ApprovalPass.FRONTEND);
         var pump = writer.visitMethod(
