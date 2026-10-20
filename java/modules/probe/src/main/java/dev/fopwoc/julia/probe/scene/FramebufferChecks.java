@@ -22,6 +22,11 @@ final class FramebufferChecks {
 
     static void run(Path output) throws IOException {
         verified = 0;
+        run(output, GL_DEPTH_COMPONENT32F);
+        run(output, GL_DEPTH_COMPONENT24);
+    }
+
+    private static void run(Path output, int depthFormat) throws IOException {
         Files.deleteIfExists(output.resolve("framebuffers.txt"));
         int[] fbos = new int[5];
         GL45.glCreateFramebuffers(fbos);
@@ -52,7 +57,7 @@ final class FramebufferChecks {
             GL45.glTextureStorage2D(first, 1, GL_RGBA8, 4, 4);
             GL45.glTextureStorage2D(second, 1, GL_RGBA8, 4, 4);
             GL45.glTextureStorage3D(color, 2, GL_RGBA8, 4, 4, 3);
-            GL45.glTextureStorage3D(depth, 1, GL_DEPTH_COMPONENT32F, 4, 4, 3);
+            GL45.glTextureStorage3D(depth, 1, depthFormat, 4, 4, 3);
             GL45.glTextureParameteri(depth, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             GL45.glTextureParameteri(depth, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             for (int i = 0; i < bytes.capacity(); i += 4) {
@@ -213,7 +218,7 @@ final class FramebufferChecks {
             Files.writeString(
                     output.resolve("framebuffers.txt"),
                     "PASS\nverified_pixels=" + verified
-                            + "\nchecks=named creation,bindings,MRT routing,read routing,completeness,array slices,scissor/masks,mips,depth-only clears,slice switching,read-target attachment,invalid state\n");
+                            + "\nchecks=named creation,bindings,MRT routing,read routing,completeness,array slices,scissor/masks,mips,depth-only clears,D24/D32 storage,slice switching,read-target attachment,invalid state\n");
         } finally {
             glUseProgram(0);
             glClearDepth(1);

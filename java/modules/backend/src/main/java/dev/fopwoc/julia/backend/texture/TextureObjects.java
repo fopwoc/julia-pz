@@ -63,7 +63,6 @@ public final class TextureObjects {
         var resources = BackendInternals.resources();
         var views = BackendInternals.views();
         views.beforeAllocation(name);
-        int sdlFormat = TextureUploadFormat.storage(format);
         int sdlType = target == GL_TEXTURE_2D
                 ? SDL_GPU_TEXTURETYPE_2D
                 : target == GL_TEXTURE_3D ? SDL_GPU_TEXTURETYPE_3D : SDL_GPU_TEXTURETYPE_2D_ARRAY;
@@ -71,9 +70,11 @@ public final class TextureObjects {
         // Volume uploads need sampler storage; 2D attachments also need their matching target usage.
         if (TextureUploadFormat.depth(format)) usage |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
         else if (target != GL_TEXTURE_3D) usage |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-        if (!SDL_GPUTextureSupportsFormat(SDLGPUGate.device().getDevice(), sdlFormat, sdlType, usage))
-            throw new UnsupportedOperationException(
-                    "Unsupported immutable texture format/target/usage: " + format + "/" + target + "/" + usage);
+        int requiredUsage = usage;
+        int sdlFormat = TextureStorageFormat.select(
+                format,
+                candidate -> SDL_GPUTextureSupportsFormat(
+                        SDLGPUGate.device().getDevice(), candidate, sdlType, requiredUsage));
         BackendInternals.clears().scrubPendingClearsForTexture(BackendInternals.context(), name);
         resources.releaseTextureHandleForRealloc(name);
         Sdl.require(

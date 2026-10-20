@@ -70,8 +70,8 @@ pipeline reuse, VAO switching, and legacy attribute rebinding. Named-texture che
 array and volume storage, mip levels, integer/float/half-float transfers, padded pixel layouts, byte swapping, and
 draw/upload ordering while preserving texture-unit bindings. Target-binding checks add 112 pixels and four compute
 words for independent 2D/3D/array bindings, save/restore, parameters, mixed samplers, pending clears and deletion.
-Named-framebuffer checks add 240 pixels for MRT/read routing, array slices, mips, scissored/masked clears, and
-depth-only slice switching and depth-tested drawing. These checks do not replace in-game validation.
+Named-framebuffer checks add 480 pixels for MRT/read routing, array slices, mips, scissored/masked clears, and
+depth-only slice switching and depth-tested drawing for D24 and D32 requests. These checks do not replace in-game validation.
 
 The installed PZ and ZombieBuddy archives prepare together with zero blockers; a separate JVM smoke test initializes
 both agents. A Steam launch with both agents reaches the menu and loads a save in local testing. The approval UI's
@@ -79,7 +79,13 @@ separate frame-loop adapter and ViewPoint's setup window are visually confirmed.
 Metal presentation, and ImGui uses the logical target size before final Retina scaling. The latest Steam retry
 passes ViewPoint named-texture initialization. One retry exposed a shared-target binding query in cloud setup; a later
 user run reached `glCreateFramebuffers` in shadow setup. Named framebuffer creation, routing, single-slice attachments
-and clears now pass offscreen checks; this implementation has not yet been retried in Steam.
+and clears pass offscreen checks. The latest user retry passed that call and reached D24 shadow-array allocation.
+Immutable storage now chooses a supported D32 depth representation when D24 is unavailable, preserving the requested
+GL internal format and any stencil aspect; this change passes offscreen drawing/sampling checks but awaits a Steam retry.
+SDL documents [the platform-dependent D24/D32 support requirement](https://wiki.libsdl.org/SDL3/SDL_GPUTextureFormat).
+The same retry also logged a separate sampler-array translation failure: an array of 16 samplers plus two other samplers
+exceeds Metal's direct sampler slots. Array-element reflection/binding and a larger native resource-binding path remain
+unimplemented; this depth fix does not resolve that shader failure.
 ZombieBuddy's standalone native-GL approval executable is outside game preparation and remains rejected if loaded
 into the game JVM.
 
