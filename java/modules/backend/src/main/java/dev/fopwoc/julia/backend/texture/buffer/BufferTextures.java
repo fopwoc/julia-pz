@@ -146,11 +146,13 @@ public final class BufferTextures implements AutoCloseable {
         }
         var resources = BackendInternals.resources();
         long handle = resources.getBufferHandle(buffer);
-        if (handle == 0) throw new IllegalArgumentException("Buffer texture needs allocated GPU buffer storage");
         long actualSize = resources.getBufferSize(buffer);
+        // glTexBuffer accepts an empty store; only an explicit range must be non-empty.
+        if (handle == 0 && (!whole || actualSize != 0))
+            throw new IllegalArgumentException("Buffer texture needs allocated GPU buffer storage");
         long length = whole ? actualSize : size;
         if (offset < 0
-                || length <= 0
+                || (!whole && length <= 0)
                 || offset > actualSize
                 || length > actualSize - offset
                 || offset % alignment() != 0) throw new IllegalArgumentException("Invalid buffer texture range");
@@ -175,17 +177,29 @@ public final class BufferTextures implements AutoCloseable {
     private void refresh(View view) {
         var resources = BackendInternals.resources();
         long handle = view.deleted ? view.bufferHandle : resources.getBufferHandle(view.buffer);
-        if (handle == 0) throw new IllegalStateException("Attached buffer storage disappeared");
-        long identity = driver().identity(handle);
         long length = view.deleted ? view.size : view.whole ? resources.getBufferSize(view.buffer) : view.size;
-        if (identity == view.identity && handle == view.bufferHandle && length == view.size && view.texture != 0)
-            return;
         if (!view.deleted
                 && (view.offset > resources.getBufferSize(view.buffer)
                         || length > resources.getBufferSize(view.buffer) - view.offset))
             throw new IllegalStateException("Buffer reallocation invalidated the attached texture range");
         int texels = Math.toIntExact(Math.min(length / view.format.bytes(), limit()));
-        if (texels == 0) throw new IllegalArgumentException("Buffer texture range contains no complete texel");
+        if (texels == 0) {
+            // GL keeps a zero-width texture here; Metal has no empty texture views, so sampling uses a placeholder.
+            if (view.texture != 0) {
+                driver().release(view.texture);
+                view.texture = 0;
+                BackendInternals.context().samplerBindGen++;
+            }
+            view.identity = 0;
+            view.bufferHandle = handle;
+            view.size = length;
+            view.texels = 0;
+            return;
+        }
+        if (handle == 0) throw new IllegalStateException("Attached buffer storage disappeared");
+        long identity = driver().identity(handle);
+        if (identity == view.identity && handle == view.bufferHandle && length == view.size && view.texture != 0)
+            return;
         long replacement = driver().create(handle, view.format, Math.toIntExact(view.offset), texels);
         driver().release(view.texture);
         view.texture = replacement;
@@ -250,7 +264,7 @@ public final class BufferTextures implements AutoCloseable {
         if (view.buffer == 0) throw new IllegalStateException("Buffer texture has no attached storage");
         if (!view.deleted) refresh(view);
         view.readEpoch = epoch;
-        return view.texture;
+        return view.texels == 0 ? placeholder(Placeholder.of(view.format.samplerType())) : view.texture;
     }
 
     private long placeholder(Placeholder placeholder) {

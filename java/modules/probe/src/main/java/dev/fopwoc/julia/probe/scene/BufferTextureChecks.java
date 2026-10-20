@@ -59,12 +59,13 @@ final class BufferTextureChecks {
             ordering(vertex, target, true);
             vertexStage(target);
             sharedUnit(vertex, target);
+            emptyStore(vertex, target);
             Files.writeString(
                     output.resolve("buffer-textures.txt"),
-                    "PASS\nverified_pixels=3072\nverified_compute_words=4\nlimit_texels="
+                    "PASS\nverified_pixels=3264\nverified_compute_words=4\nlimit_texels="
                             + glGetInteger(GL_MAX_TEXTURE_BUFFER_SIZE) + "\noffset_alignment="
                             + glGetInteger(GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT)
-                            + "\nchecks=ten formats,unsigned 16-bit channels,vertex/fragment/compute,reflection,ranges,updates,reallocation,deletion,pending draws,separate bindings,shared sampler units,million texels\n");
+                            + "\nchecks=ten formats,unsigned 16-bit channels,vertex/fragment/compute,reflection,ranges,updates,reallocation,deletion,pending draws,separate bindings,shared sampler units,empty and sub-texel stores,million texels\n");
         } finally {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_BUFFER, 0);
@@ -358,6 +359,41 @@ final class BufferTextureChecks {
             glDeleteProgram(program);
             glDeleteShader(vertex);
             glDeleteShader(fragment);
+        }
+    }
+
+    /** glTexBuffer accepts stores smaller than one texel; the texture has width zero and reads as zero until it grows. */
+    private static void emptyStore(int vertex, int target) {
+        int program = program(vertex, 2), texture = glGenTextures(), buffer = glGenBuffers();
+        var data = MemoryUtil.memAlloc(8).order(ByteOrder.nativeOrder());
+        data.putShort(0, (short) 51)
+                .putShort(2, (short) 102)
+                .putShort(4, (short) 153)
+                .putShort(6, (short) 0);
+        try {
+            glBindBuffer(GL_TEXTURE_BUFFER, buffer);
+            glBufferData(GL_TEXTURE_BUFFER, 0L, GL_STATIC_DRAW);
+            glBindTexture(GL_TEXTURE_BUFFER, texture);
+            GL31.glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA16UI, buffer);
+            if (glGetTexLevelParameteri(GL_TEXTURE_BUFFER, 0, GL_TEXTURE_WIDTH) != 0)
+                throw new IllegalStateException("Empty buffer texture reported texels");
+            draw(target, 0, 0, 0);
+            glBufferData(GL_TEXTURE_BUFFER, 4L, GL_STATIC_DRAW);
+            if (glGetTexLevelParameteri(GL_TEXTURE_BUFFER, 0, GL_TEXTURE_WIDTH) != 0)
+                throw new IllegalStateException("Sub-texel buffer texture reported texels");
+            draw(target, 0, 0, 0);
+            glBufferData(GL_TEXTURE_BUFFER, data, GL_STATIC_DRAW);
+            if (glGetTexLevelParameteri(GL_TEXTURE_BUFFER, 0, GL_TEXTURE_WIDTH) != 1)
+                throw new IllegalStateException("Grown buffer texture lost its texel");
+            draw(target, 51, 102, 153);
+        } finally {
+            MemoryUtil.memFree(data);
+            glBindBuffer(GL_TEXTURE_BUFFER, 0);
+            glBindTexture(GL_TEXTURE_BUFFER, 0);
+            glDeleteTextures(texture);
+            glDeleteBuffers(buffer);
+            glUseProgram(0);
+            glDeleteProgram(program);
         }
     }
 

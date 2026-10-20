@@ -1,6 +1,7 @@
 package dev.fopwoc.julia.backend.texture.buffer;
 
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL31.*;
 import static org.lwjgl.sdl.SDLGPU.*;
 
 import java.util.List;
@@ -37,6 +38,12 @@ public enum BufferTextureFormat {
 
     public int bytes() {
         return bytes;
+    }
+
+    /** The buffer sampler type that reads this format without conversion. */
+    public int samplerType() {
+        if (name().endsWith("UI")) return GL_UNSIGNED_INT_SAMPLER_BUFFER;
+        return name().endsWith("I") ? GL_INT_SAMPLER_BUFFER : GL_SAMPLER_BUFFER;
     }
 
     public static BufferTextureFormat get(int gl) {
