@@ -10,6 +10,7 @@ public record TextureUploadFormat(int format, int type, int bytes) {
     public static int storage(int format) {
         return switch (format) {
             case GL_R8 -> SDL_GPU_TEXTUREFORMAT_R8_UNORM;
+            case GL_R16 -> SDL_GPU_TEXTUREFORMAT_R16_UNORM;
             case GL_RG8 -> SDL_GPU_TEXTUREFORMAT_R8G8_UNORM;
             case GL_RGB8, GL_RGBA8 -> SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
             case GL_SRGB8_ALPHA8 -> SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM_SRGB;
@@ -58,6 +59,7 @@ public record TextureUploadFormat(int format, int type, int bytes) {
     public static TextureUploadFormat transfer(int storage) {
         return switch (storage) {
             case GL_R8 -> new TextureUploadFormat(GL_RED, GL_UNSIGNED_BYTE, 1);
+            case GL_R16 -> new TextureUploadFormat(GL_RED, GL_UNSIGNED_SHORT, 2);
             case GL_RG8 -> new TextureUploadFormat(GL_RG, GL_UNSIGNED_BYTE, 2);
             case GL_RGB8 -> new TextureUploadFormat(GL_RGB, GL_UNSIGNED_BYTE, 3);
             case GL_RGBA8, GL_SRGB8_ALPHA8 -> new TextureUploadFormat(GL_RGBA, GL_UNSIGNED_BYTE, 4);

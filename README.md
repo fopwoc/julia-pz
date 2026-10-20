@@ -74,7 +74,9 @@ Named-framebuffer checks add 480 pixels for MRT/read routing, array slices, mips
 depth-only slice switching and depth-tested drawing for D24 and D32 requests. Native layer-view checks add 208 pixels
 for shared 2D/array views, nested mip/layer ranges, uploads, clears, depth-tested writes, and parent deletion.
 Program-interface checks add 64 pixels using a reflected uniform location, plus active array sizes, stage usage,
-compute image/bool types, output-buffer bounds and relink invalidation. These checks do not replace in-game validation.
+compute image/bool types, output-buffer bounds and relink invalidation. Short-buffer upload checks add 24 exact
+16-bit values recovered through shader sampling, covering mutable R16 storage, padded stripes, client-memory bounds
+and reuse, independent target bindings, and byte swapping. These checks do not replace in-game validation.
 
 The installed PZ and ZombieBuddy archives prepare together with zero blockers; a separate JVM smoke test initializes
 both agents. A Steam launch with both agents reaches the menu and loads a save in local testing. The approval UI's
@@ -89,7 +91,10 @@ GL43/GL44/ARB texture-view entry points now support same-format 2D/array layer a
 storage views. Shadow-array views, rendering through a view, updates seen from the parent, nested offsets, and storage
 lifetime after source deletion pass offscreen checks. The latest user retry passed view setup and reached the program
 interface query used for per-stage sampler counts. Scalar/array/buffer interface queries and uniform resource metadata
-now use active SPIR-V reflection; this query implementation awaits a Steam retry.
+now use active SPIR-V reflection. The next user retry reached terrain-relief uploads and exposed the missing bound
+`ShortBuffer` texture upload. The 2D typed overload now uses the checked client-upload path, and mutable/named R16
+allocations keep native 16-bit normalized storage instead of the upstream RGBA8 default. This upload fix passes
+windowless checks and awaits a Steam retry.
 SDL documents [the platform-dependent D24/D32 support requirement](https://wiki.libsdl.org/SDL3/SDL_GPUTextureFormat).
 The same retry also logged a separate sampler-array translation failure: an array of 16 samplers plus two other samplers
 exceeds Metal's direct sampler slots. Array-element reflection/binding and a larger native resource-binding path remain
@@ -99,6 +104,7 @@ into the game JVM.
 
 Limits include rejected layered rendering of an entire array/volume, sparse MRT routing, framebuffer-slice readback/blits,
 split depth/stencil images, single-aspect rendering of packed depth/stencil images, and SDL depth slice indices above 255.
+Bound ShortBuffer subimage uploads currently support 2D targets and matching transfer/storage formats.
 Named textures are restricted to 2D, 2D arrays and 3D targets, explicitly supported sized storage formats
 and matching client transfer formats (plus RGB8 promotion and BGRA8 conversion). Client uploads with pixel-unpack
 buffers bound, nonzero named texture base levels and unsupported wrap modes (including clamp-to-border) are rejected.

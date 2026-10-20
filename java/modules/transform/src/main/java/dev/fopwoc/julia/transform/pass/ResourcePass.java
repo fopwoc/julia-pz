@@ -13,6 +13,12 @@ import org.objectweb.asm.tree.MethodInsnNode;
 /** Only the exact observed resource overloads enter the bounded bridge implementations. */
 public final class ResourcePass {
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
+            Map.entry(
+                    "org/lwjgl/opengl/GL11.glTexSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    Endpoint.STATE_MANAGER.owner() + ".glTexSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL43.glGetProgramInterfacei(III)I", Endpoint.PROGRAM_RESOURCE_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL43.glGetProgramInterfaceiv(III[I)V", Endpoint.PROGRAM_RESOURCE_BRIDGE),
             Map.entry(
