@@ -28,7 +28,7 @@ dependencyResolutionManagement {
     }
 }
 
-// Layers, bottom-up: utils → gl-audit → backend → transform → host → probe → zomboid-mod.
+// Layers, bottom-up: utils → gl-audit → backend → transform → host → probe → agent; workshop packages the Lua companion.
 // render-runtime is JDK-only and shared across the host/isolated loader boundary.
 listOf(
     "utils",
@@ -39,7 +39,7 @@ listOf(
     "transform",
     "host",
     "probe",
-    "zomboid-mod",
+    "workshop",
 ).forEach { name ->
     include(name)
     project(":$name").projectDir = file("modules/$name")

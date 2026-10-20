@@ -53,7 +53,7 @@ jobs:
         run: >-
           ./gradlew
           check
-          :zomboid-mod:modZip
+          :workshop:modZip
           :probe:distZip
           :gl-audit:distZip
           :agent:jar
@@ -62,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: julia-mod
-          path: java/modules/zomboid-mod/build/distributions/Julia.zip
+          path: java/modules/workshop/build/distributions/Julia.zip
           retention-days: 7
           if-no-files-found: error
 

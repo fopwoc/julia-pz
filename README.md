@@ -194,7 +194,7 @@ its native timer provider and game-window integration are not implemented yet.
 cd java
 ./gradlew check                    # tests; never launches the game or opens a window
 ./gradlew :agent:jar               # → modules/agent/build/libs/julia-agent.jar
-./gradlew :zomboid-mod:modZip      # → modules/zomboid-mod/build/distributions/Julia.zip (Lua status companion)
+./gradlew :workshop:modZip        # → modules/workshop/build/distributions/Julia.zip (Lua status companion)
 ```
 
 The repository folder is the Lua status companion. Copy it into the PZ `mods` directory as `Julia`, or extract the ZIP.

@@ -44,7 +44,7 @@ jobs:
         run: >-
           ./gradlew
           check
-          :zomboid-mod:modZip
+          :workshop:modZip
           :probe:distZip
           :gl-audit:distZip
           :agent:jar
@@ -52,7 +52,7 @@ jobs:
       - name: Package release artifacts
         run: |
           mkdir -p ../release
-          cp modules/zomboid-mod/build/distributions/Julia.zip "../release/julia-$GITHUB_REF_NAME-mod-macos-arm64.zip"
+          cp modules/workshop/build/distributions/Julia.zip "../release/julia-$GITHUB_REF_NAME-mod.zip"
           cp modules/probe/build/distributions/probe-*.zip "../release/julia-$GITHUB_REF_NAME-probe-macos-arm64.zip"
           cp modules/gl-audit/build/distributions/gl-audit-*.zip "../release/julia-$GITHUB_REF_NAME-gl-audit.zip"
           cp modules/agent/build/libs/julia-agent.jar "../release/julia-$GITHUB_REF_NAME-agent.jar"
