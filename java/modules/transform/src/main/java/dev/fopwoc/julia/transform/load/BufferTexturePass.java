@@ -6,6 +6,7 @@ import dev.fopwoc.julia.transform.Endpoint;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
 /** Pinned integration with SDL sampler binding and buffer-store retirement; no mod-specific behavior. */
@@ -59,7 +60,8 @@ public final class BufferTexturePass {
                         && invoke.owner.equals(STATE)
                         && invoke.name.equals("boundTexture")
                         && invoke.desc.equals("(I)I")) {
-                    method.instructions.set(invoke, call("samplerBinding", "(L" + STATE + ";I)I"));
+                    stageSlot(method, invoke);
+                    method.instructions.set(invoke, call("samplerBinding", "(L" + STATE + ";IIZ)I"));
                     edits++;
                 }
                 if (compute && method.name.equals("bindComputeSamplers")) {
@@ -105,6 +107,37 @@ public final class BufferTexturePass {
         var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         node.accept(writer);
         return writer.toByteArray();
+    }
+
+    /**
+     * Passes the backend slot and stage so a unit shared by several sampler types resolves per sampler. Upstream reads
+     * {@code unit = units[slot]} into a local just before the lookup, and the stage is the method's boolean parameter.
+     */
+    private static void stageSlot(MethodNode method, MethodInsnNode invoke) {
+        if (!method.name.equals("bindStageSamplers"))
+            throw new IllegalStateException("Sampler lookup moved out of bindStageSamplers");
+        var arguments = Type.getArgumentTypes(method.desc);
+        if (arguments.length == 0 || arguments[arguments.length - 1] != Type.BOOLEAN_TYPE)
+            throw new IllegalStateException("Sampler stage parameter changed: " + method.desc);
+        int fragment = (Type.getArgumentsAndReturnSizes(method.desc) >> 2) - 1;
+        if (!(previous(invoke) instanceof VarInsnNode unit && unit.getOpcode() == Opcodes.ILOAD)
+                || !(previous(unit) instanceof VarInsnNode state && state.getOpcode() == Opcodes.ALOAD)
+                || !(previous(state) instanceof VarInsnNode store
+                        && store.getOpcode() == Opcodes.ISTORE
+                        && store.var == unit.var)
+                || !(previous(store) instanceof InsnNode element && element.getOpcode() == Opcodes.IALOAD)
+                || !(previous(element) instanceof VarInsnNode slot && slot.getOpcode() == Opcodes.ILOAD))
+            throw new IllegalStateException("Sampler slot lookup changed in bindStageSamplers");
+        var load = new InsnList();
+        load.add(new VarInsnNode(Opcodes.ILOAD, slot.var));
+        load.add(new VarInsnNode(Opcodes.ILOAD, fragment));
+        method.instructions.insertBefore(invoke, load);
+    }
+
+    private static AbstractInsnNode previous(AbstractInsnNode instruction) {
+        do instruction = instruction.getPrevious();
+        while (instruction != null && instruction.getOpcode() < 0);
+        return instruction;
     }
 
     private static MethodInsnNode call(String name, String descriptor) {

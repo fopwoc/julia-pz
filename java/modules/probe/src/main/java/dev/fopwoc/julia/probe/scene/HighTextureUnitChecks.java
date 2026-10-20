@@ -84,34 +84,13 @@ final class HighTextureUnitChecks {
             glDisable(GL_BLEND);
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_SCISSOR_TEST);
+            // GL rejects shared-unit sampler types; desktop drivers draw and read each target's binding instead.
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, textures[1]);
             glUseProgram(direct);
-            try {
-                glDrawArrays(GL_TRIANGLES, 0, 3);
-                throw new AssertionError("Default-unit sampler conflict accepted");
-            } catch (IllegalStateException expected) {
-                String message = expected.getMessage();
-                if (!message.contains("Different sampler targets share texture unit 0")
-                        || !message.contains("first=0 (default)")
-                        || !message.contains("image=0 (default)")
-                        || !message.contains("second=0 (default)")
-                        || !message.contains("readRecords=0 (default)")
-                        || !message.contains("sampler trace={completed writes=0")
-                        || message.substring(0, message.indexOf("; sampler trace="))
-                                .contains("unused")) throw expected;
-            }
+            verify(target, 60); // Every sampler defaults to unit 0, where no buffer texture is bound.
             glUniform1i(glGetUniformLocation(direct, "image"), 0);
-            try {
-                glDrawArrays(GL_TRIANGLES, 0, 3);
-                throw new AssertionError("Explicit-zero sampler conflict accepted");
-            } catch (IllegalStateException expected) {
-                String message = expected.getMessage();
-                if (message.contains("image=0 (default)")
-                        || !message.contains("image=0")
-                        || !message.contains("first=0 (default)")
-                        || !message.contains("image={writes=1, location=")
-                        || !message.contains("requested=0, stored=0, slot=0")
-                        || !message.contains("first caller=")) throw expected;
-            }
+            verify(target, 60);
             glUniform1i(glGetUniformLocation(direct, "conditionalRecords"), 78);
             glUniform1i(glGetUniformLocation(direct, "image"), 14);
             glUniform1i(glGetUniformLocation(direct, "first"), 78);
@@ -123,23 +102,7 @@ final class HighTextureUnitChecks {
             int selector = glGetUniformLocation(direct, "readRecords");
             glUniform1i(selector, 1);
             glUniform1i(glGetUniformLocation(direct, "first"), 14);
-            try {
-                glDrawArrays(GL_TRIANGLES, 0, 3);
-                throw new AssertionError("Conflicting active sampler targets accepted");
-            } catch (IllegalStateException expected) {
-                String message = expected.getMessage();
-                if (!message.contains("Different sampler targets share texture unit 14")
-                        || !message.contains("first (GL_TEXTURE_BUFFER)")
-                        || !message.contains("image (GL_TEXTURE_2D)")
-                        || !message.contains("first=14")
-                        || !message.contains("second=110")
-                        || !message.contains("readRecords=1")
-                        || !message.contains("first={writes=2, location=")
-                        || !message.contains("requested=14, stored=14, slot=14")
-                        || !message.contains("unusedCube=-1")
-                        || message.substring(0, message.indexOf("; sampler trace="))
-                                .contains("unused")) throw expected;
-            }
+            verify(target, 323); // Unit 14 serves image's 2D texture while first reads its empty buffer binding.
             glUniform1i(glGetUniformLocation(direct, "first"), 78);
             glUniform1i(selector, 0);
             verify(target, 323); // Units 14, 78 and 110 all alias in a 32-bit unit mask.
@@ -186,12 +149,7 @@ final class HighTextureUnitChecks {
             glLinkProgram(direct);
             if (glGetProgrami(direct, GL_LINK_STATUS) == 0) throw new IllegalStateException("Trace relink failed");
             glUseProgram(direct);
-            try {
-                glDrawArrays(GL_TRIANGLES, 0, 3);
-                throw new AssertionError("Relinked default-unit sampler conflict accepted");
-            } catch (IllegalStateException expected) {
-                if (!expected.getMessage().contains("sampler trace={completed writes=0")) throw expected;
-            }
+            verify(target, 60); // Relinking returns every sampler to unit 0.
             glUseProgram(fetch);
             glDeleteTextures(textures[2]);
             textures[2] = 0;
@@ -199,7 +157,7 @@ final class HighTextureUnitChecks {
                 throw new IllegalStateException("Deletion retained high binding");
             Files.writeString(
                     output.resolve("high-texture-units.txt"),
-                    "PASS\nverified_pixels=14\nchecks=bounded sampler assignment history,relink trace reset,runtime branch selectors,conditional vertex buffer reads,unreachable sampler helpers,active target conflicts,128 logical units,32 graphics samplers,units 14/78/96/110/127,direct/argument bindings,buffer-mask aliasing,array uploads,atomic validation,sampler overrides,samplerless argument arrays,binding/unbinding,deletion\n");
+                    "PASS\nverified_pixels=22\nchecks=shared-unit sampler types,relinked default units,runtime branch selectors,conditional vertex buffer reads,unreachable sampler helpers,128 logical units,32 graphics samplers,units 14/78/96/110/127,direct/argument bindings,buffer-mask aliasing,array uploads,atomic validation,sampler overrides,samplerless argument arrays,binding/unbinding,deletion\n");
         } finally {
             glUseProgram(0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);

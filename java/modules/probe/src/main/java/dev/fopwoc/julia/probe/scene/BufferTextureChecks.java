@@ -57,12 +57,13 @@ final class BufferTextureChecks {
             ordering(vertex, target, false);
             ordering(vertex, target, true);
             vertexStage(target);
+            sharedUnit(vertex, target);
             Files.writeString(
                     output.resolve("buffer-textures.txt"),
-                    "PASS\nverified_pixels=2560\nverified_compute_words=4\nlimit_texels="
+                    "PASS\nverified_pixels=2752\nverified_compute_words=4\nlimit_texels="
                             + glGetInteger(GL_MAX_TEXTURE_BUFFER_SIZE) + "\noffset_alignment="
                             + glGetInteger(GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT)
-                            + "\nchecks=nine formats,vertex/fragment/compute,reflection,ranges,updates,reallocation,deletion,pending draws,separate bindings,million texels\n");
+                            + "\nchecks=nine formats,vertex/fragment/compute,reflection,ranges,updates,reallocation,deletion,pending draws,separate bindings,shared sampler units,million texels\n");
         } finally {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_BUFFER, 0);
@@ -288,6 +289,64 @@ final class BufferTextureChecks {
             glUseProgram(0);
             glDeleteProgram(program);
             glDeleteShader(vertex);
+            glDeleteShader(fragment);
+        }
+    }
+
+    /** Desktop drivers draw when sampler types share a unit and read each target's own binding there. */
+    private static void sharedUnit(int vertex, int target) {
+        int fragment = glCreateShader(GL_FRAGMENT_SHADER), program = glCreateProgram();
+        int image = glGenTextures(), texture = glGenTextures(), buffer = glGenBuffers();
+        var pixel = MemoryUtil.memAlloc(4);
+        var data = MemoryUtil.memAlloc(16).order(ByteOrder.nativeOrder());
+        pixel.put(0, (byte) 51).put(1, (byte) 102).put(2, (byte) 153).put(3, (byte) 255);
+        data.putFloat(0, 0.8f).putFloat(4, 0).putFloat(8, 0).putFloat(12, 0);
+        try {
+            glShaderSource(fragment, """
+                    #version 330 core
+                    uniform sampler2D uTexture;
+                    uniform samplerBuffer uData;
+                    uniform isamplerBuffer uIndices;
+                    uniform int uUse;
+                    out vec4 color;
+                    void main() {
+                        color = texture(uTexture, vec2(0.5));
+                        if (uUse != 0) color.r = texelFetch(uData, 0).r;
+                        if (uUse > 1) color.g = float(texelFetch(uIndices, 0).x);
+                    }
+                    """);
+            compile(fragment);
+            glAttachShader(program, vertex);
+            glAttachShader(program, fragment);
+            glLinkProgram(program);
+            if (glGetProgrami(program, GL_LINK_STATUS) == GL_FALSE)
+                throw new IllegalStateException(glGetProgramInfoLog(program));
+            glUseProgram(program);
+            // Only uTexture is assigned; both buffer samplers stay on their default unit 0.
+            glUniform1i(glGetUniformLocation(program, "uTexture"), 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, image);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
+            draw(target, 51, 102, 153);
+            glBindBuffer(GL_TEXTURE_BUFFER, buffer);
+            glBufferData(GL_TEXTURE_BUFFER, data, GL_STATIC_DRAW);
+            glBindTexture(GL_TEXTURE_BUFFER, texture);
+            GL31.glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, buffer);
+            glUniform1i(glGetUniformLocation(program, "uUse"), 1);
+            draw(target, 204, 102, 153);
+        } finally {
+            MemoryUtil.memFree(pixel);
+            MemoryUtil.memFree(data);
+            glBindBuffer(GL_TEXTURE_BUFFER, 0);
+            glBindTexture(GL_TEXTURE_BUFFER, 0);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glDeleteTextures(texture);
+            glDeleteTextures(image);
+            glDeleteBuffers(buffer);
+            glUseProgram(0);
+            glDeleteProgram(program);
             glDeleteShader(fragment);
         }
     }

@@ -3,16 +3,25 @@ package dev.fopwoc.julia.backend.texture.buffer;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL31.*;
 import static org.lwjgl.opengl.GL43.*;
+import static org.lwjgl.sdl.SDLGPU.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import dev.fopwoc.julia.backend.BackendInternals;
 import dev.fopwoc.julia.backend.texture.SamplerLayout;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
+import dev.fopwoc.julia.backend.utils.Sdl;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.WeakHashMap;
 import java.util.function.Supplier;
+import org.lwjgl.sdl.SDL_GPUBufferCreateInfo;
+import org.lwjgl.sdl.SDL_GPUBufferRegion;
+import org.lwjgl.sdl.SDL_GPUTransferBufferCreateInfo;
+import org.lwjgl.sdl.SDL_GPUTransferBufferLocation;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 
 /** GL buffer-texture attachments own views, not copies; replacement follows the buffer object's current store. */
 public final class BufferTextures implements AutoCloseable {
@@ -25,12 +34,40 @@ public final class BufferTextures implements AutoCloseable {
         int texels;
     }
 
+    /** Reserved names below every GL name; one 16-byte texel of the sampler's scalar type. */
+    private enum Placeholder {
+        FLOAT(GL_SAMPLER_BUFFER, BufferTextureFormat.RGBA32F),
+        INT(GL_INT_SAMPLER_BUFFER, BufferTextureFormat.RGBA32I),
+        UNSIGNED(GL_UNSIGNED_INT_SAMPLER_BUFFER, BufferTextureFormat.RGBA32UI);
+        final int type, name = -2 - ordinal();
+        final BufferTextureFormat format;
+
+        Placeholder(int type, BufferTextureFormat format) {
+            this.type = type;
+            this.format = format;
+        }
+
+        static Placeholder of(int type) {
+            for (var placeholder : values()) if (placeholder.type == type) return placeholder;
+            throw new IllegalArgumentException("Not a buffer sampler type: 0x" + Integer.toHexString(type));
+        }
+
+        static Placeholder named(int name) {
+            for (var placeholder : values()) if (placeholder.name == name) return placeholder;
+            return null;
+        }
+    }
+
+    private static final int PLACEHOLDER_BYTES = 16;
+
     private final Supplier<BufferTextureDriver> factory;
     private BufferTextureDriver driver;
     private final HashMap<Integer, View> views = new HashMap<>();
     private final HashSet<Integer> ordinaryTextures = new HashSet<>();
     private final WeakHashMap<ProgramObject, SamplerLayout> layouts = new WeakHashMap<>();
     private final int[] bound = new int[TextureBindings.UNIT_COUNT];
+    private final long[] placeholders = new long[Placeholder.values().length];
+    private long placeholderBuffer;
     private int boundBuffer;
     private int alignment;
     private long epoch;
@@ -94,7 +131,7 @@ public final class BufferTextures implements AutoCloseable {
     }
 
     public boolean contains(int name) {
-        return views.containsKey(name);
+        return views.containsKey(name) || Placeholder.named(name) != null;
     }
 
     public void attach(int name, int format, int buffer, long offset, long size, boolean whole) {
@@ -172,6 +209,7 @@ public final class BufferTextures implements AutoCloseable {
         return layout(program).uniformType(name, fallback);
     }
 
+    /** Unit-keyed binding for paths without sampler identity; an ordinary target wins over buffer samplers. */
     public int samplerBinding(ContextState state, int unit) {
         if (unit < 0 || unit >= bound.length)
             throw new IllegalArgumentException("Sampler texture unit out of range: " + unit);
@@ -179,15 +217,34 @@ public final class BufferTextures implements AutoCloseable {
         var program = state.boundProgramObj;
         if (program == null || !program.linked)
             return BackendInternals.textureBindings().get(state, unit, GL_TEXTURE_2D);
-        if (!layout(program).bufferUnit(program, unit))
-            return BackendInternals.textureBindings()
-                    .get(state, unit, layout(program).ordinaryTarget(program, unit));
+        var layout = layout(program);
+        if (!layout.bufferUnit(program, unit) || layout.hasOrdinaryTarget(program, unit))
+            return BackendInternals.textureBindings().get(state, unit, layout.ordinaryTarget(program, unit));
+        return bufferBinding(unit, layout.bufferType(program, unit));
+    }
+
+    /** Binding for one backend sampler slot, read from its unit's binding for the slot's own target. */
+    public int samplerBinding(ContextState state, int unit, int slot, boolean fragment) {
+        var program = state.boundProgramObj;
+        if (program == null
+                || !program.linked
+                || BackendInternals.textureBindings().samplerOverride(state)) return samplerBinding(state, unit);
+        var layout = layout(program);
+        int target = layout.slotTarget(program, slot, fragment);
+        if (target == 0) return samplerBinding(state, unit);
+        if (target == GL_TEXTURE_BUFFER) return bufferBinding(unit, layout.slotBufferType(program, slot, fragment));
+        return BackendInternals.textureBindings().get(state, unit, target);
+    }
+
+    // GL reads an unbound buffer texture without failing, so typed placeholders stand in for the missing view.
+    private int bufferBinding(int unit, int type) {
         int name = bound[unit];
-        if (name == 0) throw new IllegalStateException("No buffer texture bound to sampler unit " + unit);
-        return name;
+        return name != 0 ? name : Placeholder.of(type).name;
     }
 
     public long samplingHandle(int name) {
+        var placeholder = Placeholder.named(name);
+        if (placeholder != null) return placeholder(placeholder);
         var view = views.get(name);
         if (view == null) throw new IllegalArgumentException("Unknown buffer texture");
         if (view.buffer == 0) throw new IllegalStateException("Buffer texture has no attached storage");
@@ -196,12 +253,61 @@ public final class BufferTextures implements AutoCloseable {
         return view.texture;
     }
 
+    private long placeholder(Placeholder placeholder) {
+        long texture = placeholders[placeholder.ordinal()];
+        if (texture != 0) return texture;
+        if (placeholderBuffer == 0)
+            try (var stack = MemoryStack.stackPush()) {
+                var info = SDL_GPUBufferCreateInfo.calloc(stack)
+                        .usage(SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ)
+                        .size(PLACEHOLDER_BYTES);
+                placeholderBuffer = Sdl.require(SDL_CreateGPUBuffer(device(), info), "Create placeholder buffer");
+                zero(stack, placeholderBuffer);
+            }
+        texture = driver().create(placeholderBuffer, placeholder.format, 0, 1);
+        placeholders[placeholder.ordinal()] = texture;
+        return texture;
+    }
+
+    // Placeholders may be created inside a render pass, so the upload gets its own command buffer, queued ahead of the
+    // frame that samples it.
+    private static void zero(MemoryStack stack, long buffer) {
+        long transfer = Sdl.require(
+                SDL_CreateGPUTransferBuffer(
+                        device(),
+                        SDL_GPUTransferBufferCreateInfo.calloc(stack)
+                                .usage(SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD)
+                                .size(PLACEHOLDER_BYTES)),
+                "Create placeholder transfer buffer");
+        try {
+            var mapped = SDL_MapGPUTransferBuffer(device(), transfer, false, PLACEHOLDER_BYTES);
+            if (mapped == null) throw Sdl.failure("Map placeholder transfer buffer");
+            MemoryUtil.memSet(mapped, 0);
+            SDL_UnmapGPUTransferBuffer(device(), transfer);
+            long commands = Sdl.require(SDL_AcquireGPUCommandBuffer(device()), "Acquire placeholder upload commands");
+            long copy = Sdl.require(SDL_BeginGPUCopyPass(commands), "Begin placeholder upload");
+            SDL_UploadToGPUBuffer(
+                    copy,
+                    SDL_GPUTransferBufferLocation.calloc(stack).transfer_buffer(transfer),
+                    SDL_GPUBufferRegion.calloc(stack).buffer(buffer).size(PLACEHOLDER_BYTES),
+                    false);
+            SDL_EndGPUCopyPass(copy);
+            if (!SDL_SubmitGPUCommandBuffer(commands)) throw Sdl.failure("Submit placeholder upload");
+        } finally {
+            SDL_ReleaseGPUTransferBuffer(device(), transfer);
+        }
+    }
+
+    private static long device() {
+        return SDLGPUGate.device().getDevice();
+    }
+
     public void prepare(ContextState state) {
         var program = state.boundProgramObj;
         if (program == null || !program.linked) return;
         var layout = layout(program);
         for (int unit = layout.nextBufferUnit(program, 0); unit >= 0; unit = layout.nextBufferUnit(program, unit + 1))
-            samplingHandle(samplerBinding(state, unit));
+            if (bound[unit] != 0) samplingHandle(bound[unit]);
     }
 
     public int levelParameter(int name, int level, int parameter) {
@@ -255,6 +361,14 @@ public final class BufferTextures implements AutoCloseable {
     }
 
     public void close() {
+        for (int i = 0; i < placeholders.length; i++) {
+            if (placeholders[i] != 0) driver().release(placeholders[i]);
+            placeholders[i] = 0;
+        }
+        if (placeholderBuffer != 0) {
+            SDL_ReleaseGPUBuffer(device(), placeholderBuffer);
+            placeholderBuffer = 0;
+        }
         for (var view : views.values()) clear(view);
         views.clear();
         layouts.clear();

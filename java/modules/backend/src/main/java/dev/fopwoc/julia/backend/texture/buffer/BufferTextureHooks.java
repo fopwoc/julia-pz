@@ -20,6 +20,10 @@ public final class BufferTextureHooks {
         return BackendInternals.bufferTextures().samplerBinding(state, unit);
     }
 
+    public static int samplerBinding(ContextState state, int unit, int slot, boolean fragment) {
+        return BackendInternals.bufferTextures().samplerBinding(state, unit, slot, fragment);
+    }
+
     public static long samplingHandle(ResourceManager resources, int name) {
         return TextureViewHooks.samplingHandle(resources, name);
     }

@@ -12,6 +12,7 @@ import static org.lwjgl.util.spvc.Spvc.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.sampler.SamplerLookup;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
+import dev.fopwoc.julia.backend.BackendInternals;
 import dev.fopwoc.julia.backend.diagnostic.SamplerFailureState;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -20,17 +21,25 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.spvc.SpvcReflectedResource;
 
-/** Reflected sampler targets and buffer types, cached by compiled stages and sampler-unit assignments. */
+/**
+ * Reflected sampler targets and buffer types, cached by compiled stages and sampler-unit assignments. A unit may serve
+ * several targets at once, as GL keeps one binding per unit and target.
+ */
 public final class SamplerLayout {
+    private static final System.Logger LOG = System.getLogger(SamplerLayout.class.getName());
+
     private final ByteBuffer vertex, fragment, compute;
     private final Map<String, Integer> names = new HashMap<>();
     private final Map<String, Integer> targets = new HashMap<>();
     private final int[] unitTargets = new int[TextureBindings.UNIT_COUNT];
     private int generation = Integer.MIN_VALUE;
+    private final int[] bufferTypes = new int[TextureBindings.UNIT_COUNT];
     private BitSet bufferUnits = new BitSet(TextureBindings.UNIT_COUNT);
+    private boolean warned;
 
     public SamplerLayout(ProgramObject program) {
         vertex = program.vertexSpirv;
@@ -53,9 +62,9 @@ public final class SamplerLayout {
         SamplerLookup.resolvedUnits(program, false);
         if (generation == program.samplerUnitsGeneration) return;
         var buffers = new BitSet(TextureBindings.UNIT_COUNT);
-        var ordinary = new BitSet(TextureBindings.UNIT_COUNT);
         Arrays.fill(unitTargets, 0);
-        var owners = new String[unitTargets.length];
+        Arrays.fill(bufferTypes, 0);
+        var samplers = new TreeMap<Integer, Map<String, Integer>>();
         for (var name : program.allSamplerNames) {
             // Unreachable helpers can retain declarations without an active uniform location.
             if (!program.nameToLocation.containsKey(name)) continue;
@@ -63,25 +72,57 @@ public final class SamplerLayout {
             int unit = assigned == -1 ? 0 : assigned;
             if (unit < 0 || unit >= unitTargets.length)
                 throw new IllegalArgumentException("Sampler texture unit out of range: " + name + "=" + unit
-                        + "; active assignments=" + assignments(program));
-            int target = targets.getOrDefault(name, 0);
-            if (target == 0 && name.endsWith("]"))
-                target = targets.getOrDefault(name.substring(0, name.lastIndexOf('[')), 0);
-            if (target == 0) throw new UnsupportedOperationException("Sampler target reflection missing: " + name);
-            if (unitTargets[unit] != 0 && unitTargets[unit] != target)
-                throw new IllegalStateException("Different sampler targets share texture unit " + unit + ": "
-                        + owners[unit] + " (" + targetName(unitTargets[unit]) + ") and " + name + " ("
-                        + targetName(target) + "); active assignments=" + assignments(program)
-                        + SamplerFailureState.describe(program));
-            unitTargets[unit] = target;
-            owners[unit] = name;
-            if (names.containsKey(name)) buffers.set(unit);
-            else ordinary.set(unit);
+                        + "; active assignments=" + assignments(program) + SamplerFailureState.describe(program));
+            int target = target(name);
+            samplers.computeIfAbsent(unit, ignored -> new TreeMap<>()).put(name, target);
+            if (target == GL_TEXTURE_BUFFER) {
+                buffers.set(unit);
+                if (bufferTypes[unit] == 0) bufferTypes[unit] = names.get(baseName(name));
+            } else if (unitTargets[unit] == 0) unitTargets[unit] = target;
         }
-        if (buffers.intersects(ordinary))
-            throw new IllegalStateException("Different sampler types share a texture unit");
+        if (!warned) {
+            var shared = samplers.entrySet().stream()
+                    .filter(unit -> unit.getValue().values().stream().distinct().count() > 1)
+                    .map(unit -> unit.getKey() + ": "
+                            + unit.getValue().entrySet().stream()
+                                    .map(sampler -> sampler.getKey() + " (" + targetName(sampler.getValue()) + ")")
+                                    .collect(Collectors.joining(", ")))
+                    .collect(Collectors.joining("; "));
+            if (!shared.isEmpty()) {
+                // GL makes such draws INVALID_OPERATION; desktop drivers draw anyway and read each target's binding.
+                warned = true;
+                LOG.log(
+                        System.Logger.Level.WARNING,
+                        "Program {0} shares texture units between sampler types, binding each by target: {1}",
+                        BackendInternals.context().boundProgram,
+                        shared);
+            }
+        }
         bufferUnits = buffers;
         generation = program.samplerUnitsGeneration;
+    }
+
+    /** The GL target a backend sampler slot reads, or 0 for a slot without a reflected name. */
+    public int slotTarget(ProgramObject program, int slot, boolean fragment) {
+        var stage = fragment ? program.fragmentSamplerNames : program.vertexSamplerNames;
+        return slot < stage.size() ? target(stage.get(slot)) : 0;
+    }
+
+    /** The GL sampler type of a buffer-texture slot. */
+    public int slotBufferType(ProgramObject program, int slot, boolean fragment) {
+        var stage = fragment ? program.fragmentSamplerNames : program.vertexSamplerNames;
+        return names.get(baseName(stage.get(slot)));
+    }
+
+    private int target(String name) {
+        int target = targets.getOrDefault(name, 0);
+        if (target == 0) target = targets.getOrDefault(baseName(name), 0);
+        if (target == 0) throw new UnsupportedOperationException("Sampler target reflection missing: " + name);
+        return target;
+    }
+
+    private static String baseName(String name) {
+        return name.endsWith("]") ? name.substring(0, name.lastIndexOf('[')) : name;
     }
 
     private Map<String, String> assignments(ProgramObject program) {
@@ -119,6 +160,17 @@ public final class SamplerLayout {
     public int nextBufferUnit(ProgramObject program, int from) {
         refreshUnits(program);
         return bufferUnits.nextSetBit(from);
+    }
+
+    /** The sampler type of the first buffer sampler on a unit, or 0 when the unit has none. */
+    public int bufferType(ProgramObject program, int unit) {
+        refreshUnits(program);
+        return bufferTypes[unit];
+    }
+
+    public boolean hasOrdinaryTarget(ProgramObject program, int unit) {
+        refreshUnits(program);
+        return unitTargets[unit] != 0;
     }
 
     public int ordinaryTarget(ProgramObject program, int unit) {
