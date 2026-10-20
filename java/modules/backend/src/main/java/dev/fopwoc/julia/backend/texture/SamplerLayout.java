@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.spvc.SpvcReflectedResource;
 
@@ -53,21 +54,25 @@ public final class SamplerLayout {
         var buffers = new BitSet(TextureBindings.UNIT_COUNT);
         var ordinary = new BitSet(TextureBindings.UNIT_COUNT);
         Arrays.fill(unitTargets, 0);
+        var owners = new String[unitTargets.length];
         for (var name : program.allSamplerNames) {
             // Unreachable helpers can retain declarations without an active uniform location.
             if (!program.nameToLocation.containsKey(name)) continue;
             int assigned = program.samplerTextureUnits.getInt(name);
             int unit = assigned == -1 ? 0 : assigned;
             if (unit < 0 || unit >= unitTargets.length)
-                throw new IllegalArgumentException("Sampler texture unit out of range: " + unit);
+                throw new IllegalArgumentException("Sampler texture unit out of range: " + name + "=" + unit
+                        + "; active assignments=" + assignments(program));
             int target = targets.getOrDefault(name, 0);
             if (target == 0 && name.endsWith("]"))
                 target = targets.getOrDefault(name.substring(0, name.lastIndexOf('[')), 0);
             if (target == 0) throw new UnsupportedOperationException("Sampler target reflection missing: " + name);
             if (unitTargets[unit] != 0 && unitTargets[unit] != target)
-                throw new IllegalStateException("Different sampler targets share texture unit " + unit + ": " + name
-                        + " uses " + target + ", already " + unitTargets[unit]);
+                throw new IllegalStateException("Different sampler targets share texture unit " + unit + ": "
+                        + owners[unit] + " (" + targetName(unitTargets[unit]) + ") and " + name + " ("
+                        + targetName(target) + "); active assignments=" + assignments(program));
             unitTargets[unit] = target;
+            owners[unit] = name;
             if (names.containsKey(name)) buffers.set(unit);
             else ordinary.set(unit);
         }
@@ -75,6 +80,33 @@ public final class SamplerLayout {
             throw new IllegalStateException("Different sampler types share a texture unit");
         bufferUnits = buffers;
         generation = program.samplerUnitsGeneration;
+    }
+
+    private Map<String, String> assignments(ProgramObject program) {
+        var result = new TreeMap<String, String>();
+        for (var name : program.allSamplerNames) {
+            if (!program.nameToLocation.containsKey(name)) continue;
+            int unit = program.samplerTextureUnits.getInt(name);
+            result.put(name, unit == -1 ? "0 (default)" : Integer.toString(unit));
+        }
+        return result;
+    }
+
+    private static String targetName(int target) {
+        return switch (target) {
+            case GL_TEXTURE_1D -> "GL_TEXTURE_1D";
+            case GL_TEXTURE_2D -> "GL_TEXTURE_2D";
+            case GL_TEXTURE_3D -> "GL_TEXTURE_3D";
+            case GL_TEXTURE_BUFFER -> "GL_TEXTURE_BUFFER";
+            case GL_TEXTURE_1D_ARRAY -> "GL_TEXTURE_1D_ARRAY";
+            case GL_TEXTURE_2D_ARRAY -> "GL_TEXTURE_2D_ARRAY";
+            case GL_TEXTURE_CUBE_MAP -> "GL_TEXTURE_CUBE_MAP";
+            case GL_TEXTURE_CUBE_MAP_ARRAY -> "GL_TEXTURE_CUBE_MAP_ARRAY";
+            case GL_TEXTURE_RECTANGLE -> "GL_TEXTURE_RECTANGLE";
+            case GL_TEXTURE_2D_MULTISAMPLE -> "GL_TEXTURE_2D_MULTISAMPLE";
+            case GL_TEXTURE_2D_MULTISAMPLE_ARRAY -> "GL_TEXTURE_2D_MULTISAMPLE_ARRAY";
+            default -> throw new IllegalArgumentException("Unknown sampler target: " + target);
+        };
     }
 
     public boolean bufferUnit(ProgramObject program, int unit) {

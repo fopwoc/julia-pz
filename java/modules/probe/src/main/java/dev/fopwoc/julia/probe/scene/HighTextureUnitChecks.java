@@ -85,6 +85,17 @@ final class HighTextureUnitChecks {
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_SCISSOR_TEST);
             glUseProgram(direct);
+            try {
+                glDrawArrays(GL_TRIANGLES, 0, 3);
+                throw new AssertionError("Default-unit sampler conflict accepted");
+            } catch (IllegalStateException expected) {
+                String message = expected.getMessage();
+                if (!message.contains("Different sampler targets share texture unit 0")
+                        || !message.contains("first=0 (default)")
+                        || !message.contains("image=0 (default)")
+                        || !message.contains("second=0 (default)")
+                        || message.contains("unused")) throw expected;
+            }
             glUniform1i(glGetUniformLocation(direct, "image"), 14);
             glUniform1i(glGetUniformLocation(direct, "first"), 78);
             glUniform1i(glGetUniformLocation(direct, "second"), 110);
@@ -97,7 +108,13 @@ final class HighTextureUnitChecks {
                 glDrawArrays(GL_TRIANGLES, 0, 3);
                 throw new AssertionError("Conflicting active sampler targets accepted");
             } catch (IllegalStateException expected) {
-                if (!expected.getMessage().contains("Different sampler targets share texture unit 14")) throw expected;
+                String message = expected.getMessage();
+                if (!message.contains("Different sampler targets share texture unit 14")
+                        || !message.contains("first (GL_TEXTURE_BUFFER)")
+                        || !message.contains("image (GL_TEXTURE_2D)")
+                        || !message.contains("first=14")
+                        || !message.contains("second=110")
+                        || message.contains("unused")) throw expected;
             }
             glUniform1i(glGetUniformLocation(direct, "first"), 78);
             verify(target, 323); // Units 14, 78 and 110 all alias in a 32-bit unit mask.

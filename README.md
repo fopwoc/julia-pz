@@ -262,3 +262,9 @@ Sampler binding validation excludes inactive uniforms retained only by unreachab
 keep their normal `-1` uniform locations and do not request buffer-texture storage or conflict with active samplers
 at default unit zero. Windowless checks cover unused cube, buffer and array samplers in both direct and argument-buffer
 layouts, while conflicting active sampler targets still fail with the unit, sampler name and target details.
+
+The next manual retry still reports a texture-unit-zero conflict between a buffer sampler and `uTexture`. This is
+an active-sampler validation failure, not yet a confirmed translation fix. Fatal diagnostics now identify both
+sampler names and targets and list every active unit assignment, distinguishing an unset default-zero assignment
+from an explicit assignment. Windowless checks verify both default-zero and explicitly assigned conflicts retain
+fail-fast behavior and omit inactive declarations from the report.
