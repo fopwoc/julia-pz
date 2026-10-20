@@ -1,27 +1,35 @@
 package dev.fopwoc.julia.transform.load;
 
 import dev.fopwoc.julia.transform.Endpoint;
+import dev.fopwoc.julia.transform.asm.Anchors;
+import java.util.Set;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
 /** Pinned framebuffer slice metadata participates in render-pass creation and structural equivalence. */
-public final class FramebufferPass {
+public final class FramebufferPass implements UpstreamPatch {
     private static final String ROOT = "com.gtnewhorizons.angelica.sdlgpu.";
+    private static final Set<String> TARGETS = Set.of(
+            ROOT + "resource.FboState",
+            ROOT + "resource.FBOClearTracker",
+            ROOT + "pipeline.PipelineApplier",
+            ROOT + "frame.FrameManager");
     private static final String FBO = ROOT.replace('.', '/') + "resource/FboState";
     private static final String FRAMES = ROOT.replace('.', '/') + "frame/FrameManager";
     private static final String RESOURCE = ROOT.replace('.', '/') + "resource/ResourceManager";
     private static final String CONTEXT = ROOT.replace('.', '/') + "frame/ContextState";
 
-    private FramebufferPass() {}
+    @Override
+    public boolean targets(String name) {
+        return TARGETS.contains(name);
+    }
 
-    public static byte[] adapt(String name, byte[] bytes) {
+    @Override
+    public boolean apply(String name, ClassNode node) {
         boolean fbo = name.equals(ROOT + "resource.FboState"),
                 clears = name.equals(ROOT + "resource.FBOClearTracker"),
                 pipeline = name.equals(ROOT + "pipeline.PipelineApplier");
         boolean frames = name.equals(ROOT + "frame.FrameManager");
-        if (!fbo && !clears && !pipeline && !frames) return bytes;
-        var node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
         int edits = 0;
         for (var method : node.methods) {
             if (frames && method.name.equals("beginRenderPass")) {
@@ -98,11 +106,8 @@ public final class FramebufferPass {
                 }
             }
         }
-        if (edits != (pipeline ? 3 : clears ? 2 : 1))
-            throw new IllegalStateException("Framebuffer slice integration changed: " + name + " anchors=" + edits);
-        var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        node.accept(writer);
-        return writer.toByteArray();
+        Anchors.require("framebuffer slice integration in " + name, edits, pipeline ? 3 : clears ? 2 : 1);
+        return true;
     }
 
     private static MethodInsnNode call(String name, String desc) {

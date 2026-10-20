@@ -1,6 +1,7 @@
 package dev.fopwoc.julia.transform.pass;
 
 import dev.fopwoc.julia.transform.Endpoint;
+import dev.fopwoc.julia.transform.asm.Anchors;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.LdcInsnNode;
@@ -18,8 +19,7 @@ public final class TextureAllocationPass {
                         || !call.name.equals("glTexImage3D")
                         || !call.desc.equals("(IIIIIIIIIJ)V")
                         || call.getOpcode() != Opcodes.INVOKESTATIC) continue;
-                var pointer = call.getPrevious();
-                while (pointer != null && pointer.getOpcode() == -1) pointer = pointer.getPrevious();
+                var pointer = Anchors.previous(call);
                 if (pointer != null
                         && (pointer.getOpcode() == Opcodes.LCONST_0
                                 || pointer instanceof LdcInsnNode constant

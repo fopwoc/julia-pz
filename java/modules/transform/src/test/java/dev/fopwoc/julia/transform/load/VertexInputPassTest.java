@@ -18,7 +18,7 @@ class VertexInputPassTest {
     @Test
     void typesDisabledAttributesByTheirShaderInput() throws IOException {
         var adapted = new ClassNode();
-        new ClassReader(VertexInputPass.adapt(CACHE, bytes())).accept(adapted, 0);
+        new ClassReader(new VertexInputPass().adapt(CACHE, bytes())).accept(adapted, 0);
         var method = adapted.methods.stream()
                 .filter(m -> m.name.equals("buildVertexInput"))
                 .findFirst()

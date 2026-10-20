@@ -1,14 +1,13 @@
 package dev.fopwoc.julia.transform.load;
 
 import dev.fopwoc.julia.transform.Endpoint;
+import dev.fopwoc.julia.transform.asm.Anchors;
 import java.util.Set;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
 /** Select the operation target before GLSM consults its single-binding cache; queries use logical state. */
-public final class TextureBindingPass {
+public final class TextureBindingPass implements UpstreamPatch {
     private static final Set<String> OPERATIONS = Set.of(
             "glTexParameteri",
             "glTexParameterf",
@@ -41,12 +40,13 @@ public final class TextureBindingPass {
             "glCompressedTexSubImage2D",
             "glCompressedTexSubImage3D");
 
-    private TextureBindingPass() {}
+    @Override
+    public boolean targets(String name) {
+        return name.equals("com.gtnewhorizons.angelica.glsm.GLStateManager");
+    }
 
-    public static byte[] adapt(String name, byte[] bytes) {
-        if (!name.equals("com.gtnewhorizons.angelica.glsm.GLStateManager")) return bytes;
-        var node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
+    @Override
+    public boolean apply(String name, ClassNode node) {
         int selected = 0, queries = 0, deletes = 0;
         for (var method : node.methods) {
             if (OPERATIONS.contains(method.name)
@@ -81,12 +81,10 @@ public final class TextureBindingPass {
                 deletes++;
             }
         }
-        if (selected != 30 || queries != 1 || deletes != 1)
-            throw new IllegalStateException(
-                    "Texture-binding integration changed: " + selected + "," + queries + "," + deletes);
-        var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        node.accept(writer);
-        return writer.toByteArray();
+        Anchors.require("texture-target selection", selected, 30);
+        Anchors.require("texture binding query", queries, 1);
+        Anchors.require("texture deletion", deletes, 1);
+        return true;
     }
 
     private static MethodInsnNode call(String name, String descriptor) {

@@ -1,28 +1,35 @@
 package dev.fopwoc.julia.transform.load;
 
 import dev.fopwoc.julia.transform.Endpoint;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
+import dev.fopwoc.julia.transform.asm.Anchors;
+import java.util.Set;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
 /** Pinned integration points for ownership and sampler preparation inside the published backend. */
-public final class TextureViewPass {
+public final class TextureViewPass implements UpstreamPatch {
     private static final String ROOT = "com.gtnewhorizons.angelica.sdlgpu.";
+    private static final Set<String> TARGETS = Set.of(
+            "com.gtnewhorizons.angelica.glsm.GLStateManager",
+            ROOT + "resource.ResourceManager",
+            ROOT + "pipeline.PipelineApplier",
+            ROOT + "sampler.SamplerBinder",
+            ROOT + "resource.FBOClearTracker");
     private static final String RESOURCE = ROOT.replace('.', '/') + "resource/ResourceManager";
     private static final String STATE = ROOT.replace('.', '/') + "frame/ContextState";
 
-    private TextureViewPass() {}
+    @Override
+    public boolean targets(String name) {
+        return TARGETS.contains(name);
+    }
 
-    public static byte[] adapt(String name, byte[] bytes) {
+    @Override
+    public boolean apply(String name, ClassNode node) {
         boolean glsm = name.equals("com.gtnewhorizons.angelica.glsm.GLStateManager");
         boolean resource = name.equals(ROOT + "resource.ResourceManager");
         boolean pipeline = name.equals(ROOT + "pipeline.PipelineApplier");
         boolean sampler = name.equals(ROOT + "sampler.SamplerBinder");
         boolean clears = name.equals(ROOT + "resource.FBOClearTracker");
-        if (!glsm && !resource && !pipeline && !sampler && !clears) return bytes;
-        var node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
         int edits = 0;
         for (var method : node.methods) {
             if (clears
@@ -96,13 +103,8 @@ public final class TextureViewPass {
                     }
                 }
         }
-        int expected = resource ? 3 : clears ? 2 : 1;
-        if (edits != expected)
-            throw new IllegalStateException(
-                    "Texture-view integration changed: " + name + " has " + edits + " anchors, expected " + expected);
-        var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        node.accept(writer);
-        return writer.toByteArray();
+        Anchors.require("texture-view integration in " + name, edits, resource ? 3 : clears ? 2 : 1);
+        return true;
     }
 
     private static MethodInsnNode call(String name, String descriptor) {

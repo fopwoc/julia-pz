@@ -1,23 +1,7 @@
 package dev.fopwoc.julia.host;
 
-import dev.fopwoc.julia.transform.load.BufferTexturePass;
-import dev.fopwoc.julia.transform.load.CompatShaderPass;
-import dev.fopwoc.julia.transform.load.FrameContinuityPass;
-import dev.fopwoc.julia.transform.load.FramebufferPass;
-import dev.fopwoc.julia.transform.load.LegacyNamespacePass;
-import dev.fopwoc.julia.transform.load.QuadIndexUploadPass;
-import dev.fopwoc.julia.transform.load.SamplerBindingPass;
-import dev.fopwoc.julia.transform.load.SamplerResourcePass;
 import dev.fopwoc.julia.transform.load.SceneTransform;
-import dev.fopwoc.julia.transform.load.ShaderSourcePass;
-import dev.fopwoc.julia.transform.load.StencilReferencePass;
-import dev.fopwoc.julia.transform.load.StrictQueryPass;
-import dev.fopwoc.julia.transform.load.TextureBindingPass;
-import dev.fopwoc.julia.transform.load.TextureFormatPass;
-import dev.fopwoc.julia.transform.load.TextureUploadOrderPass;
-import dev.fopwoc.julia.transform.load.TextureViewPass;
-import dev.fopwoc.julia.transform.load.VertexInputPass;
-import dev.fopwoc.julia.transform.load.WindowQueryPass;
+import dev.fopwoc.julia.transform.load.UpstreamPatches;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -59,23 +43,7 @@ final class RuntimeLoader extends URLClassLoader {
                 LOG.log(System.Logger.Level.DEBUG, "Redirecting scene {0}", name);
                 bytes = SceneTransform.adapt(bytes);
             }
-            bytes = LegacyNamespacePass.adapt(name, bytes);
-            bytes = WindowQueryPass.adapt(name, bytes);
-            bytes = StrictQueryPass.adapt(name, bytes);
-            bytes = FramebufferPass.adapt(name, bytes);
-            bytes = TextureBindingPass.adapt(name, bytes);
-            bytes = TextureUploadOrderPass.adapt(name, bytes);
-            bytes = TextureFormatPass.adapt(name, bytes);
-            bytes = TextureViewPass.adapt(name, bytes);
-            bytes = BufferTexturePass.adapt(name, bytes);
-            bytes = SamplerBindingPass.adapt(name, bytes);
-            bytes = SamplerResourcePass.adapt(name, bytes);
-            bytes = VertexInputPass.adapt(name, bytes);
-            bytes = ShaderSourcePass.adapt(name, bytes);
-            bytes = CompatShaderPass.adapt(name, bytes);
-            bytes = FrameContinuityPass.adapt(name, bytes);
-            bytes = QuadIndexUploadPass.adapt(name, bytes);
-            bytes = StencilReferencePass.adapt(name, bytes);
+            bytes = UpstreamPatches.apply(name, bytes);
             return defineClass(name, bytes, 0, bytes.length);
         } catch (IOException | RuntimeException failure) {
             throw new ClassNotFoundException(name, failure);

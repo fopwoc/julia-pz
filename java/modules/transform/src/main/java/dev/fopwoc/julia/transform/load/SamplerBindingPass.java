@@ -1,15 +1,21 @@
 package dev.fopwoc.julia.transform.load;
 
 import dev.fopwoc.julia.transform.Endpoint;
+import dev.fopwoc.julia.transform.asm.Anchors;
 import java.util.Map;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
+import java.util.Set;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
 /** Target-aware clears, moved/storage samplers and vertex-write capture with scoped replay bindings. */
-public final class SamplerBindingPass {
+public final class SamplerBindingPass implements UpstreamPatch {
     private static final String ROOT = "com.gtnewhorizons.angelica.sdlgpu.";
+    private static final Set<String> TARGETS = Set.of(
+            ROOT + "resource.FBOClearTracker",
+            ROOT + "sampler.StorageTextureBinder",
+            ROOT + "sampler.MovedSamplerCopies",
+            ROOT + "compute.VertexWriteReplayer",
+            ROOT + "compute.ComputeBinder");
     private static final String STATE = ROOT.replace('.', '/') + "frame/ContextState";
     private static final Map<String, Integer> READS = Map.of(
             ROOT + "resource.FBOClearTracker",
@@ -19,15 +25,16 @@ public final class SamplerBindingPass {
             ROOT + "sampler.MovedSamplerCopies",
             3);
 
-    private SamplerBindingPass() {}
+    @Override
+    public boolean targets(String name) {
+        return TARGETS.contains(name);
+    }
 
-    public static byte[] adapt(String name, byte[] bytes) {
+    @Override
+    public boolean apply(String name, ClassNode node) {
         boolean capture = name.equals(ROOT + "compute.VertexWriteReplayer"),
                 compute = name.equals(ROOT + "compute.ComputeBinder");
         Integer count = READS.get(name);
-        if (count == null && !capture && !compute) return bytes;
-        var node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
         int edits = 0;
         for (var method : node.methods) {
             if (compute && method.name.equals("setSamplerOverrides") && method.desc.equals("([J)V")) {
@@ -65,13 +72,8 @@ public final class SamplerBindingPass {
                 }
             }
         }
-        int expected = count == null ? 1 : count;
-        if (edits != expected)
-            throw new IllegalStateException(
-                    "Sampler binding integration changed: " + name + " anchors=" + edits + " expected=" + expected);
-        var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        node.accept(writer);
-        return writer.toByteArray();
+        Anchors.require("sampler binding integration in " + name, edits, count == null ? 1 : count);
+        return true;
     }
 
     private static MethodInsnNode sampler() {

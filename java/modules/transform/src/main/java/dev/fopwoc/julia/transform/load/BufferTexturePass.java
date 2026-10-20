@@ -3,29 +3,36 @@ package dev.fopwoc.julia.transform.load;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
 
 import dev.fopwoc.julia.transform.Endpoint;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
+import dev.fopwoc.julia.transform.asm.Anchors;
+import java.util.Set;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
 /** Pinned integration with SDL sampler binding and buffer-store retirement; no mod-specific behavior. */
-public final class BufferTexturePass {
+public final class BufferTexturePass implements UpstreamPatch {
     private static final String ROOT = "com.gtnewhorizons.angelica.sdlgpu.";
+    private static final Set<String> TARGETS = Set.of(
+            ROOT + "frame.ContextState",
+            ROOT + "resource.ResourceManager",
+            ROOT + "sampler.SamplerBinder",
+            ROOT + "compute.ComputeBinder",
+            ROOT + "shader.msl.MslCrossCompile");
     private static final String STATE = ROOT.replace('.', '/') + "frame/ContextState";
     private static final String RESOURCE = ROOT.replace('.', '/') + "resource/ResourceManager";
 
-    private BufferTexturePass() {}
+    @Override
+    public boolean targets(String name) {
+        return TARGETS.contains(name);
+    }
 
-    public static byte[] adapt(String name, byte[] bytes) {
+    @Override
+    public boolean apply(String name, ClassNode node) {
         boolean context = name.equals(ROOT + "frame.ContextState");
         boolean resource = name.equals(ROOT + "resource.ResourceManager");
         boolean samplers = name.equals(ROOT + "sampler.SamplerBinder");
         boolean compute = name.equals(ROOT + "compute.ComputeBinder");
         boolean msl = name.equals(ROOT + "shader.msl.MslCrossCompile");
-        if (!context && !resource && !samplers && !compute && !msl) return bytes;
-        var node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
         int edits = 0;
         for (var method : node.methods) {
             if (context && method.name.equals("getBoundBuffer") && method.desc.equals("(I)I")) {
@@ -100,13 +107,8 @@ public final class BufferTexturePass {
                 }
             }
         }
-        int expected = compute ? 2 : msl ? 3 : 1;
-        if (edits != expected)
-            throw new IllegalStateException(
-                    "Buffer-texture integration changed: " + name + " has " + edits + " anchors, expected " + expected);
-        var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        node.accept(writer);
-        return writer.toByteArray();
+        Anchors.require("buffer-texture integration in " + name, edits, compute ? 2 : msl ? 3 : 1);
+        return true;
     }
 
     /**
@@ -120,24 +122,18 @@ public final class BufferTexturePass {
         if (arguments.length == 0 || arguments[arguments.length - 1] != Type.BOOLEAN_TYPE)
             throw new IllegalStateException("Sampler stage parameter changed: " + method.desc);
         int fragment = (Type.getArgumentsAndReturnSizes(method.desc) >> 2) - 1;
-        if (!(previous(invoke) instanceof VarInsnNode unit && unit.getOpcode() == Opcodes.ILOAD)
-                || !(previous(unit) instanceof VarInsnNode state && state.getOpcode() == Opcodes.ALOAD)
-                || !(previous(state) instanceof VarInsnNode store
+        if (!(Anchors.previous(invoke) instanceof VarInsnNode unit && unit.getOpcode() == Opcodes.ILOAD)
+                || !(Anchors.previous(unit) instanceof VarInsnNode state && state.getOpcode() == Opcodes.ALOAD)
+                || !(Anchors.previous(state) instanceof VarInsnNode store
                         && store.getOpcode() == Opcodes.ISTORE
                         && store.var == unit.var)
-                || !(previous(store) instanceof InsnNode element && element.getOpcode() == Opcodes.IALOAD)
-                || !(previous(element) instanceof VarInsnNode slot && slot.getOpcode() == Opcodes.ILOAD))
+                || !(Anchors.previous(store) instanceof InsnNode element && element.getOpcode() == Opcodes.IALOAD)
+                || !(Anchors.previous(element) instanceof VarInsnNode slot && slot.getOpcode() == Opcodes.ILOAD))
             throw new IllegalStateException("Sampler slot lookup changed in bindStageSamplers");
         var load = new InsnList();
         load.add(new VarInsnNode(Opcodes.ILOAD, slot.var));
         load.add(new VarInsnNode(Opcodes.ILOAD, fragment));
         method.instructions.insertBefore(invoke, load);
-    }
-
-    private static AbstractInsnNode previous(AbstractInsnNode instruction) {
-        do instruction = instruction.getPrevious();
-        while (instruction != null && instruction.getOpcode() < 0);
-        return instruction;
     }
 
     private static MethodInsnNode call(String name, String descriptor) {

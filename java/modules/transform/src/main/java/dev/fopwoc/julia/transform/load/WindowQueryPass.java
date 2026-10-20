@@ -1,8 +1,6 @@
 package dev.fopwoc.julia.transform.load;
 
 import java.util.Set;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -11,7 +9,7 @@ import org.objectweb.asm.tree.MethodInsnNode;
  * Points the SDL backend's display queries at Julia's borrowed-window binding. GLFW and its input implementation stay
  * game-owned; nothing else in {@code Display} is touched.
  */
-public final class WindowQueryPass {
+public final class WindowQueryPass implements UpstreamPatch {
     /** Platform-independent binding of the borrowed SDL window. */
     public static final String HOST_WINDOW = "dev/fopwoc/julia/backend/window/HostWindow";
 
@@ -20,12 +18,13 @@ public final class WindowQueryPass {
     private static final String DISPLAY = "org/lwjglx/opengl/Display";
     private static final Set<String> QUERIES = Set.of("getWindow()J", "getWidth()I", "getHeight()I", "wasResized()Z");
 
-    private WindowQueryPass() {}
+    @Override
+    public boolean targets(String className) {
+        return CLASSES.contains(className);
+    }
 
-    public static byte[] adapt(String className, byte[] bytes) {
-        if (!CLASSES.contains(className)) return bytes;
-        var node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
+    @Override
+    public boolean apply(String className, ClassNode node) {
         boolean changed = false;
         for (var method : node.methods) {
             for (var instruction : method.instructions.toArray()) {
@@ -46,9 +45,6 @@ public final class WindowQueryPass {
                 }
             }
         }
-        if (!changed) return bytes;
-        var writer = new ClassWriter(0);
-        node.accept(writer);
-        return writer.toByteArray();
+        return changed;
     }
 }

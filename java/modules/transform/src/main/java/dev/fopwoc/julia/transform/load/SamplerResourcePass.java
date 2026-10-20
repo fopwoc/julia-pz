@@ -6,13 +6,24 @@ import static org.lwjgl.opengl.GL20.GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
 import static org.lwjgl.opengl.GL20.GL_MAX_TEXTURE_IMAGE_UNITS;
 
 import dev.fopwoc.julia.transform.Endpoint;
+import dev.fopwoc.julia.transform.asm.Anchors;
 import java.util.Set;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
 /** Version-pinned sampler table capacity, resource-array widths and indirect MSL compilation. */
-public final class SamplerResourcePass {
+public final class SamplerResourcePass implements UpstreamPatch {
     private static final String ROOT = "com.gtnewhorizons.angelica.sdlgpu.";
+    private static final Set<String> TARGETS = Set.of(
+            ROOT + "compute.VertexWriteReplayer",
+            ROOT + "compute.VertexWriteReplayer$Replay",
+            "com.gtnewhorizons.angelica.glsm.GLStateManager",
+            ROOT + "shader.ShaderManager",
+            ROOT + "frame.ContextState",
+            ROOT + "sampler.SamplerBinder",
+            ROOT + "shader.msl.MslCrossCompile",
+            ROOT + "resource.FBOClearTracker",
+            ROOT + "shader.SamplerOverflow");
     private static final Set<String> TABLES = Set.of(
             "fragSamplerBindings",
             "vertSamplerBindings",
@@ -21,9 +32,13 @@ public final class SamplerResourcePass {
             "lastVertSamplerTex",
             "lastVertSamplerSmp");
 
-    private SamplerResourcePass() {}
+    @Override
+    public boolean targets(String name) {
+        return TARGETS.contains(name);
+    }
 
-    public static byte[] adapt(String name, byte[] bytes) {
+    @Override
+    public boolean apply(String name, ClassNode node) {
         boolean replay = name.equals(ROOT + "compute.VertexWriteReplayer");
         boolean replayLayout = name.equals(ROOT + "compute.VertexWriteReplayer$Replay");
         boolean glsm = name.equals("com.gtnewhorizons.angelica.glsm.GLStateManager");
@@ -33,10 +48,6 @@ public final class SamplerResourcePass {
         boolean msl = name.equals(ROOT + "shader.msl.MslCrossCompile");
         boolean clears = name.equals(ROOT + "resource.FBOClearTracker");
         boolean overflow = name.equals(ROOT + "shader.SamplerOverflow");
-        if (!replay && !replayLayout && !glsm && !manager && !context && !binder && !msl && !clears && !overflow)
-            return bytes;
-        var node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
         int edits = 0;
         for (var field : node.fields) {
             if (replay && field.name.equals("TEXTURE_UNITS")) {
@@ -58,7 +69,7 @@ public final class SamplerResourcePass {
                     if (instruction instanceof FieldInsnNode field
                             && field.getOpcode() == Opcodes.PUTFIELD
                             && Set.of("samplerOverrides", "savedTextures").contains(field.name)) {
-                        var size = field.getPrevious().getPrevious();
+                        var size = Anchors.previous(Anchors.previous(field));
                         if (!(size instanceof IntInsnNode value) || value.operand != 32)
                             throw new IllegalStateException("Pinned replay unit allocation changed");
                         method.instructions.set(size, new IntInsnNode(Opcodes.SIPUSH, UNIT_COUNT));
@@ -133,11 +144,11 @@ public final class SamplerResourcePass {
                         continue;
                     boolean logical = field.name.equals("boundTextures") || field.name.equals("boundSamplerObjects");
                     if (!logical && !TABLES.contains(field.name)) continue;
-                    var value = field.getPrevious();
+                    var value = Anchors.previous(field);
                     if (value instanceof IntInsnNode array && array.getOpcode() == Opcodes.NEWARRAY)
-                        value = value.getPrevious();
+                        value = Anchors.previous(value);
                     else if (value instanceof MethodInsnNode call && call.name.equals("calloc"))
-                        value = value.getPrevious();
+                        value = Anchors.previous(value);
                     else throw new IllegalStateException("Pinned sampler allocation changed: " + field.name);
                     if (!(value instanceof IntInsnNode constant) || constant.operand != (logical ? 32 : 16))
                         throw new IllegalStateException("Pinned sampler capacity changed: " + field.name);
@@ -204,11 +215,7 @@ public final class SamplerResourcePass {
         int expected = replay
                 ? 3
                 : replayLayout ? 1 : glsm ? 1 : manager ? 8 : context ? 9 : binder ? 4 : clears || overflow ? 2 : 1;
-        if (edits != expected)
-            throw new IllegalStateException(
-                    "Pinned sampler integration changed: " + name + " anchors=" + edits + " expected=" + expected);
-        var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        node.accept(writer);
-        return writer.toByteArray();
+        Anchors.require("sampler integration in " + name, edits, expected);
+        return true;
     }
 }

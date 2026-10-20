@@ -1,8 +1,7 @@
 package dev.fopwoc.julia.transform.load;
 
 import dev.fopwoc.julia.transform.Endpoint;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
+import dev.fopwoc.julia.transform.asm.Anchors;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
@@ -10,13 +9,15 @@ import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 
 /** A replacement command buffer within the same frame must load the existing default-framebuffer contents. */
-public final class FrameContinuityPass {
-    private FrameContinuityPass() {}
+public final class FrameContinuityPass implements UpstreamPatch {
 
-    public static byte[] adapt(String name, byte[] bytes) {
-        if (!name.equals("com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager")) return bytes;
-        var node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
+    @Override
+    public boolean targets(String name) {
+        return name.equals("com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager");
+    }
+
+    @Override
+    public boolean apply(String name, ClassNode node) {
         int changed = 0;
         for (var method : node.methods) {
             if (!method.name.equals("reacquireCommandBuffer") || !method.desc.equals("()V")) continue;
@@ -35,8 +36,7 @@ public final class FrameContinuityPass {
                         || !field.owner.equals("com/gtnewhorizons/angelica/sdlgpu/frame/FrameManager$FrameState")
                         || !field.name.equals("clearedThisFrame")
                         || !field.desc.equals("Z")) continue;
-                var value = field.getPrevious();
-                while (value != null && value.getOpcode() == -1) value = value.getPrevious();
+                var value = Anchors.previous(field);
                 if (value == null || value.getOpcode() != Opcodes.ICONST_0)
                     throw new IllegalStateException("Unexpected mid-frame clear-state assignment");
                 // Consume the same object and boolean operands without resetting attachment history.
@@ -44,9 +44,7 @@ public final class FrameContinuityPass {
                 changed++;
             }
         }
-        if (changed != 1) throw new IllegalStateException("Expected one mid-frame clear reset, found " + changed);
-        var writer = new ClassWriter(0);
-        node.accept(writer);
-        return writer.toByteArray();
+        Anchors.require("mid-frame clear reset", changed, 1);
+        return true;
     }
 }

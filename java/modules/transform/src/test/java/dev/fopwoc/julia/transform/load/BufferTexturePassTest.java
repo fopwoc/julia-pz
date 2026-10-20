@@ -17,7 +17,7 @@ class BufferTexturePassTest {
     @Test
     void passesSlotAndStageToSamplerLookup() throws IOException {
         var adapted = new ClassNode();
-        new ClassReader(BufferTexturePass.adapt(BINDER, bytes())).accept(adapted, 0);
+        new ClassReader(new BufferTexturePass().adapt(BINDER, bytes())).accept(adapted, 0);
         var method = adapted.methods.stream()
                 .filter(m -> m.name.equals("bindStageSamplers"))
                 .findFirst()

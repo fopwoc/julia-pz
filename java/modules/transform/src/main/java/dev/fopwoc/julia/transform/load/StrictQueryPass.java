@@ -1,7 +1,6 @@
 package dev.fopwoc.julia.transform.load;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
+import dev.fopwoc.julia.transform.asm.Anchors;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InsnNode;
@@ -11,15 +10,16 @@ import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /** Upstream's unknown state-query defaults must never masquerade as real GPU limits or saved state. */
-public final class StrictQueryPass {
+public final class StrictQueryPass implements UpstreamPatch {
     private static final String BACKEND = "com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend";
 
-    private StrictQueryPass() {}
+    @Override
+    public boolean targets(String name) {
+        return name.equals(BACKEND);
+    }
 
-    public static byte[] adapt(String name, byte[] bytes) {
-        if (!name.equals(BACKEND)) return bytes;
-        var node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
+    @Override
+    public boolean apply(String name, ClassNode node) {
         int changed = 0;
         for (var method : node.methods) {
             if (!(method.name.equals("unknownGetInteger") && method.desc.equals("(I)I"))
@@ -53,10 +53,7 @@ public final class StrictQueryPass {
             method.maxStack = 4;
             changed++;
         }
-        if (changed != 2)
-            throw new IllegalStateException("Expected two upstream state-query fallbacks, found " + changed);
-        var writer = new ClassWriter(0);
-        node.accept(writer);
-        return writer.toByteArray();
+        Anchors.require("state-query fallbacks", changed, 2);
+        return true;
     }
 }

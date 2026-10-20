@@ -14,7 +14,7 @@ class WindowQueryPassTest {
 
     @Test
     void adaptsDisplayQueriesEvenForLwjgl3AwareDeviceClasses() {
-        byte[] transformed = WindowQueryPass.adapt(DEVICE, fixture());
+        byte[] transformed = new WindowQueryPass().adapt(DEVICE, fixture());
         var node = new ClassNode();
         new ClassReader(transformed).accept(node, 0);
         var method = node.methods.getFirst();
@@ -38,7 +38,7 @@ class WindowQueryPassTest {
             "org.lwjglx.opengl.Display",
             "com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate"
         }) {
-            assertSame(original, WindowQueryPass.adapt(name, original));
+            assertSame(original, new WindowQueryPass().adapt(name, original));
         }
     }
 
@@ -53,7 +53,7 @@ class WindowQueryPassTest {
         method.visitMaxs(2, 1);
         method.visitEnd();
         var node = new ClassNode();
-        new ClassReader(WindowQueryPass.adapt(DEVICE, writer.toByteArray())).accept(node, 0);
+        new ClassReader(new WindowQueryPass().adapt(DEVICE, writer.toByteArray())).accept(node, 0);
         var call = (MethodInsnNode) node.methods.getFirst().instructions.get(1);
         assertEquals(WindowQueryPass.HOST_WINDOW, call.owner);
         assertEquals("renderSize", call.name);

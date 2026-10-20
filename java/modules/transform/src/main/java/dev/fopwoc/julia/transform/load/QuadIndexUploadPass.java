@@ -2,23 +2,23 @@ package dev.fopwoc.julia.transform.load;
 
 import static org.lwjgl.opengl.GL15.GL_STREAM_DRAW;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
+import dev.fopwoc.julia.transform.asm.Anchors;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 
 /** Gives each converted quad draw its own index storage until its deferred GPU commands complete. */
-public final class QuadIndexUploadPass {
+public final class QuadIndexUploadPass implements UpstreamPatch {
     private static final String CONVERTER = "com.gtnewhorizons.angelica.glsm.QuadConverter";
 
-    private QuadIndexUploadPass() {}
+    @Override
+    public boolean targets(String name) {
+        return name.equals(CONVERTER);
+    }
 
-    public static byte[] adapt(String name, byte[] bytes) {
-        if (!name.equals(CONVERTER)) return bytes;
-        var node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
+    @Override
+    public boolean apply(String name, ClassNode node) {
         int changed = 0;
         for (var method : node.methods) {
             if (!method.name.equals("uploadAndDraw")) continue;
@@ -27,10 +27,8 @@ public final class QuadIndexUploadPass {
                         || !call.owner.equals("com/gtnewhorizons/angelica/glsm/backend/RenderBackend")
                         || !call.name.equals("bufferSubData")
                         || !call.desc.equals("(IJLjava/nio/ByteBuffer;)V")) continue;
-                var data = call.getPrevious();
-                while (data != null && data.getOpcode() == -1) data = data.getPrevious();
-                var offset = data == null ? null : data.getPrevious();
-                while (offset != null && offset.getOpcode() == -1) offset = offset.getPrevious();
+                var data = Anchors.previous(call);
+                var offset = data == null ? null : Anchors.previous(data);
                 if (offset == null || offset.getOpcode() != Opcodes.LCONST_0)
                     throw new IllegalStateException("Unexpected quad index upload offset");
                 // Deferred uploads run before the draw command buffer: overwriting the shared EBO
@@ -42,9 +40,7 @@ public final class QuadIndexUploadPass {
                 changed++;
             }
         }
-        if (changed != 1) throw new IllegalStateException("Expected one quad index upload, found " + changed);
-        var writer = new ClassWriter(0);
-        node.accept(writer);
-        return writer.toByteArray();
+        Anchors.require("quad index upload", changed, 1);
+        return true;
     }
 }

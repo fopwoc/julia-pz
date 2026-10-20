@@ -15,7 +15,7 @@ class TextureViewPassTest {
 
     @Test
     void guardsBothAllocationAndRemovalBeforeStorageCanBeLost() throws IOException {
-        var adapted = node(TextureViewPass.adapt(RESOURCES, bytes(RESOURCES)));
+        var adapted = node(new TextureViewPass().adapt(RESOURCES, bytes(RESOURCES)));
         for (String name : new String[] {"createTextureCore", "releaseTextureHandleForRealloc"}) {
             var method = adapted.methods.stream()
                     .filter(m -> m.name.equals(name))
@@ -39,13 +39,13 @@ class TextureViewPassTest {
         altered.methods.removeIf(m -> m.name.equals("releaseTextureHandleAfterPendingUploads"));
         var writer = new ClassWriter(0);
         altered.accept(writer);
-        assertThrows(IllegalStateException.class, () -> TextureViewPass.adapt(RESOURCES, writer.toByteArray()));
+        assertThrows(IllegalStateException.class, () -> new TextureViewPass().adapt(RESOURCES, writer.toByteArray()));
     }
 
     @Test
     void removesTheMinecraftShrinkWorkaroundFromDeletion() throws IOException {
         String glsm = "com.gtnewhorizons.angelica.glsm.GLStateManager";
-        var adapted = node(TextureViewPass.adapt(glsm, bytes(glsm)));
+        var adapted = node(new TextureViewPass().adapt(glsm, bytes(glsm)));
         var method = adapted.methods.stream()
                 .filter(m -> m.name.equals("deferDeleteTexture"))
                 .findFirst()

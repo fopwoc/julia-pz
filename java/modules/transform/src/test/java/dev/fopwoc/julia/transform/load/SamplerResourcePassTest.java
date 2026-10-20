@@ -33,7 +33,7 @@ class SamplerResourcePassTest {
             assertNotNull(input, name);
             bytes = input.readAllBytes();
         }
-        var adapted = SamplerResourcePass.adapt(name, bytes);
+        var adapted = new SamplerResourcePass().adapt(name, bytes);
         var node = new ClassNode();
         new ClassReader(adapted).accept(node, 0);
         if (suffix.equals("compute.VertexWriteReplayer$Replay")) {
