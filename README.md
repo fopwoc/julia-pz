@@ -125,10 +125,19 @@ program linking, linked-stage regeneration and uniform-initializer translation. 
 compiler/linker diagnostics. Windowless probes verify rejection and retained diagnostics for 33 graphics samplers and
 unsupported compute sampler arrays; a disposable-process test verifies exit 70 and a durable report even inside a mod's
 catch-all exception handler.
+The next first-person retry passed shader setup and reached sparse MRT draw-buffer routing in the velocity target.
+Julia now preserves leading, interior and trailing `GL_NONE` output slots using absent Metal color attachments and
+invalid pipeline formats for those slots. Outputs are not compacted, inactive textures remain untouched, and no dummy
+images constrain the render area. Sparse passes retain validation of every real attachment while adapting LWJGL's
+non-null struct assumption only at the native boundary. Consecutive draws with leading holes reuse the open pass.
+Windowless tests verify 1,248 new pixels across four-output routing, disabled attachments, full target extents, scissor,
+selected/masked clears, nonzero array slices, route changes, unsigned fragment outputs and all-disabled color buffers
+with working depth rendering. The CMake patch applies to SHA-verified pristine SDL sources and is idempotent. The
+sparse-target fix awaits an in-game first-person retry.
 ZombieBuddy's standalone native-GL approval executable is outside game preparation and remains rejected if loaded
 into the game JVM.
 
-Limits include rejected layered rendering of an entire array/volume, sparse MRT routing, framebuffer-slice readback/blits,
+Limits include rejected layered rendering of an entire array/volume, framebuffer-slice readback/blits,
 split depth/stencil images, single-aspect rendering of packed depth/stencil images, and SDL depth slice indices above 255.
 Bound ShortBuffer subimage uploads currently support 2D targets and matching transfer/storage formats.
 Named textures are restricted to 2D, 2D arrays and 3D targets, explicitly supported sized storage formats

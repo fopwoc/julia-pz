@@ -1,6 +1,7 @@
 package dev.fopwoc.julia.backend.platform;
 
 import com.gtnewhorizons.angelica.sdlgpu.shader.cross.CrossCompileCache.Output;
+import dev.fopwoc.julia.backend.framebuffer.macos.MetalSparseTargets;
 import dev.fopwoc.julia.backend.query.TimestampDriver;
 import dev.fopwoc.julia.backend.query.macos.MetalTimestamps;
 import dev.fopwoc.julia.backend.shader.macos.MetalSamplerShaders;
@@ -10,6 +11,8 @@ import dev.fopwoc.julia.backend.texture.macos.MetalTextureViews;
 import dev.fopwoc.julia.backend.vertex.macos.MetalVertexInputs;
 import java.nio.ByteBuffer;
 import java.util.Locale;
+import org.lwjgl.sdl.SDL_GPUColorTargetInfo;
+import org.lwjgl.sdl.SDL_GPUDepthStencilTargetInfo;
 import org.lwjgl.sdl.SDL_GPUGraphicsPipelineCreateInfo;
 import org.lwjgl.system.Configuration;
 import org.lwjgl.system.JNI;
@@ -18,6 +21,17 @@ import org.lwjgl.system.macosx.LibSystem;
 /** Host operating system facts the graphics runtime depends on: GPU driver and video-thread rules. */
 public enum Platform {
     MACOS("metal") {
+        @Override
+        public long beginSparseRenderPass(
+                long commands, SDL_GPUColorTargetInfo.Buffer colors, SDL_GPUDepthStencilTargetInfo depth) {
+            return MetalSparseTargets.begin(commands, colors, depth);
+        }
+
+        @Override
+        public void requireSparseColorTargets() {
+            MetalSparseTargets.requireSupported();
+        }
+
         @Override
         public Output compileSamplerShader(ByteBuffer spirv, int stage) {
             return MetalSamplerShaders.compile(spirv, stage);
@@ -105,6 +119,15 @@ public enum Platform {
 
     public Output compileSamplerShader(ByteBuffer spirv, int stage) {
         throw new UnsupportedOperationException("Indirect samplers not implemented on " + this);
+    }
+
+    public void requireSparseColorTargets() {
+        throw new UnsupportedOperationException("Sparse color targets are not implemented on " + this);
+    }
+
+    public long beginSparseRenderPass(
+            long commands, SDL_GPUColorTargetInfo.Buffer colors, SDL_GPUDepthStencilTargetInfo depth) {
+        throw new UnsupportedOperationException("Sparse render passes are not implemented on " + this);
     }
 
     public void requireImplemented() {

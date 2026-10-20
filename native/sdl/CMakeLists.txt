@@ -90,3 +90,5 @@ set_target_properties(SDL3-shared PROPERTIES OUTPUT_NAME SDL3Julia)
 
 # Expand SDL's owned binding tables and install indirect Metal sampler bindings.
 include("${CMAKE_CURRENT_SOURCE_DIR}/sampler_arguments.cmake")
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/sparse_targets.cmake")

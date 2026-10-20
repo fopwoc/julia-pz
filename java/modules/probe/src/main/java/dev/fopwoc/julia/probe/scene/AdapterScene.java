@@ -107,6 +107,7 @@ public final class AdapterScene {
             TextureBindingChecks.run(output);
             ProgramBinaryChecks.run(output);
             FramebufferChecks.run(output);
+            SparseFramebufferChecks.run(output);
             LayerViewChecks.run(output);
             ProgramInterfaceChecks.run(output);
             ShortTextureChecks.run(output);

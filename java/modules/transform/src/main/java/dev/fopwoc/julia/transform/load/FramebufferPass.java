@@ -9,6 +9,7 @@ public final class FramebufferPass {
     private static final String ROOT = "com.gtnewhorizons.angelica.sdlgpu.";
     private static final String FBO = ROOT.replace('.', '/') + "resource/FboState";
     private static final String FRAMES = ROOT.replace('.', '/') + "frame/FrameManager";
+    private static final String RESOURCE = ROOT.replace('.', '/') + "resource/ResourceManager";
     private static final String CONTEXT = ROOT.replace('.', '/') + "frame/ContextState";
 
     private FramebufferPass() {}
@@ -17,11 +18,21 @@ public final class FramebufferPass {
         boolean fbo = name.equals(ROOT + "resource.FboState"),
                 clears = name.equals(ROOT + "resource.FBOClearTracker"),
                 pipeline = name.equals(ROOT + "pipeline.PipelineApplier");
-        if (!fbo && !clears && !pipeline) return bytes;
+        boolean frames = name.equals(ROOT + "frame.FrameManager");
+        if (!fbo && !clears && !pipeline && !frames) return bytes;
         var node = new ClassNode();
         new ClassReader(bytes).accept(node, 0);
         int edits = 0;
         for (var method : node.methods) {
+            if (frames && method.name.equals("beginRenderPass")) {
+                for (var instruction : method.instructions.toArray())
+                    if (instruction instanceof MethodInsnNode invoke
+                            && invoke.owner.equals("org/lwjgl/sdl/SDLGPU")
+                            && invoke.name.equals("SDL_BeginGPURenderPass")) {
+                        method.instructions.set(invoke, call("beginNative", invoke.desc));
+                        edits++;
+                    }
+            }
             if (fbo && method.name.equals("recomputeTargets"))
                 for (var insn : method.instructions.toArray())
                     if (insn.getOpcode() == Opcodes.RETURN) {
@@ -45,6 +56,16 @@ public final class FramebufferPass {
                 method.instructions.insert(head);
                 edits++;
             }
+            if (clears && method.name.equals("updatePipelineCacheColorFormats")) {
+                method.instructions.clear();
+                method.tryCatchBlocks.clear();
+                if (method.localVariables != null) method.localVariables.clear();
+                method.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1));
+                method.instructions.add(new VarInsnNode(Opcodes.ALOAD, 2));
+                method.instructions.add(call("formats", "(L" + CONTEXT + ";L" + FBO + ";)V"));
+                method.instructions.add(new InsnNode(Opcodes.RETURN));
+                edits++;
+            }
             if (pipeline
                     && method.name.equals("ensureRenderPass")
                     && method.desc.equals("(L" + CONTEXT + ";L" + FRAMES + "$FrameState;Z)V")) {
@@ -53,7 +74,14 @@ public final class FramebufferPass {
                 head.add(call("validateDraw", "(L" + CONTEXT + ";)V"));
                 method.instructions.insert(head);
                 edits++;
-                for (var instruction : method.instructions.toArray())
+                for (var instruction : method.instructions.toArray()) {
+                    if (instruction instanceof MethodInsnNode dummy
+                            && dummy.owner.equals(RESOURCE)
+                            && dummy.name.equals("getOrCreateDummyColorTarget")
+                            && dummy.desc.equals("()J")) {
+                        method.instructions.set(dummy, call("unusedTarget", "(L" + RESOURCE + ";)J"));
+                        edits++;
+                    }
                     if (instruction instanceof MethodInsnNode invoke
                             && invoke.owner.equals(FRAMES)
                             && invoke.name.equals("beginRenderPass")
@@ -67,9 +95,10 @@ public final class FramebufferPass {
                                                 + ";Lorg/lwjgl/sdl/SDL_GPUColorTargetInfo$Buffer;Lorg/lwjgl/sdl/SDL_GPUDepthStencilTargetInfo;)J"));
                         edits++;
                     }
+                }
             }
         }
-        if (edits != (pipeline ? 2 : 1))
+        if (edits != (pipeline ? 3 : clears ? 2 : 1))
             throw new IllegalStateException("Framebuffer slice integration changed: " + name + " anchors=" + edits);
         var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         node.accept(writer);

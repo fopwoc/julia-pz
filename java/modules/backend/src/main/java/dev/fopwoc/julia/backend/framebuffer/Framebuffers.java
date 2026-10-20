@@ -11,6 +11,7 @@ import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FboState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.PixelOps;
 import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.platform.Platform;
 import java.util.Arrays;
 import java.util.WeakHashMap;
 import org.lwjgl.sdl.SDL_GPUColorTargetInfo;
@@ -166,10 +167,7 @@ public final class Framebuffers {
             }
         }
         if (!any) slots = new int[0];
-        // Upstream's dummy images for holes are 1x1 and would shrink the effective render area.
-        for (int slot : slots)
-            if (slot < 0)
-                throw new UnsupportedOperationException("Sparse framebuffer draw-buffer routing is not implemented");
+        for (int slot : slots) if (slot < 0) Platform.current().requireSparseColorTargets();
         if (Arrays.equals(fbo.drawBuffers, slots)) return;
         if (name == BackendInternals.context().boundFboId)
             BackendInternals.frames().endRenderPassIfActive(FrameManager.PASS_END_TARGET);
@@ -318,7 +316,10 @@ public final class Framebuffers {
             if (slice != null) validate(slice, false);
             depth.layer((byte) (slice == null ? 0 : slice.layer));
         }
-        return frames.beginRenderPass(colors, depth);
+        long pass = frames.beginRenderPass(colors, depth);
+        // Leading GL_NONE slots must not prevent reuse of an otherwise identical open pass.
+        if (fbo.hasAnyColor) frames.frame().currentColorTarget = fbo.primaryTarget;
+        return pass;
     }
 
     public void validateDraw(ContextState context) {
