@@ -13,6 +13,22 @@ import org.objectweb.asm.tree.MethodInsnNode;
 /** Only the exact observed resource overloads enter the bounded bridge implementations. */
 public final class ResourcePass {
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
+            Map.entry("org/lwjgl/opengl/GL32.glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL32.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL32.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL32.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL32C.glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL32C.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL32C.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL32C.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/ARBSync.glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/ARBSync.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/ARBSync.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/ARBSync.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
+            Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
+            Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
+            Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
+            Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
             Map.entry(
                     "org/lwjgl/opengl/GL11.glTexSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V",
                     Endpoint.BOUND_TEXTURE_BRIDGE),

@@ -6,6 +6,7 @@ import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
+import com.gtnewhorizons.angelica.sdlgpu.frame.FenceTracker;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.AttachmentClear;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineApplier;
@@ -16,6 +17,7 @@ import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
 import dev.fopwoc.julia.backend.framebuffer.Framebuffers;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
+import dev.fopwoc.julia.backend.sync.GpuSyncs;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.texture.TextureObjects;
 import dev.fopwoc.julia.backend.texture.TextureViews;
@@ -24,6 +26,7 @@ import dev.fopwoc.julia.backend.texture.buffer.BufferTextures;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -55,12 +58,20 @@ public final class BackendInternals {
     private static final VarHandle RESOURCE_LOCK;
     private static final MethodHandle FLUSH_TEXTURE_REFERENCES;
     private static final MethodHandle SUBMIT_PENDING_COMMANDS;
+    private static final MethodHandle SUBMIT_FENCE_COMMANDS;
+    private static final VarHandle FENCE_TRACKER;
+    private static final VarHandle FENCE_MAP;
 
     static {
         try {
             var lookup = MethodHandles.privateLookupIn(SDLGPURenderBackend.class, MethodHandles.lookup());
             SUBMIT_PENDING_COMMANDS = lookup.findVirtual(
                     SDLGPURenderBackend.class, "flushAndSubmitMidFrame", MethodType.methodType(void.class));
+            FENCE_TRACKER = lookup.findVarHandle(SDLGPURenderBackend.class, "fenceTracker", FenceTracker.class);
+            FENCE_MAP = MethodHandles.privateLookupIn(FenceTracker.class, MethodHandles.lookup())
+                    .findVarHandle(FenceTracker.class, "fenceMap", Long2LongOpenHashMap.class);
+            SUBMIT_FENCE_COMMANDS = lookup.findVirtual(
+                    SDLGPURenderBackend.class, "midFrameFenceFlush", MethodType.methodType(void.class));
             RELEASE_SHADER_ATTACHMENT = MethodHandles.privateLookupIn(ShaderManager.class, MethodHandles.lookup())
                     .findVirtual(
                             ShaderManager.class,
@@ -213,6 +224,10 @@ public final class BackendInternals {
         return ownedBackend().volumeUnpack();
     }
 
+    public static GpuSyncs syncs() {
+        return ownedBackend().syncs();
+    }
+
     public static ShaderPrograms programs() {
         return ownedBackend().shaderPrograms();
     }
@@ -304,6 +319,19 @@ public final class BackendInternals {
         manager.endRenderPassIfActive(manager.frame());
         manager.endCopyPassIfActive();
         return manager.getCommandBuffer();
+    }
+
+    public static void submitFenceCommands(long sync) {
+        try {
+            var backend = ownedBackend();
+            SUBMIT_FENCE_COMMANDS.invokeExact((SDLGPURenderBackend) backend);
+            var fences = (Long2LongOpenHashMap) FENCE_MAP.get((FenceTracker) FENCE_TRACKER.get(backend));
+            if (fences.get(sync) == 0) throw new IllegalStateException("SDL submission did not acquire a GPU fence");
+        } catch (RuntimeException | Error failure) {
+            throw failure;
+        } catch (Throwable failure) {
+            throw new IllegalStateException("Cannot submit SDL fence commands", failure);
+        }
     }
 
     public static void submitPendingCommands() {

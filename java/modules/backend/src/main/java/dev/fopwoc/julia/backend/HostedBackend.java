@@ -37,6 +37,7 @@ import dev.fopwoc.julia.backend.shader.MatrixUniformUploads;
 import dev.fopwoc.julia.backend.shader.ProgramLinkState;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
+import dev.fopwoc.julia.backend.sync.GpuSyncs;
 import dev.fopwoc.julia.backend.texture.ClientPixels;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.texture.TextureObjects;
@@ -55,6 +56,23 @@ import org.lwjgl.system.MemoryUtil;
 public final class HostedBackend extends SDLGPURenderBackend {
     private static final System.Logger LOG = System.getLogger(HostedBackend.class.getName());
     private int error;
+    private final GpuSyncs syncs = new GpuSyncs(this);
+
+    GpuSyncs syncs() {
+        return syncs;
+    }
+
+    @Override
+    public void flush() {
+        BackendInternals.timestampCommandBuffer();
+        BackendInternals.submitPendingCommands();
+    }
+
+    @Override
+    public void finish() {
+        flush();
+        super.finish();
+    }
 
     private final ShaderPrograms shaderPrograms = new ShaderPrograms();
     private final Framebuffers framebuffers = new Framebuffers();

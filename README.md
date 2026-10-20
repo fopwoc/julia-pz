@@ -76,7 +76,9 @@ for shared 2D/array views, nested mip/layer ranges, uploads, clears, depth-teste
 Program-interface checks add 64 pixels using a reflected uniform location, plus active array sizes, stage usage,
 compute image/bool types, output-buffer bounds and relink invalidation. Short-buffer upload checks add 24 exact
 16-bit values recovered through shader sampling, covering mutable R16 storage, padded stripes, client-memory bounds
-and reuse, independent target bindings, and byte swapping. These checks do not replace in-game validation.
+and reuse, independent target bindings, and byte swapping. Fence checks add 64 pixels downloaded after real GPU
+completion without a device-idle wait, plus finite/unsigned waits, nonblocking polling, deletion before frame swap,
+independent live fences, invalid arguments, and flush/finish submission. These checks do not replace in-game validation.
 
 The installed PZ and ZombieBuddy archives prepare together with zero blockers; a separate JVM smoke test initializes
 both agents. A Steam launch with both agents reaches the menu and loads a save in local testing. The approval UI's
@@ -94,7 +96,11 @@ interface query used for per-stage sampler counts. Scalar/array/buffer interface
 now use active SPIR-V reflection. The next user retry reached terrain-relief uploads and exposed the missing bound
 `ShortBuffer` texture upload. The 2D typed overload now uses the checked client-upload path, and mutable/named R16
 allocations keep native 16-bit normalized storage instead of the upstream RGBA8 default. This upload fix passes
-windowless checks and awaits a Steam retry.
+windowless checks. The next user run completed loading and reached first-person activation with O, exposing
+`GL32.glFenceSync`. GL32/ARB fence creation, client waits, deletion and identity checks now use actual native SDL
+submission fences. Each public fence submits preceding work immediately without waiting, which fixes its command
+boundary and avoids pending-token resurrection on deletion. Polling does not submit later work. Flush/finish now
+submit queued uploads, clears and draws before their completion semantics apply. These changes await an in-game retry.
 SDL documents [the platform-dependent D24/D32 support requirement](https://wiki.libsdl.org/SDL3/SDL_GPUTextureFormat).
 The same retry also logged a separate sampler-array translation failure: an array of 16 samplers plus two other samplers
 exceeds Metal's direct sampler slots. Array-element reflection/binding and a larger native resource-binding path remain
