@@ -3,6 +3,7 @@ package dev.fopwoc.julia.host;
 import dev.fopwoc.julia.transform.load.BufferTexturePass;
 import dev.fopwoc.julia.transform.load.CompatShaderPass;
 import dev.fopwoc.julia.transform.load.FrameContinuityPass;
+import dev.fopwoc.julia.transform.load.FramebufferPass;
 import dev.fopwoc.julia.transform.load.LegacyNamespacePass;
 import dev.fopwoc.julia.transform.load.QuadIndexUploadPass;
 import dev.fopwoc.julia.transform.load.SamplerBindingPass;
@@ -58,6 +59,7 @@ final class RuntimeLoader extends URLClassLoader {
             bytes = LegacyNamespacePass.adapt(name, bytes);
             bytes = WindowQueryPass.adapt(name, bytes);
             bytes = StrictQueryPass.adapt(name, bytes);
+            bytes = FramebufferPass.adapt(name, bytes);
             bytes = TextureBindingPass.adapt(name, bytes);
             bytes = TextureViewPass.adapt(name, bytes);
             bytes = BufferTexturePass.adapt(name, bytes);

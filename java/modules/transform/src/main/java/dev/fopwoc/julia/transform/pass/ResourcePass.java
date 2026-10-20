@@ -13,6 +13,21 @@ import org.objectweb.asm.tree.MethodInsnNode;
 /** Only the exact observed resource overloads enter the bounded bridge implementations. */
 public final class ResourcePass {
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
+            Map.entry("org/lwjgl/opengl/GL45.glCreateFramebuffers()I", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glCreateFramebuffers([I)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glCreateFramebuffers(Ljava/nio/IntBuffer;)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glNamedFramebufferTexture(IIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glNamedFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glNamedFramebufferDrawBuffer(II)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glNamedFramebufferDrawBuffers(I[I)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glNamedFramebufferDrawBuffers(ILjava/nio/IntBuffer;)V",
+                    Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glNamedFramebufferReadBuffer(II)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glCheckNamedFramebufferStatus(II)I", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL30.glFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(
+                    Endpoint.STATE_MANAGER.owner() + ".glFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(I)I", Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(ILjava/nio/IntBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(I[I)V", Endpoint.NAMED_TEXTURE_BRIDGE),

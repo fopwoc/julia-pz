@@ -1,14 +1,19 @@
 package dev.fopwoc.julia.backend;
 
+import static org.lwjgl.opengl.GL11.*;
+
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
+import com.gtnewhorizons.angelica.sdlgpu.pipeline.AttachmentClear;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineApplier;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FBOClearTracker;
+import com.gtnewhorizons.angelica.sdlgpu.resource.PixelOps;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
+import dev.fopwoc.julia.backend.framebuffer.Framebuffers;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.texture.TextureObjects;
@@ -34,6 +39,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public final class BackendInternals {
     private static final VarHandle PIPELINE_APPLIER;
+    private static final VarHandle ATTACHMENT_CLEAR;
     private static final VarHandle SHADERS;
     private static final VarHandle RESOURCES;
     private static final VarHandle FRAMES;
@@ -61,6 +67,8 @@ public final class BackendInternals {
                             MethodType.methodType(void.class, int.class));
             PIPELINE_APPLIER =
                     lookup.findVarHandle(SDLGPURenderBackend.class, "pipelineApplier", PipelineApplier.class);
+            ATTACHMENT_CLEAR =
+                    lookup.findVarHandle(SDLGPURenderBackend.class, "attachmentClear", AttachmentClear.class);
             SHADERS = lookup.findVarHandle(SDLGPURenderBackend.class, "shaderManager", ShaderManager.class);
             RESOURCES = lookup.findVarHandle(SDLGPURenderBackend.class, "resourceManager", ResourceManager.class);
             FRAMES = lookup.findVarHandle(SDLGPURenderBackend.class, "frameManager", FrameManager.class);
@@ -162,6 +170,34 @@ public final class BackendInternals {
 
     public static BufferTextures bufferTextures() {
         return ownedBackend().bufferTextures();
+    }
+
+    public static Framebuffers framebuffers() {
+        return ownedBackend().framebuffers();
+    }
+
+    /** Whole-texture deferred clears cannot identify slices; encode the existing masked shader clear immediately. */
+    public static void clearFramebufferSlice(int mask) {
+        var backend = ownedBackend();
+        var state = context();
+        var fbo = resources().getFbo(state.boundFboId);
+        if (fbo.targetsDirty) fbo.recomputeTargets();
+        framebuffers().bound(state.boundFboId);
+        var clear = (AttachmentClear) ATTACHMENT_CLEAR.get(backend);
+        var target = clear.forFbo(fbo);
+        boolean color = (mask & GL_COLOR_BUFFER_BIT) != 0 && (state.pipeline.colorWriteMask & 15) != 0;
+        boolean depth = (mask & GL_DEPTH_BUFFER_BIT) != 0 && state.pipeline.depthWriteEnabled;
+        boolean stencil = (mask & GL_STENCIL_BUFFER_BIT) != 0 && (state.pipeline.stencilWriteMask & 255) != 0;
+        int coverage = clear.coverage(state, target);
+        if (coverage == AttachmentClear.EMPTY) return;
+        color &= fbo.hasAnyColor;
+        depth &= fbo.depthTexture != 0;
+        stencil &= fbo.depthTexture != 0 && PixelOps.isDepthStencilFormat(fbo.depthFormat);
+        if (!color && !depth && !stencil) return;
+        ((PipelineApplier) PIPELINE_APPLIER.get(backend)).ensureRenderPass(state);
+        var frame = frames().frame();
+        if (frame.renderPass == 0 || !clear.clearInPass(state, frame, target, color, depth, stencil))
+            throw new UnsupportedOperationException("Cannot clear framebuffer slice with current masks and formats");
     }
 
     public static TextureBindings textureBindings() {
