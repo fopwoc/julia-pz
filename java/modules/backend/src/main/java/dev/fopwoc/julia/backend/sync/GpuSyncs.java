@@ -2,24 +2,18 @@ package dev.fopwoc.julia.backend.sync;
 
 import static org.lwjgl.opengl.GL32.*;
 
-import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import dev.fopwoc.julia.backend.Upstream;
 import java.util.HashSet;
 
 /** Public GL fence lifetimes over the backend's reference-counted native SDL submission fences. */
 public final class GpuSyncs {
-    private final SDLGPURenderBackend backend;
     private final HashSet<Long> live = new HashSet<>();
-
-    public GpuSyncs(SDLGPURenderBackend backend) {
-        this.backend = backend;
-    }
 
     public long create(int condition, int flags) {
         if (condition != GL_SYNC_GPU_COMMANDS_COMPLETE || flags != 0)
             throw new IllegalArgumentException("Fence requires GPU_COMMANDS_COMPLETE and zero flags");
         Upstream.commandBufferOutsidePasses();
-        long sync = backend.fenceSync(condition, flags);
+        long sync = Upstream.renderBackend().fenceSync(condition, flags);
         // Submit at the GL fence boundary. Later commands cannot extend the fence, and deleting a
         // fence before a frame swap cannot resurrect an unresolved upstream fence token.
         Upstream.submitFenceCommands(sync);
@@ -36,14 +30,14 @@ public final class GpuSyncs {
         if ((flags & ~GL_SYNC_FLUSH_COMMANDS_BIT) != 0)
             throw new IllegalArgumentException("Invalid client wait flags: " + flags);
         // All public fences have already been submitted, so polling must not flush later work.
-        return backend.clientWaitSync(sync, 0, timeout);
+        return Upstream.renderBackend().clientWaitSync(sync, 0, timeout);
     }
 
     public void delete(long sync) {
         if (sync == 0) return;
         require(sync);
         live.remove(sync);
-        backend.deleteSync(sync);
+        Upstream.renderBackend().deleteSync(sync);
     }
 
     private void require(long sync) {

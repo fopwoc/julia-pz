@@ -313,6 +313,11 @@ public final class Upstream {
         }
     }
 
+    /** The hosted backend as Angelica's type, for upstream calls Julia makes on its own behalf. */
+    public static SDLGPURenderBackend renderBackend() {
+        return ownedBackend();
+    }
+
     static HostedBackend ownedBackend() {
         context();
         return backend();

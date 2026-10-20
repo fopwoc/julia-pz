@@ -18,6 +18,10 @@
   them.
 - Log with `System.Logger`, named after the declaring class. Only entry points call `LogConfiguration.configure()`.
   Default level is `error`; `LOG_LEVEL` overrides it. Keep error logs detailed and normal output compact.
+- GL overrides live in `backend.layer`, one abstract layer per domain; `HostedBackend` keeps only cross-domain calls.
+  Reach Angelica's private state only through `Upstream`, and Julia's own state through `Subsystems`.
+- Upstream bytecode rewrites implement `UpstreamPatch` and are listed in `UpstreamPatches`; match anchors with
+  `Anchors`, which skips ASM's label and frame nodes.
 - Use comments for non-obvious reasoning only. Javadoc a class when its role or invariant isn't evident from its name.
 - Tests cover behavior that can regress silently. Don't test trivial mappings.
 

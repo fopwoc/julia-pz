@@ -32,11 +32,7 @@ public final class Subsystems implements AutoCloseable {
     private final Set<Integer> bufferObjects = new HashSet<>();
     private final Queries queries =
             new Queries(Platform.current()::createTimestampDriver, Platform.current()::createOcclusionDriver);
-    private final GpuSyncs syncs;
-
-    Subsystems(HostedBackend backend) {
-        syncs = new GpuSyncs(backend);
-    }
+    private final GpuSyncs syncs = new GpuSyncs();
 
     public static Subsystems current() {
         return Upstream.ownedBackend().subsystems();
