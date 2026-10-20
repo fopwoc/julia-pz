@@ -32,6 +32,10 @@ public final class ResourcePass {
             Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
             Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
             Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL42.glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL42C.glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/ARBTextureStorage.glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
             Map.entry(
                     "org/lwjgl/opengl/GL12.glTexSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V",
                     Endpoint.BOUND_TEXTURE_BRIDGE),

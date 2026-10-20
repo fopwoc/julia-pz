@@ -12,9 +12,17 @@ import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import org.lwjgl.system.MemoryUtil;
 
-/** Typed client uploads resolve the logical binding, independent of the upstream execution mirror. */
+/** Bound texture operations resolve the logical binding, independent of the upstream execution mirror. */
 public final class BoundTextureBridge {
     private BoundTextureBridge() {}
+
+    public static void glTexStorage3D(int target, int levels, int format, int width, int height, int depth) {
+        if (target != GL_TEXTURE_3D && target != GL_TEXTURE_2D_ARRAY)
+            throw new UnsupportedOperationException("Volume storage requires a 3D or 2D-array target");
+        var state = BackendInternals.context();
+        int name = BackendInternals.textureBindings().get(state, state.activeTextureUnit, target);
+        BackendInternals.textureObjects().storage(name, levels, format, width, height, depth, true);
+    }
 
     public static void glTexSubImage2D(
             int target, int level, int x, int y, int width, int height, int format, int type, ShortBuffer data) {

@@ -143,6 +143,8 @@ Bound ShortBuffer and FloatBuffer subimage uploads currently support 2D targets 
 Logical texture bindings span 128 units, independently of the 32 sampled resources per graphics stage.
 High-unit probes cover buffer textures, sampler arrays, sampler overrides, and atomic array assignments.
 Metal argument-buffer encoding follows reflected sampler members, including samplerless buffer/2D textures.
+Bound `glTexStorage3D` allocations use the same checked immutable allocator as named textures.
+Windowless sampling verifies 76 pixels across every tested mip and layer of 3D and 2D-array storage.
 Bound IntBuffer subimage uploads support 3D and 2D-array targets with matching transfer/storage formats.
 RGB32I/UI client uploads expand to four physical components with integer alpha one, including mutable volume
 initialization. Windowless checks verify 864 exact channel values across signed/unsigned volumes and arrays,

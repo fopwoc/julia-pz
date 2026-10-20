@@ -114,6 +114,7 @@ public final class AdapterScene {
             FloatTextureChecks.run(output);
             IntegerVolumeChecks.run(output);
             HighTextureUnitChecks.run(output);
+            BoundVolumeStorageChecks.run(output);
             SyncChecks.run(output);
             TimerQueryChecks.run(output);
             ClientPointerChecks.run();
