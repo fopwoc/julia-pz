@@ -58,8 +58,8 @@ extensions, implemented per API.
 | | Status | Notes |
 | --- | --- | --- |
 | Vanilla Build 42 | ✅ | Menu, loading, world, map, character previews |
+| [ZombieBuddy](https://github.com/zed-0xff/ZombieBuddy) | ✅ | Optional; Julia translates the Java mods it approves |
 | [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528) | ✅ | All presets run; high and extreme still show visual bugs |
-| ZombieBuddy | ✅ | Optional; Julia translates the Java mods it approves |
 
 ### Known limits
 
