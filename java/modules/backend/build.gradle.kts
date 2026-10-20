@@ -42,6 +42,10 @@ dependencies {
     api(libs.angelica.sdlgpu) {
         // The upstream publication carries the publishing host's Linux natives.
         exclude(group = "org.lwjgl")
+        // A Forge coremod that deploys a duplicate fastutil and other libraries into Minecraft; never activated here.
+        exclude(group = "com.github.GTNewHorizons", module = "GTNHExtLib")
+        // jcpp needs Ant only for its unused build task.
+        exclude(group = "org.apache.ant")
     }
     for (module in listOf("lwjgl", "lwjgl-sdl", "lwjgl-shaderc", "lwjgl-spvc", "lwjgl-opengl")) {
         val coordinates = "org.lwjgl:$module:${libs.versions.lwjgl.get()}"
@@ -56,7 +60,8 @@ dependencies {
     // ShaderManager's debug-environment check references Launch.blackboard. Never launch it.
     runtimeOnly(libs.launchwrapper) { isTransitive = false }
     runtimeOnly(libs.commons.lang3)
-    runtimeOnly(libs.joml)
+    // Kotlin backs only JOML's Kotlin extension functions, which Java code cannot call.
+    runtimeOnly(libs.joml) { exclude(group = "org.jetbrains.kotlin") }
     runtimeOnly(libs.fastutil)
     runtimeOnly(libs.log4j.api)
     runtimeOnly(libs.log4j.core)
