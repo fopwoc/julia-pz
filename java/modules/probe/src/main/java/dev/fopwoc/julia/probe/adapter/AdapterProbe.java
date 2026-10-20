@@ -63,8 +63,8 @@ public final class AdapterProbe {
                 verified_named_buffer_bytes=80
                 verified_texture_readback_pixels=34
                 verified_divisor_pixels=1248
-                verified_buffer_texture_pixels=2560
-                buffer_texture_checks=nine 32-bit formats,vertex/fragment/compute reads,range alignment,shared updates,reallocation,deletion,pending draw ordering,separate target bindings,million-texel view,invalid ranges and formats
+                verified_buffer_texture_pixels=3072
+                buffer_texture_checks=nine 32-bit formats plus RGBA16UI,exact unsigned-short channels,vertex/fragment/compute reads,range alignment,shared updates,reallocation,deletion,pending draw ordering,separate target bindings,million-texel view,invalid ranges and formats
                 verified_array_api_pixels=128
                 array_api_checks=texture arrays,resource deletion,method references,two draw buffers,integer arrays,mat3 transpose,incomplete matrix tail,empty arrays
                 verified_resource_pixels=%d

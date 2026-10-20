@@ -52,6 +52,7 @@ final class BufferTextureChecks {
             for (int kind = 0; kind < 3; kind++)
                 for (int components = 0; components < 3; components++)
                     check(vertex, target, formats[kind][components], 1 << components, kind);
+            unsignedShorts(vertex, target);
             large(vertex, target);
             compute();
             ordering(vertex, target, false);
@@ -60,10 +61,10 @@ final class BufferTextureChecks {
             sharedUnit(vertex, target);
             Files.writeString(
                     output.resolve("buffer-textures.txt"),
-                    "PASS\nverified_pixels=2752\nverified_compute_words=4\nlimit_texels="
+                    "PASS\nverified_pixels=3072\nverified_compute_words=4\nlimit_texels="
                             + glGetInteger(GL_MAX_TEXTURE_BUFFER_SIZE) + "\noffset_alignment="
                             + glGetInteger(GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT)
-                            + "\nchecks=nine formats,vertex/fragment/compute,reflection,ranges,updates,reallocation,deletion,pending draws,separate bindings,shared sampler units,million texels\n");
+                            + "\nchecks=ten formats,unsigned 16-bit channels,vertex/fragment/compute,reflection,ranges,updates,reallocation,deletion,pending draws,separate bindings,shared sampler units,million texels\n");
         } finally {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_BUFFER, 0);
@@ -172,6 +173,73 @@ final class BufferTextureChecks {
             glDeleteBuffers(buffer);
             glUseProgram(0);
             glDeleteProgram(program);
+        }
+    }
+
+    private static void unsignedShorts(int vertex, int target) {
+        int fragment = glCreateShader(GL_FRAGMENT_SHADER), program = glCreateProgram();
+        int buffer = glGenBuffers(), texture = glGenTextures();
+        int alignment = glGetInteger(GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT);
+        var data = MemoryUtil.memAlloc(alignment + 16).order(ByteOrder.nativeOrder());
+        try {
+            glShaderSource(fragment, """
+                    #version 330 core
+                    uniform usamplerBuffer inputData;
+                    uniform int index;
+                    uniform int phase;
+                    out vec4 color;
+                    void main() {
+                        uvec4 expected = index == 0 ? uvec4(0u,32767u,32768u,65535u)
+                            : phase == 0 ? uvec4(65535u,32768u,1u,0u) : uvec4(7u,40000u,65534u,12345u);
+                        color = all(equal(texelFetch(inputData,index),expected)) ? vec4(.2,.4,.6,1) : vec4(0,0,0,1);
+                    }
+                    """);
+            compile(fragment);
+            glAttachShader(program, vertex);
+            glAttachShader(program, fragment);
+            glLinkProgram(program);
+            if (glGetProgrami(program, GL_LINK_STATUS) == GL_FALSE)
+                throw new IllegalStateException(glGetProgramInfoLog(program));
+            glUseProgram(program);
+            glUniform1i(glGetUniformLocation(program, "inputData"), 0);
+            int index = glGetUniformLocation(program, "index"), phase = glGetUniformLocation(program, "phase");
+            for (int i = 0; i < data.capacity(); i++) data.put(i, (byte) 0x7b);
+            int[] initial = {0, 32767, 32768, 65535, 65535, 32768, 1, 0};
+            for (int i = 0; i < initial.length; i++) data.putShort(alignment + i * 2, (short) initial[i]);
+            glBindBuffer(GL_TEXTURE_BUFFER, buffer);
+            glBufferData(GL_TEXTURE_BUFFER, data, GL_DYNAMIC_DRAW);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_BUFFER, texture);
+            GL43.glTexBufferRange(GL_TEXTURE_BUFFER, GL_RGBA16UI, buffer, alignment, 16);
+            if (glGetTexLevelParameteri(GL_TEXTURE_BUFFER, 0, GL_TEXTURE_WIDTH) != 2
+                    || glGetTexLevelParameteri(GL_TEXTURE_BUFFER, 0, GL_TEXTURE_INTERNAL_FORMAT) != GL_RGBA16UI)
+                throw new IllegalStateException("Unsigned-short buffer texture metadata lost its 8-byte texel layout");
+            draw(target, 51, 102, 153);
+            glUniform1i(index, 1);
+            draw(target, 51, 102, 153);
+            int[] changed = {7, 40000, 65534, 12345};
+            for (int i = 0; i < changed.length; i++) data.putShort(alignment + 8 + i * 2, (short) changed[i]);
+            data.position(alignment + 8).limit(alignment + 16);
+            glBufferSubData(GL_TEXTURE_BUFFER, alignment + 8L, data);
+            glUniform1i(phase, 1);
+            draw(target, 51, 102, 153);
+            data.clear();
+            glBufferData(GL_TEXTURE_BUFFER, data, GL_DYNAMIC_DRAW);
+            draw(target, 51, 102, 153);
+            GL31.glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA16UI, buffer);
+            if (glGetTexLevelParameteri(GL_TEXTURE_BUFFER, 0, GL_TEXTURE_WIDTH) != data.capacity() / 8)
+                throw new IllegalStateException("Full unsigned-short view has the wrong texel count");
+            glUniform1i(index, alignment / 8 + 1);
+            draw(target, 51, 102, 153);
+        } finally {
+            MemoryUtil.memFree(data);
+            glUseProgram(0);
+            glBindTexture(GL_TEXTURE_BUFFER, 0);
+            glBindBuffer(GL_TEXTURE_BUFFER, 0);
+            glDeleteTextures(texture);
+            glDeleteBuffers(buffer);
+            glDeleteProgram(program);
+            glDeleteShader(fragment);
         }
     }
 
