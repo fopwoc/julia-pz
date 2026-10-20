@@ -74,7 +74,9 @@ public final class NamedTextureUploads {
         if (data.remaining() < layout.requiredBytes())
             throw new IllegalArgumentException(
                     "Named upload client data is too short: needs " + layout.requiredBytes());
-        int outBytes = meta.glFormat() == GL_RGB8 ? 4 : transfer.bytes();
+        boolean rgb8 = meta.glFormat() == GL_RGB8;
+        boolean rgb32 = meta.glFormat() == GL_RGB32I || meta.glFormat() == GL_RGB32UI;
+        int outBytes = rgb8 ? 4 : rgb32 ? 16 : transfer.bytes();
         int rowBytes = Math.multiplyExact(width, outBytes),
                 sliceBytes = Math.multiplyExact(rowBytes, height),
                 size = Math.multiplyExact(sliceBytes, depth);
@@ -95,19 +97,15 @@ public final class NamedTextureUploads {
                                 + layer * layout.imageStride()
                                 + row * layout.rowStride());
                         int destination = layer * sliceBytes + row * rowBytes;
-                        if (!bgra && meta.glFormat() != GL_RGB8 && !unpack.swapBytes) {
+                        if (!bgra && !rgb8 && !rgb32 && !unpack.swapBytes) {
                             MemoryUtil.memCopy(
                                     MemoryUtil.memAddress(data, source),
                                     MemoryUtil.memAddress(mapped, destination),
                                     rowBytes);
                             continue;
                         }
-                        for (int pixel = 0; pixel < width; pixel++)
-                            for (int channel = 0; channel < outBytes; channel++) {
-                                if (meta.glFormat() == GL_RGB8 && channel == 3) {
-                                    mapped.put(destination + pixel * outBytes + channel, (byte) 255);
-                                    continue;
-                                }
+                        for (int pixel = 0; pixel < width; pixel++) {
+                            for (int channel = 0; channel < transfer.bytes(); channel++) {
                                 int c = bgra && channel < 3 ? 2 - channel : channel;
                                 if (unpack.swapBytes && componentBytes > 1)
                                     c = (channel / componentBytes) * componentBytes
@@ -118,6 +116,9 @@ public final class NamedTextureUploads {
                                         destination + pixel * outBytes + channel,
                                         data.get(source + pixel * transfer.bytes() + c));
                             }
+                            if (rgb8) mapped.put(destination + pixel * outBytes + 3, (byte) 255);
+                            if (rgb32) mapped.putInt(destination + pixel * outBytes + 12, 1);
+                        }
                     }
             } finally {
                 SDL_UnmapGPUTransferBuffer(device, staging);

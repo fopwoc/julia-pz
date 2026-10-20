@@ -34,10 +34,10 @@ public record TextureUploadFormat(int format, int type, int bytes) {
             case GL_RGBA16UI -> SDL_GPU_TEXTUREFORMAT_R16G16B16A16_UINT;
             case GL_R32I -> SDL_GPU_TEXTUREFORMAT_R32_INT;
             case GL_RG32I -> SDL_GPU_TEXTUREFORMAT_R32G32_INT;
-            case GL_RGBA32I -> SDL_GPU_TEXTUREFORMAT_R32G32B32A32_INT;
+            case GL_RGB32I, GL_RGBA32I -> SDL_GPU_TEXTUREFORMAT_R32G32B32A32_INT;
             case GL_R32UI -> SDL_GPU_TEXTUREFORMAT_R32_UINT;
             case GL_RG32UI -> SDL_GPU_TEXTUREFORMAT_R32G32_UINT;
-            case GL_RGBA32UI -> SDL_GPU_TEXTUREFORMAT_R32G32B32A32_UINT;
+            case GL_RGB32UI, GL_RGBA32UI -> SDL_GPU_TEXTUREFORMAT_R32G32B32A32_UINT;
             case GL_DEPTH_COMPONENT16 -> SDL_GPU_TEXTUREFORMAT_D16_UNORM;
             case GL_DEPTH_COMPONENT24 -> SDL_GPU_TEXTUREFORMAT_D24_UNORM;
             case GL_DEPTH_COMPONENT32F -> SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
@@ -83,9 +83,11 @@ public record TextureUploadFormat(int format, int type, int bytes) {
             case GL_RGBA16UI -> new TextureUploadFormat(GL_RGBA_INTEGER, GL_UNSIGNED_SHORT, 8);
             case GL_R32I -> new TextureUploadFormat(GL_RED_INTEGER, GL_INT, 4);
             case GL_RG32I -> new TextureUploadFormat(GL_RG_INTEGER, GL_INT, 8);
+            case GL_RGB32I -> new TextureUploadFormat(GL_RGB_INTEGER, GL_INT, 12);
             case GL_RGBA32I -> new TextureUploadFormat(GL_RGBA_INTEGER, GL_INT, 16);
             case GL_R32UI -> new TextureUploadFormat(GL_RED_INTEGER, GL_UNSIGNED_INT, 4);
             case GL_RG32UI -> new TextureUploadFormat(GL_RG_INTEGER, GL_UNSIGNED_INT, 8);
+            case GL_RGB32UI -> new TextureUploadFormat(GL_RGB_INTEGER, GL_UNSIGNED_INT, 12);
             case GL_RGBA32UI -> new TextureUploadFormat(GL_RGBA_INTEGER, GL_UNSIGNED_INT, 16);
             default ->
                 throw new UnsupportedOperationException("Named texture upload format not implemented: " + storage);

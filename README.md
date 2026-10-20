@@ -140,10 +140,14 @@ into the game JVM.
 Limits include rejected layered rendering of an entire array/volume, framebuffer-slice readback/blits,
 split depth/stencil images, single-aspect rendering of packed depth/stencil images, and SDL depth slice indices above 255.
 Bound ShortBuffer and FloatBuffer subimage uploads currently support 2D targets and matching transfer/storage formats.
+Bound IntBuffer subimage uploads support 3D and 2D-array targets with matching transfer/storage formats.
+RGB32I/UI client uploads expand to four physical components with integer alpha one, including mutable volume
+initialization. Windowless checks verify 864 exact channel values across signed/unsigned volumes and arrays,
+including padded image layouts, untouched layers, and byte-swapped partial updates.
 Windowless Metal checks verify 84 exact floating-point channel values across R32F, RG32F, and RGBA32F,
 including unpack strides/skips, partial updates, byte swapping, and client-buffer reuse.
 Named textures are restricted to 2D, 2D arrays and 3D targets, explicitly supported sized storage formats
-and matching client transfer formats (plus RGB8 promotion and BGRA8 conversion). Client uploads with pixel-unpack
+and matching client transfer formats (plus RGB8/RGB32I/RGB32UI promotion and BGRA8 conversion). Client uploads with pixel-unpack
 buffers bound, nonzero named texture base levels and unsupported wrap modes (including clamp-to-border) are rejected.
 Other limits include vertex-write compute replay rejecting divisors above 65,535 (ordinary native vertex fetch retains
 all 32 unsigned bits), buffer textures restricted to the nine R/RG/RGBA 32-bit formats (no sampler arrays or image load/store),

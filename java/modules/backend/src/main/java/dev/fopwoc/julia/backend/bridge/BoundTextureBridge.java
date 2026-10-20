@@ -1,11 +1,14 @@
 package dev.fopwoc.julia.backend.bridge;
 
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.GL12.GL_TEXTURE_3D;
+import static org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY;
 
 import dev.fopwoc.julia.backend.BackendInternals;
 import dev.fopwoc.julia.backend.texture.NamedTextureUploads;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import org.lwjgl.system.MemoryUtil;
 
@@ -25,6 +28,39 @@ public final class BoundTextureBridge {
         if (data != null && !data.isDirect())
             throw new IllegalArgumentException("Texture upload requires direct client data");
         upload(target, level, x, y, width, height, format, type, data == null ? null : MemoryUtil.memByteBuffer(data));
+    }
+
+    public static void glTexSubImage3D(
+            int target,
+            int level,
+            int x,
+            int y,
+            int z,
+            int width,
+            int height,
+            int depth,
+            int format,
+            int type,
+            IntBuffer data) {
+        if (target != GL_TEXTURE_3D && target != GL_TEXTURE_2D_ARRAY)
+            throw new UnsupportedOperationException("Integer volume uploads require a 3D or 2D-array target");
+        if (data != null && !data.isDirect())
+            throw new IllegalArgumentException("Texture upload requires direct client data");
+        var state = BackendInternals.context();
+        int name = BackendInternals.textureBindings().get(state, state.activeTextureUnit, target);
+        NamedTextureUploads.upload(
+                name,
+                level,
+                x,
+                y,
+                z,
+                width,
+                height,
+                depth,
+                format,
+                type,
+                data == null ? null : MemoryUtil.memByteBuffer(data),
+                true);
     }
 
     private static void upload(

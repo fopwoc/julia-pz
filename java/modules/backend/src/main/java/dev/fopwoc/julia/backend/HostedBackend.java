@@ -43,6 +43,7 @@ import dev.fopwoc.julia.backend.shader.SamplerUniforms;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.sync.GpuSyncs;
 import dev.fopwoc.julia.backend.texture.ClientPixels;
+import dev.fopwoc.julia.backend.texture.NamedTextureUploads;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.texture.TextureObjects;
 import dev.fopwoc.julia.backend.texture.TextureViews;
@@ -743,6 +744,34 @@ public final class HostedBackend extends SDLGPURenderBackend {
         }
         try (var client = ClientPixels.borrow(pixels, width, height, pixelFormat, type, state.pixelStore)) {
             texImage2D(target, level, format, width, height, border, client.format(), type, client.data());
+        }
+    }
+
+    @Override
+    public void texImage3D(
+            int target,
+            int level,
+            int format,
+            int width,
+            int height,
+            int depth,
+            int border,
+            int pixelFormat,
+            int type,
+            ByteBuffer data) {
+        if (format != GL_RGB32I && format != GL_RGB32UI) {
+            super.texImage3D(target, level, format, width, height, depth, border, pixelFormat, type, data);
+            return;
+        }
+        if (level != 0 || border != 0 || (target != GL_TEXTURE_3D && target != GL_TEXTURE_2D_ARRAY))
+            throw new UnsupportedOperationException(
+                    "RGB32 integer allocation requires a borderless base-level volume or array");
+        // SDL stores RGB32 integer pixels as RGBA32; the generic upstream uploader copies only three components.
+        super.texImage3D(target, level, format, width, height, depth, border, pixelFormat, type, (ByteBuffer) null);
+        if (data != null) {
+            var state = BackendInternals.context();
+            int name = textureBindings.get(state, state.activeTextureUnit, target);
+            NamedTextureUploads.upload(name, level, 0, 0, 0, width, height, depth, pixelFormat, type, data, true);
         }
     }
 
