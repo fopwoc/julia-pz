@@ -13,6 +13,12 @@ import org.objectweb.asm.tree.MethodInsnNode;
 /** Only the exact observed resource overloads enter the bounded bridge implementations. */
 public final class ResourcePass {
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
+            Map.entry("org/lwjgl/opengl/GL40.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL40C.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43C.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45C.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL30.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
             Map.entry(
                     "org/lwjgl/opengl/GL30.glClearBufferfv(IILjava/nio/FloatBuffer;)V",

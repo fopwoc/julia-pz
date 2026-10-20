@@ -43,6 +43,7 @@ public final class AdapterProbe {
                 verified_initial_frame_pixels=128
                 initial_frame_checks=opaque black startup,empty frame preservation,clear color restoration
                 verified_sparse_framebuffer_pixels=1248
+                verified_indexed_blend_pixels=24
                 verified_framebuffer_pixels=480
                 verified_layer_view_pixels=208
                 verified_program_interface_pixels=64
