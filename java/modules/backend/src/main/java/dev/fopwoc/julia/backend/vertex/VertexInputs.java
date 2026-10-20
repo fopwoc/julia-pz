@@ -1,7 +1,11 @@
 package dev.fopwoc.julia.backend.vertex;
 
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.util.spvc.Spvc.*;
+
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
+import com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineCache;
 import dev.fopwoc.julia.backend.BackendInternals;
 import dev.fopwoc.julia.backend.platform.Platform;
 import java.util.WeakHashMap;
@@ -91,6 +95,20 @@ public final class VertexInputs {
                 rates[attribute] = vao.bindingDivisor[binding];
         }
         return Platform.current().createGraphicsPipeline(device, info, rates);
+    }
+
+    /**
+     * Format of a live input whose array is disabled. The generic value is stored as floats, so integer inputs read its
+     * bits; GL leaves such mismatched reads undefined, but Metal rejects a float format for an integer input outright.
+     */
+    public static int defaultFormat(int components, PipelineCache cache, int location) {
+        int[] types = cache.shaderInputBaseType;
+        int type = types != null && location < types.length ? types[location] : SPVC_BASETYPE_FP32;
+        return switch (type) {
+            case SPVC_BASETYPE_INT32 -> PipelineCache.mapVertexFormat(components, GL_INT, false, true);
+            case SPVC_BASETYPE_UINT32 -> PipelineCache.mapVertexFormat(components, GL_UNSIGNED_INT, false, true);
+            default -> PipelineCache.mapVertexFormat(components, GL_FLOAT, false, false);
+        };
     }
 
     public static int replayDivisor(int divisor, int maximum) {

@@ -1,15 +1,21 @@
 package dev.fopwoc.julia.transform.load;
 
+import static org.lwjgl.opengl.GL11.GL_FLOAT;
+
 import dev.fopwoc.julia.transform.Endpoint;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
-/** Full-width divisor hashing, native pipeline creation, and protection from stale legacy layout repair. */
+/**
+ * Full-width divisor hashing, native pipeline creation, typed generic attributes, and protection from stale legacy
+ * layout repair.
+ */
 public final class VertexInputPass {
     private static final String ROOT = "com.gtnewhorizons.angelica.sdlgpu.";
     private static final String STATE = ROOT.replace('.', '/') + "frame/ContextState";
+    private static final String CACHE = ROOT.replace('.', '/') + "pipeline/PipelineCache";
 
     private VertexInputPass() {}
 
@@ -20,7 +26,7 @@ public final class VertexInputPass {
         if (!pipeline && !glsm && !replay) return bytes;
         var node = new ClassNode();
         new ClassReader(bytes).accept(node, 0);
-        int hashes = 0, creates = 0, protects = 0, guards = 0;
+        int hashes = 0, creates = 0, protects = 0, guards = 0, defaults = 0;
         for (var method : node.methods) {
             if (glsm && method.name.equals("pointAttrib") && method.desc.endsWith(";I)V")) {
                 var head = new InsnList();
@@ -50,6 +56,28 @@ public final class VertexInputPass {
                     method.instructions.set(invoke, call("createPipeline", invoke.desc));
                     creates++;
                 }
+                if (pipeline
+                        && method.name.equals("buildVertexInput")
+                        && instruction instanceof MethodInsnNode invoke
+                        && invoke.name.equals("mapVertexFormat")
+                        && invoke.desc.equals("(IIZZ)I")
+                        && previous(invoke) instanceof InsnNode integer
+                        && integer.getOpcode() == Opcodes.ICONST_0
+                        && previous(integer) instanceof InsnNode normalized
+                        && normalized.getOpcode() == Opcodes.ICONST_0
+                        && previous(normalized) instanceof IntInsnNode type
+                        && type.operand == GL_FLOAT) {
+                    // Disabled attributes read the generic value; upstream declares it float even for integer inputs.
+                    var location = new InsnList();
+                    location.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                    location.add(new VarInsnNode(Opcodes.ILOAD, attributeLocation(invoke)));
+                    method.instructions.insertBefore(type, location);
+                    method.instructions.remove(type);
+                    method.instructions.remove(normalized);
+                    method.instructions.remove(integer);
+                    method.instructions.set(invoke, call("defaultFormat", "(IL" + CACHE + ";I)I"));
+                    defaults++;
+                }
                 if (replay
                         && instruction instanceof MethodInsnNode invoke
                         && invoke.owner.equals("java/lang/Math")
@@ -65,12 +93,32 @@ public final class VertexInputPass {
                 }
             }
         }
-        if (pipeline && (hashes != 3 || creates != 1) || glsm && protects != 1 || replay && guards != 1)
+        if (pipeline && (hashes != 3 || creates != 1 || defaults != 1)
+                || glsm && protects != 1
+                || replay && guards != 1)
             throw new IllegalStateException("Vertex-input integration changed: " + name + " anchors=" + hashes + ","
-                    + creates + "," + protects + "," + guards);
+                    + creates + "," + defaults + "," + protects + "," + guards);
         var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         node.accept(writer);
         return writer.toByteArray();
+    }
+
+    /** The loop's location variable, as passed to the attribute descriptor just before the format. */
+    private static int attributeLocation(AbstractInsnNode format) {
+        for (var instruction = format.getPrevious(); instruction != null; instruction = instruction.getPrevious())
+            if (instruction instanceof MethodInsnNode call
+                    && call.owner.equals("org/lwjgl/sdl/SDL_GPUVertexAttribute")
+                    && call.name.equals("location")) {
+                if (previous(call) instanceof VarInsnNode load && load.getOpcode() == Opcodes.ILOAD) return load.var;
+                break;
+            }
+        throw new IllegalStateException("Default vertex attribute location changed in buildVertexInput");
+    }
+
+    private static AbstractInsnNode previous(AbstractInsnNode instruction) {
+        do instruction = instruction.getPrevious();
+        while (instruction != null && instruction.getOpcode() < 0);
+        return instruction;
     }
 
     private static MethodInsnNode call(String name, String descriptor) {

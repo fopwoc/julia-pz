@@ -116,7 +116,7 @@ final class IndirectDrawChecks {
                 throw new IllegalStateException("Indirect draw changed command buffer binding");
             Files.writeString(
                     output.resolve("indirect-draws.txt"),
-                    "PASS\nverified_pixels=240\nchecks=GPU-generated commands,nonzero command offset,padded/packed stride,multiple draws and instances,base instances,zero draw/instance counts,vertex/instance IDs,constant attributes,argument-buffer vertex samplers,divisor two,invalid ranges and alignment\n");
+                    "PASS\nverified_pixels=240\nchecks=GPU-generated commands,nonzero command offset,padded/packed stride,multiple draws and instances,base instances,zero draw/instance counts,vertex/instance IDs,constant attributes,disabled integer attributes,argument-buffer vertex samplers,divisor two,invalid ranges and alignment\n");
         } finally {
             glUseProgram(0);
             glBindVertexArray(0);
@@ -155,7 +155,7 @@ final class IndirectDrawChecks {
         try {
             glShaderSource(
                     v,
-                    "#version 430 core\nlayout(location=2)in vec4 record;layout(location=5)in float alpha;uniform sampler2D images[2];uniform int standalone;flat out vec4 shade;void main(){vec2 corners[6]=vec2[6](vec2(0,0),vec2(1,0),vec2(1,1),vec2(0,0),vec2(1,1),vec2(0,1));vec2 p=corners[gl_VertexID%6];gl_Position=vec4(((standalone!=0?0.:record.x)+float(gl_InstanceID)+p.x)*2./3.-1.,p.y*2.-1.,0,1);float sampled=(textureLod(images[0],vec2(.5),0).r+textureLod(images[1],vec2(.5),0).r)*.5;shade=vec4(record.yz,gl_VertexID<6?.2:.8,alpha)*sampled;}");
+                    "#version 430 core\nlayout(location=2)in vec4 record;layout(location=5)in float alpha;layout(location=6)in ivec4 disabledRun;uniform sampler2D images[2];uniform int standalone;uniform int readDisabled;flat out vec4 shade;void main(){vec2 corners[6]=vec2[6](vec2(0,0),vec2(1,0),vec2(1,1),vec2(0,0),vec2(1,1),vec2(0,1));vec2 p=corners[gl_VertexID%6];gl_Position=vec4(((standalone!=0?0.:record.x)+float(gl_InstanceID)+p.x)*2./3.-1.,p.y*2.-1.,0,1);float sampled=(textureLod(images[0],vec2(.5),0).r+textureLod(images[1],vec2(.5),0).r)*.5;shade=vec4(record.yz,gl_VertexID<6?.2:.8,alpha)*sampled;if(readDisabled!=0)shade.x+=float(disabledRun.x);}");
             glShaderSource(f, "#version 430 core\nflat in vec4 shade;out vec4 color;void main(){color=shade;}");
             compile(v);
             compile(f);
