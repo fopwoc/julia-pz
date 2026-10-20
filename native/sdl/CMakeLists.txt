@@ -106,3 +106,5 @@ set_target_properties(SDL3-shared PROPERTIES OUTPUT_NAME SDL3Julia)
 include("${CMAKE_CURRENT_SOURCE_DIR}/sampler_arguments.cmake")
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/sparse_targets.cmake")
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/visibility.cmake")

@@ -2,7 +2,9 @@ package dev.fopwoc.julia.backend.platform;
 
 import com.gtnewhorizons.angelica.sdlgpu.shader.cross.CrossCompileCache.Output;
 import dev.fopwoc.julia.backend.framebuffer.macos.MetalSparseTargets;
+import dev.fopwoc.julia.backend.query.OcclusionDriver;
 import dev.fopwoc.julia.backend.query.TimestampDriver;
+import dev.fopwoc.julia.backend.query.macos.MetalOcclusionQueries;
 import dev.fopwoc.julia.backend.query.macos.MetalTimestamps;
 import dev.fopwoc.julia.backend.shader.macos.MetalSamplerShaders;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextureDriver;
@@ -55,6 +57,11 @@ public enum Platform {
         @Override
         public TimestampDriver createTimestampDriver() {
             return new MetalTimestamps();
+        }
+
+        @Override
+        public OcclusionDriver createOcclusionDriver() {
+            return new MetalOcclusionQueries();
         }
 
         @Override
@@ -115,6 +122,10 @@ public enum Platform {
 
     public TimestampDriver createTimestampDriver() {
         throw new UnsupportedOperationException("Native GPU timestamps are not implemented on " + this);
+    }
+
+    public OcclusionDriver createOcclusionDriver() {
+        throw new UnsupportedOperationException("Native occlusion queries are not implemented on " + this);
     }
 
     public Output compileSamplerShader(ByteBuffer spirv, int stage) {

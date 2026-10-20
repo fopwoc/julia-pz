@@ -40,7 +40,7 @@ import dev.fopwoc.julia.backend.diagnostic.ModelDrawTrace;
 import dev.fopwoc.julia.backend.diagnostic.SamplerAssignmentTrace;
 import dev.fopwoc.julia.backend.framebuffer.Framebuffers;
 import dev.fopwoc.julia.backend.platform.Platform;
-import dev.fopwoc.julia.backend.query.TimerQueries;
+import dev.fopwoc.julia.backend.query.Queries;
 import dev.fopwoc.julia.backend.shader.MatrixUniformUploads;
 import dev.fopwoc.julia.backend.shader.ProgramLinkState;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
@@ -419,12 +419,12 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     private final ProgramResourceCache programResources = new ProgramResourceCache();
 
-    private final TimerQueries timerQueries =
-            new TimerQueries(() -> Platform.current().createTimestampDriver());
+    private final Queries queries =
+            new Queries(Platform.current()::createTimestampDriver, Platform.current()::createOcclusionDriver);
 
     @Override
     public int genQueries() {
-        return timerQueries.generate();
+        return queries.generate();
     }
 
     @Override
@@ -434,37 +434,37 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void deleteQueries(int name) {
-        timerQueries.delete(name);
+        queries.delete(name);
     }
 
     @Override
     public boolean isQuery(int name) {
-        return timerQueries.isQuery(name);
+        return queries.isQuery(name);
     }
 
     @Override
     public void queryCounter(int name, int target) {
-        timerQueries.timestamp(name, target);
+        queries.timestamp(name, target);
     }
 
     @Override
     public void beginQuery(int target, int name) {
-        timerQueries.begin(target, name);
+        queries.begin(target, name);
     }
 
     @Override
     public void endQuery(int target) {
-        timerQueries.end(target);
+        queries.end(target);
     }
 
     @Override
     public int getQueryObjecti(int name, int parameter) {
-        return (int) timerQueries.get(name, parameter);
+        return (int) queries.get(name, parameter);
     }
 
     @Override
     public long getQueryObjectui64(int name, int parameter) {
-        return timerQueries.get(name, parameter);
+        return queries.get(name, parameter);
     }
 
     @Override
@@ -960,7 +960,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
     public void shutdown() {
         // The upstream relay is static and would otherwise retain the host callback after device shutdown.
         DebugMessageRelay.setListener(null, 0L, false);
-        timerQueries.close();
+        queries.close();
         bufferTextures.close();
         programResources.clear();
         shaderPrograms.close();

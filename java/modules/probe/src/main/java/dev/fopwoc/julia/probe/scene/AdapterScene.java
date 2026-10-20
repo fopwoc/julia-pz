@@ -124,6 +124,7 @@ public final class AdapterScene {
             IndirectDrawChecks.run(output);
             SyncChecks.run(output);
             TimerQueryChecks.run(output);
+            OcclusionQueryChecks.run(output);
             ClientPointerChecks.run();
             ViewChecks.run();
             ProgramResourceChecks.run();

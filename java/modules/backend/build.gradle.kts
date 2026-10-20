@@ -53,6 +53,7 @@ if (nativeClassifier.startsWith("natives-macos")) {
         inputs.file(nativeRoot.file("CMakeLists.txt"))
         inputs.file(nativeRoot.file("sampler_arguments.cmake"))
         inputs.file(nativeRoot.file("sparse_targets.cmake"))
+        inputs.file(nativeRoot.file("visibility.cmake"))
         outputs.file(nativeBuild.file("CMakeCache.txt"))
         commandLine("cmake", "-S", nativeRoot.asFile.absolutePath, "-B", nativeBuild.asFile.absolutePath,
             "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${nativeBuild.dir("lib").asFile.absolutePath}",
@@ -68,8 +69,10 @@ if (nativeClassifier.startsWith("natives-macos")) {
         inputs.file(nativeRoot.file("gpu_texture_views.m"))
         inputs.file(nativeRoot.file("gpu_sampler_arguments.m"))
         inputs.file(nativeRoot.file("gpu_sparse_targets.m"))
+        inputs.file(nativeRoot.file("gpu_visibility.m"))
         inputs.file(nativeRoot.file("sampler_arguments.cmake"))
         inputs.file(nativeRoot.file("sparse_targets.cmake"))
+        inputs.file(nativeRoot.file("visibility.cmake"))
         outputs.file(nativeLibrary)
         commandLine("cmake", "--build", nativeBuild.asFile.absolutePath, "--target", "SDL3-shared", "--parallel", "8")
     }
