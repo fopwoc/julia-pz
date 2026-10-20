@@ -1,5 +1,6 @@
 package dev.fopwoc.julia.transform.load;
 
+import static dev.fopwoc.julia.backend.shader.SamplerResources.LIMIT;
 import static dev.fopwoc.julia.backend.texture.TextureBindings.UNIT_COUNT;
 import static org.lwjgl.opengl.GL20.GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
 import static org.lwjgl.opengl.GL20.GL_MAX_TEXTURE_IMAGE_UNITS;
@@ -47,7 +48,7 @@ public final class SamplerResourcePass {
             if ((context && field.name.equals("MAX_SAMPLERS")) || (overflow && field.name.equals("SAMPLER_SLOTS"))) {
                 if (!Integer.valueOf(16).equals(field.value))
                     throw new IllegalStateException("Pinned sampler constant changed");
-                field.value = 32;
+                field.value = LIMIT;
                 edits++;
             }
         }
@@ -122,7 +123,7 @@ public final class SamplerResourcePass {
                             && value.cst instanceof String text
                             && Set.of("sdl-stage", "sdl-prewarm", "sdl-vertex-variant")
                                     .contains(text)) {
-                        value.cst = "julia-samplers-v2-" + text;
+                        value.cst = "julia-samplers-v3-" + text;
                         edits++;
                     }
                 }
@@ -141,7 +142,7 @@ public final class SamplerResourcePass {
                     if (!(value instanceof IntInsnNode constant) || constant.operand != (logical ? 32 : 16))
                         throw new IllegalStateException("Pinned sampler capacity changed: " + field.name);
                     if (logical) method.instructions.set(constant, new IntInsnNode(Opcodes.SIPUSH, UNIT_COUNT));
-                    else constant.operand = 32;
+                    else constant.operand = LIMIT;
                     edits++;
                 }
             }
@@ -150,7 +151,7 @@ public final class SamplerResourcePass {
                     if (instruction instanceof IntInsnNode constant
                             && constant.operand == 16
                             && constant.getOpcode() == Opcodes.BIPUSH) {
-                        constant.operand = 32;
+                        constant.operand = LIMIT;
                         edits++;
                     }
             }
@@ -160,7 +161,7 @@ public final class SamplerResourcePass {
                     if (instruction instanceof IntInsnNode constant
                             && constant.operand == 16
                             && constant.getOpcode() == Opcodes.BIPUSH) {
-                        constant.operand = 32;
+                        constant.operand = LIMIT;
                         edits++;
                     }
             }

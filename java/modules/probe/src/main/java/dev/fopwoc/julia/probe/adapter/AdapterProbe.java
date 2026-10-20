@@ -47,7 +47,7 @@ public final class AdapterProbe {
                 verified_framebuffer_pixels=480
                 verified_layer_view_pixels=208
                 verified_program_interface_pixels=64
-                verified_graphics_sampler_pixels=162
+                verified_graphics_sampler_pixels=188
                 verified_sync_pixels=64
                 verified_short_texture_pixels=24
                 verified_float_texture_pixels=84

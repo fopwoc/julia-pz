@@ -60,10 +60,12 @@ final class ManySamplerChecks {
             glColorMask(true, true, true, true);
             int verified = 0;
             // Include a direct stage before and after indirect stages to expose stale native bindings.
-            for (int count : new int[] {2, 17, 20, 32, 2}) {
+            for (int count : new int[] {2, 17, 20, 26, 32, 2}) {
                 var source = new StringBuilder("#version 430 core\nout vec4 color;\n");
                 for (int i = 0; i < count; i++)
                     source.append("uniform sampler2D image").append(i).append(";\n");
+                source.append(
+                        "uniform sampler2D retired[12];vec4 unreachable(){return texture(retired[11],vec2(.5));}\n");
                 source.append("void main(){int i=int(gl_FragCoord.x);color=vec4(0);");
                 for (int i = 0; i < count; i++)
                     source.append("if(i==")
@@ -75,6 +77,8 @@ final class ManySamplerChecks {
                 int program = program(VERTEX, source.toString());
                 try {
                     glUseProgram(program);
+                    if (glGetUniformLocation(program, "retired[0]") != -1)
+                        throw new IllegalStateException("Unreachable sampler array became active");
                     for (int i = 0; i < count; i++) glUniform1i(glGetUniformLocation(program, "image" + i), i);
                     glDrawArrays(GL_TRIANGLES, 0, 3);
                     int[] expected = new int[count];
@@ -219,7 +223,7 @@ final class ManySamplerChecks {
             Files.writeString(
                     output.resolve("many-samplers.txt"),
                     "PASS\nverified_pixels=" + verified
-                            + "\nchecks=17/20/32 scalar samplers,mixed nearest/linear filtering,direct/indirect switches,16-element array plus scalar samplers,array locations,bulk and partial uploads,invalid array bounds,client positions,queued argument snapshots,sampler object overrides,deleted sampler/texture lifetime,pending clears above slot 16,simultaneous 32 vertex and 17 fragment samplers\n");
+                            + "\nchecks=unreachable sampler arrays exceed declared budget,26 and 32 live slots,17/20/32 scalar samplers,mixed nearest/linear filtering,direct/indirect switches,16-element array plus scalar samplers,array locations,bulk and partial uploads,invalid array bounds,client positions,queued argument snapshots,sampler object overrides,deleted sampler/texture lifetime,pending clears above slot 16,simultaneous 32 vertex and 17 fragment samplers\n");
         } finally {
             glUseProgram(0);
             glDisable(GL_SCISSOR_TEST);

@@ -27,8 +27,7 @@ public final class SamplerShaderBridge {
                 SamplerResources.check(spvc_context_create_compiler(
                         context, SPVC_BACKEND_NONE, pointer.get(0), SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, pointer));
                 long compiler = pointer.get(0);
-                SamplerResources.check(spvc_compiler_create_shader_resources(compiler, pointer));
-                long resources = pointer.get(0);
+                long resources = SamplerResources.activeResources(compiler, stack);
                 var count = stack.pointers(0);
                 SamplerResources.check(spvc_resources_get_resource_list_for_type(
                         resources, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, pointer, count));

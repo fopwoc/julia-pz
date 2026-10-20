@@ -33,6 +33,9 @@ public final class MetalSamplerShaders {
                 SamplerResources.check(spvc_context_create_compiler(
                         context, SPVC_BACKEND_MSL, pointer.get(0), SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, pointer));
                 long compiler = pointer.get(0);
+                SamplerResources.check(spvc_compiler_get_active_interface_variables(compiler, pointer));
+                SamplerResources.check(spvc_compiler_set_enabled_interface_variables(compiler, pointer.get(0)));
+                long sampledResources = SamplerResources.activeResources(compiler, stack);
                 SamplerResources.check(spvc_compiler_create_shader_resources(compiler, pointer));
                 long resources = pointer.get(0);
                 int model = stage == GL20.GL_VERTEX_SHADER ? SpvExecutionModelVertex : SpvExecutionModelFragment;
@@ -55,7 +58,7 @@ public final class MetalSamplerShaders {
                     SamplerResources.check(spvc_compiler_msl_add_discrete_descriptor_set(compiler, set));
                 var count = stack.pointers(0);
                 SamplerResources.check(spvc_resources_get_resource_list_for_type(
-                        resources, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, pointer, count));
+                        sampledResources, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, pointer, count));
                 var images = SpvcReflectedResource.create(pointer.get(0), Math.toIntExact(count.get(0)));
                 for (var image : images) {
                     int binding = spvc_compiler_get_decoration(compiler, image.id(), SpvDecorationBinding);

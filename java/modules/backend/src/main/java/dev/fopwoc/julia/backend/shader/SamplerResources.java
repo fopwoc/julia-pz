@@ -18,6 +18,15 @@ public final class SamplerResources {
 
     private SamplerResources() {}
 
+    /** Only entry-point-reachable resources consume bindings; runtime-conditional reads remain active. */
+    public static long activeResources(long compiler, MemoryStack stack) {
+        var active = stack.pointers(0);
+        check(spvc_compiler_get_active_interface_variables(compiler, active));
+        var resources = stack.pointers(0);
+        check(spvc_compiler_create_shader_resources_for_active_variables(compiler, resources, active.get(0)));
+        return resources.get(0);
+    }
+
     public static int width(long compiler, SpvcReflectedResource resource) {
         long type = spvc_compiler_get_type_handle(compiler, resource.type_id());
         int dimensions = spvc_type_get_num_array_dimensions(type);
@@ -42,7 +51,8 @@ public final class SamplerResources {
             MemoryStack stack) {
         var pointer = stack.pointers(0);
         var count = stack.pointers(0);
-        check(spvc_resources_get_resource_list_for_type(resources, kind, pointer, count));
+        long selected = kind == SPVC_RESOURCE_TYPE_SAMPLED_IMAGE ? activeResources(compiler, stack) : resources;
+        check(spvc_resources_get_resource_list_for_type(selected, kind, pointer, count));
         var list = SpvcReflectedResource.create(pointer.get(0), Math.toIntExact(count.get(0)));
         for (var resource : list) {
             int width = width(compiler, resource);
@@ -59,7 +69,8 @@ public final class SamplerResources {
             long resources, long compiler, int kind, List<String> names, IntArrayList bindings, MemoryStack stack) {
         var pointer = stack.pointers(0);
         var count = stack.pointers(0);
-        check(spvc_resources_get_resource_list_for_type(resources, kind, pointer, count));
+        long selected = kind == SPVC_RESOURCE_TYPE_SAMPLED_IMAGE ? activeResources(compiler, stack) : resources;
+        check(spvc_resources_get_resource_list_for_type(selected, kind, pointer, count));
         var list = SpvcReflectedResource.create(pointer.get(0), Math.toIntExact(count.get(0)));
         for (var resource : list) {
             int width = width(compiler, resource);
