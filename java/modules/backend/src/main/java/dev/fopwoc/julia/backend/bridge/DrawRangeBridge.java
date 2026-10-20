@@ -3,7 +3,6 @@ package dev.fopwoc.julia.backend.bridge;
 import static org.lwjgl.opengl.GL11.GL_QUADS;
 
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
-import dev.fopwoc.julia.backend.diagnostic.QuadDrawTrace;
 
 /** Preserves GLSM's quad conversion for the ranged EBO overload used by PZ's map renderer. */
 public final class DrawRangeBridge {
@@ -14,7 +13,6 @@ public final class DrawRangeBridge {
             // The valid index range does not change the vertices drawn. GLSM's ordinary indexed
             // path also preserves EBO bindings, display-list recording, and quad triangulation.
             GLStateManager.glDrawElements(mode, count, type, indices);
-            QuadDrawTrace.record(start, end, count, type, indices);
         } else {
             GLStateManager.glDrawRangeElements(mode, start, end, count, type, indices);
         }

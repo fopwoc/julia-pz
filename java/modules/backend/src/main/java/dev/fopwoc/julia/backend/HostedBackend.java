@@ -33,11 +33,8 @@ import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
-import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 import dev.fopwoc.julia.backend.buffer.IndexBufferUploads;
-import dev.fopwoc.julia.backend.diagnostic.ModelDrawTrace;
-import dev.fopwoc.julia.backend.diagnostic.SamplerAssignmentTrace;
 import dev.fopwoc.julia.backend.framebuffer.Framebuffers;
 import dev.fopwoc.julia.backend.platform.Platform;
 import dev.fopwoc.julia.backend.query.Queries;
@@ -493,9 +490,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
         String backendName = shaderPrograms.backendUniformName(program, name.toString());
         var object = BackendInternals.shaders().getProgram(program);
         if (object != null && object.allSamplerNames.contains(backendName + "[0]")) backendName += "[0]";
-        int location = super.getUniformLocation(program, backendName);
-        SamplerAssignmentTrace.lookup(object, name.toString(), location);
-        return location;
+        return super.getUniformLocation(program, backendName);
     }
 
     @Override
@@ -584,22 +579,8 @@ public final class HostedBackend extends SDLGPURenderBackend {
                 throw new UnsupportedOperationException("SDL shader program translation failed for program " + program
                         + ": " + super.getProgramInfoLog(program));
             ProgramLinkState.linked(BackendInternals.shaders().getProgram(program), BackendInternals.context());
-            SamplerAssignmentTrace.linked(BackendInternals.shaders().getProgram(program));
             shaderPrograms.initializeUniforms(program);
         }
-    }
-
-    @Override
-    public void uniform1i(int location, int value) {
-        super.uniform1i(location, value);
-        var program = BackendInternals.context().boundProgramObj;
-        if (program == null
-                || location < 0
-                || location >= program.locationKind.length
-                || program.locationKind[location] != ProgramObject.LOCATION_KIND_SAMPLER) return;
-        // The upstream value cache skips zero-to-zero writes, but diagnostics need that explicit assignment.
-        if (value == 0) program.samplerTextureUnits.putIfAbsent(program.locationName[location], 0);
-        SamplerAssignmentTrace.assigned(program, location, value);
     }
 
     @Override
@@ -683,24 +664,11 @@ public final class HostedBackend extends SDLGPURenderBackend {
     }
 
     @Override
-    public void drawElements(int mode, int count, int type, long indices) {
-        super.drawElements(mode, count, type, indices);
-        ModelDrawTrace.record(count);
-    }
-
-    @Override
     public void drawElementsInstanced(int mode, int count, int type, long indices, int instances) {
         if (count <= 0 || instances <= 0) return;
         try (var _ = BaseInstanceDraws.offsets(BackendInternals.context())) {
             super.drawElementsInstanced(mode, count, type, indices, instances);
         }
-        ModelDrawTrace.record(count);
-    }
-
-    @Override
-    public void drawElementsBaseVertex(int mode, int count, int type, long indices, int baseVertex) {
-        super.drawElementsBaseVertex(mode, count, type, indices, baseVertex);
-        ModelDrawTrace.record(count);
     }
 
     @Override

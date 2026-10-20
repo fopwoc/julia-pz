@@ -13,7 +13,6 @@ import static org.lwjgl.util.spvc.Spvc.*;
 import com.gtnewhorizons.angelica.sdlgpu.sampler.SamplerLookup;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import dev.fopwoc.julia.backend.BackendInternals;
-import dev.fopwoc.julia.backend.diagnostic.SamplerFailureState;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -72,7 +71,7 @@ public final class SamplerLayout {
             int unit = assigned == -1 ? 0 : assigned;
             if (unit < 0 || unit >= unitTargets.length)
                 throw new IllegalArgumentException("Sampler texture unit out of range: " + name + "=" + unit
-                        + "; active assignments=" + assignments(program) + SamplerFailureState.describe(program));
+                        + "; active assignments=" + assignments(program));
             int target = target(name);
             samplers.computeIfAbsent(unit, ignored -> new TreeMap<>()).put(name, target);
             if (target == GL_TEXTURE_BUFFER) {
