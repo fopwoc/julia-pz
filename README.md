@@ -235,6 +235,18 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `java/modules/workshop` | Packages the Lua companion mod |
 | `native/sdl` | SDL patches: `common/` for every API, one folder per GPU API (`metal/` today) |
 
+### Flags
+
+| Flag | Where | Effect |
+| --- | --- | --- |
+| `-javaagent:julia-agent.jar=activate` | Launch options | Render through Julia; reports go to a fresh `~/Zomboid/julia/run-*/` |
+| `-javaagent:julia-agent.jar=activate=<dir>` | Launch options | Same, with reports in `<dir>` |
+| `-javaagent:julia-agent.jar=<report.tsv>` | Launch options | Audit only: record which classes make graphics calls into a new file; rendering is unchanged |
+| `-Djulia.metalHud=true` | Launch options, macOS | Show Apple's Metal Performance HUD over the game |
+| `LOG_LEVEL=debug\|info\|warn\|error` | Environment | Julia's log detail on stderr; default `error` |
+| `-PjuliaNatives=<dir>` | Gradle | Pack other hosts' SDL builds (`<os>/<arch>/<library>`) into the agent jar |
+| `-Djulia.probe.width=<px>`, `-Djulia.probe.height=<px>` | Probe JVM | Offscreen size of the adapter probe; default 32 × 32 |
+
 ## License
 
 Julia's own code is [WTFNMFPL](LICENSE). Bundled Angelica, LWJGL3ify and RetroFuturaBootstrap are LGPL v3; see
