@@ -17,17 +17,54 @@ final class GameDisplay {
         publish = gl.getMethod("setCapabilities", get.getReturnType());
     }
 
+    /** The native window behind PZ's GLFW window, read through the game's own GLFW native bindings. */
     ForeignWindow window() throws ReflectiveOperationException {
-        if (!System.getProperty("os.name").startsWith("Mac"))
-            throw new UnsupportedOperationException("Live startup currently supports macOS only");
         long glfw = (long) Class.forName("org.lwjglx.opengl.Display", true, host)
                 .getMethod("getWindow")
                 .invoke(null);
         if (glfw == 0) throw new IllegalStateException("First graphics call arrived before PZ created its GLFW window");
-        long cocoa = (long) Class.forName("org.lwjgl.glfw.GLFWNativeCocoa", true, host)
-                .getMethod("glfwGetCocoaWindow", long.class)
-                .invoke(null, glfw);
-        return new ForeignWindow.Cocoa(cocoa);
+        String os = System.getProperty("os.name");
+        if (os.startsWith("Mac")) return new ForeignWindow.Cocoa(handle("GLFWNativeCocoa", "glfwGetCocoaWindow", glfw));
+        if (os.startsWith("Windows"))
+            return new ForeignWindow.Win32(handle("GLFWNativeWin32", "glfwGetWin32Window", glfw));
+        if (os.startsWith("Linux")) return wayland() ? waylandWindow(glfw) : x11Window(glfw);
+        throw new UnsupportedOperationException("No native window binding for " + os);
+    }
+
+    private boolean wayland() throws ReflectiveOperationException {
+        var glfw = Class.forName("org.lwjgl.glfw.GLFW", true, host);
+        Method platform;
+        try {
+            platform = glfw.getMethod("glfwGetPlatform");
+        } catch (NoSuchMethodException older) {
+            // GLFW before 3.4 has no platform query and only supports X11 on Linux.
+            return false;
+        }
+        return (int) platform.invoke(null)
+                == glfw.getField("GLFW_PLATFORM_WAYLAND").getInt(null);
+    }
+
+    private ForeignWindow x11Window(long glfw) throws ReflectiveOperationException {
+        return new ForeignWindow.X11(
+                handle("GLFWNativeX11", "glfwGetX11Display"), handle("GLFWNativeX11", "glfwGetX11Window", glfw));
+    }
+
+    private ForeignWindow waylandWindow(long glfw) throws ReflectiveOperationException {
+        return new ForeignWindow.Wayland(
+                handle("GLFWNativeWayland", "glfwGetWaylandDisplay"),
+                handle("GLFWNativeWayland", "glfwGetWaylandWindow", glfw));
+    }
+
+    private long handle(String binding, String query) throws ReflectiveOperationException {
+        return (long) Class.forName("org.lwjgl.glfw." + binding, true, host)
+                .getMethod(query)
+                .invoke(null);
+    }
+
+    private long handle(String binding, String query, long window) throws ReflectiveOperationException {
+        return (long) Class.forName("org.lwjgl.glfw." + binding, true, host)
+                .getMethod(query, long.class)
+                .invoke(null, window);
     }
 
     void restoreDispatch() throws ReflectiveOperationException {
