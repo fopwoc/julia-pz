@@ -1,5 +1,5 @@
 # Pinned SDL Metal sampler integration; private layouts remain inside SDL's own translation unit.
-set(sampler_header "${sdl_SOURCE_DIR}/src/gpu/SDL_sysgpu.h")
+set(sampler_header "${sdl_patched}/src/gpu/SDL_sysgpu.h")
 file(READ "${sampler_header}" sampler_definitions)
 string(FIND "${sampler_definitions}" "#define MAX_TEXTURE_SAMPLERS_PER_STAGE 16" old_capacity)
 if(NOT old_capacity EQUAL -1)
@@ -13,7 +13,7 @@ else()
 endif()
 
 # Compute retains the direct Metal limit. Only tagged graphics shaders use indirect samplers.
-set(gpu_api "${sdl_SOURCE_DIR}/src/gpu/SDL_gpu.c")
+set(gpu_api "${sdl_patched}/src/gpu/SDL_gpu.c")
 file(READ "${gpu_api}" gpu_api_source)
 string(REPLACE "MAX_TEXTURE_SAMPLERS_PER_STAGE == 16" "MAX_TEXTURE_SAMPLERS_PER_STAGE == 32" gpu_api_source "${gpu_api_source}")
 string(REPLACE "Shader sampler count cannot be higher than 16!" "Shader sampler count cannot be higher than 32!" gpu_api_source "${gpu_api_source}")

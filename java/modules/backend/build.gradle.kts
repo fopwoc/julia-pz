@@ -55,8 +55,9 @@ if (nativeClassifier.startsWith("natives-macos")) {
         inputs.file(nativeRoot.file("sparse_targets.cmake"))
         inputs.file(nativeRoot.file("visibility.cmake"))
         outputs.file(nativeBuild.file("CMakeCache.txt"))
+        // -U drops a stale override from older build trees that patched a machine-local SDL checkout.
         commandLine("cmake", "-S", nativeRoot.asFile.absolutePath, "-B", nativeBuild.asFile.absolutePath,
-            "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${nativeBuild.dir("lib").asFile.absolutePath}",
+            "-UFETCHCONTENT_SOURCE_DIR_SDL", "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${nativeBuild.dir("lib").asFile.absolutePath}",
             "-DSDL_HIDAPI_LIBUSB=OFF",
             "-DCMAKE_OSX_ARCHITECTURES=${if (nativeClassifier.endsWith("arm64")) "arm64" else "x86_64"}")
     }

@@ -12,7 +12,7 @@ function(julia_sparse_replace before after expected)
     set(source "${source}" PARENT_SCOPE)
 endfunction()
 
-set(gpu_api "${sdl_SOURCE_DIR}/src/gpu/SDL_gpu.c")
+set(gpu_api "${sdl_patched}/src/gpu/SDL_gpu.c")
 file(READ "${gpu_api}" source)
 string(FIND "${source}" "Julia sparse color formats" api_patched)
 if(api_patched EQUAL -1)
