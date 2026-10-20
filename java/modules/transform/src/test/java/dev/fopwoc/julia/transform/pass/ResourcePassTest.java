@@ -28,7 +28,7 @@ class ResourcePassTest {
         assertEquals(Endpoint.PROGRAM_RESOURCE_BRIDGE.owner(), index.owner);
         assertEquals(Endpoint.PROGRAM_RESOURCE_BRIDGE.owner(), name.owner);
         assertEquals(Endpoint.PROGRAM_RESOURCE_BRIDGE.owner(), array.owner);
-        assertEquals("org/lwjgl/opengl/GL43", nativeBuffer.owner);
+        assertEquals(Endpoint.PROGRAM_RESOURCE_BRIDGE.owner(), nativeBuffer.owner);
     }
 
     private static MethodInsnNode call(String name, String descriptor) {

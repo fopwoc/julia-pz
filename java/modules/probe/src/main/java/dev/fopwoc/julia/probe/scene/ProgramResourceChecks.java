@@ -48,6 +48,9 @@ final class ProgramResourceChecks {
             glAttachShader(program, vs);
             glAttachShader(program, fs);
             link(program);
+            if (glGetProgramInterfacei(program, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES) != 1
+                    || glGetProgramInterfacei(program, GL_SHADER_STORAGE_BLOCK, GL_MAX_NUM_ACTIVE_VARIABLES) != 4)
+                throw new IllegalStateException("Storage interface resource/active-variable count mismatch");
             int block = glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, "InstancedData");
             if (block < 0 || glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, "absent") != -1) {
                 throw new IllegalStateException("Storage-block index lookup mismatch");

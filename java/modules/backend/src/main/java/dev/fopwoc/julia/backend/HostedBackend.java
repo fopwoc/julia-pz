@@ -412,6 +412,10 @@ public final class HostedBackend extends SDLGPURenderBackend {
         result.put(result.position(), getQueryObjecti(name, parameter));
     }
 
+    ShaderPrograms shaderPrograms() {
+        return shaderPrograms;
+    }
+
     public ProgramResourceCache programResources() {
         return programResources;
     }

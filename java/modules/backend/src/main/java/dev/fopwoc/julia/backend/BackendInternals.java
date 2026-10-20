@@ -15,6 +15,7 @@ import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
 import dev.fopwoc.julia.backend.framebuffer.Framebuffers;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
+import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.texture.TextureObjects;
 import dev.fopwoc.julia.backend.texture.TextureViews;
@@ -210,6 +211,10 @@ public final class BackendInternals {
 
     public static VolumeUnpack volumeUnpack() {
         return ownedBackend().volumeUnpack();
+    }
+
+    public static ShaderPrograms programs() {
+        return ownedBackend().shaderPrograms();
     }
 
     public static TextureViews views() {

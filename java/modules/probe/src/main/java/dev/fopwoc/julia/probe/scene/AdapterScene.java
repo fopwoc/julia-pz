@@ -108,6 +108,7 @@ public final class AdapterScene {
             ProgramBinaryChecks.run(output);
             FramebufferChecks.run(output);
             LayerViewChecks.run(output);
+            ProgramInterfaceChecks.run(output);
             TimerQueryChecks.run(output);
             ClientPointerChecks.run();
             ViewChecks.run();

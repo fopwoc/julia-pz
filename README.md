@@ -73,7 +73,8 @@ words for independent 2D/3D/array bindings, save/restore, parameters, mixed samp
 Named-framebuffer checks add 480 pixels for MRT/read routing, array slices, mips, scissored/masked clears, and
 depth-only slice switching and depth-tested drawing for D24 and D32 requests. Native layer-view checks add 208 pixels
 for shared 2D/array views, nested mip/layer ranges, uploads, clears, depth-tested writes, and parent deletion.
-These checks do not replace in-game validation.
+Program-interface checks add 64 pixels using a reflected uniform location, plus active array sizes, stage usage,
+compute image/bool types, output-buffer bounds and relink invalidation. These checks do not replace in-game validation.
 
 The installed PZ and ZombieBuddy archives prepare together with zero blockers; a separate JVM smoke test initializes
 both agents. A Steam launch with both agents reaches the menu and loads a save in local testing. The approval UI's
@@ -86,11 +87,13 @@ Immutable storage now chooses a supported D32 depth representation when D24 is u
 GL internal format and any stencil aspect. The next user retry passed allocation and reached GL43 texture-view creation.
 GL43/GL44/ARB texture-view entry points now support same-format 2D/array layer and mip ranges using native Metal
 storage views. Shadow-array views, rendering through a view, updates seen from the parent, nested offsets, and storage
-lifetime after source deletion pass offscreen checks; the new view implementation awaits a Steam retry.
+lifetime after source deletion pass offscreen checks. The latest user retry passed view setup and reached the program
+interface query used for per-stage sampler counts. Scalar/array/buffer interface queries and uniform resource metadata
+now use active SPIR-V reflection; this query implementation awaits a Steam retry.
 SDL documents [the platform-dependent D24/D32 support requirement](https://wiki.libsdl.org/SDL3/SDL_GPUTextureFormat).
 The same retry also logged a separate sampler-array translation failure: an array of 16 samplers plus two other samplers
 exceeds Metal's direct sampler slots. Array-element reflection/binding and a larger native resource-binding path remain
-unimplemented; the storage/view fixes do not resolve that shader failure.
+unimplemented; the storage/view/query fixes do not resolve that shader failure.
 ZombieBuddy's standalone native-GL approval executable is outside game preparation and remains rejected if loaded
 into the game JVM.
 
@@ -102,7 +105,9 @@ buffers bound, nonzero named texture base levels and unsupported wrap modes (inc
 Other limits include vertex-write compute replay rejecting divisors above 65,535 (ordinary native vertex fetch retains
 all 32 unsigned bits), buffer textures restricted to the nine R/RG/RGBA 32-bit formats (no sampler arrays or image load/store),
 same-format 2D/array texture views (no format reinterpretation, cube or volume views), a costly stencil-extraction fallback, rejected compute sampling
-of stencil views, and rejected linked-stage regeneration with shader storage blocks. Unplanned or changed graphics
+of stencil views, and rejected linked-stage regeneration with shader storage blocks. Uniform-interface reflection currently covers default-block numeric, sampler and image uniforms; named uniform blocks,
+struct uniforms, atomic counters, push constants, separate samplers and multidimensional/runtime uniform arrays are
+rejected explicitly. Unplanned or changed graphics
 consumers are refused at load time. ZombieBuddy owns mod approval. Julia prepares approved JARs before classpath
 publication and patch execution, translating supported graphics operations and replacing unsupported operations with
 fatal diagnostics at the call site. Unused unsupported branches do not stop a mod from loading. Unknown integer

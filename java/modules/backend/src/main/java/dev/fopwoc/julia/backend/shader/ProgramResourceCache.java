@@ -15,6 +15,30 @@ public final class ProgramResourceCache {
         }
     }
 
+    private record UniformEntry(
+            ByteBuffer vertex, ByteBuffer fragment, ByteBuffer compute, UniformResources resources) {
+        boolean matches(ShaderManager.ProgramObject program) {
+            return vertex == program.vertexSpirv
+                    && fragment == program.fragmentSpirv
+                    && compute == program.computeSpirv;
+        }
+    }
+
+    private final Map<ShaderManager.ProgramObject, UniformEntry> uniforms = new WeakHashMap<>();
+
+    public UniformResources uniforms(ShaderManager.ProgramObject program) {
+        if (program == null || !program.linked) throw new IllegalArgumentException("Unknown or unlinked program");
+        if (program.geometrySpirv != null)
+            throw new UnsupportedOperationException("Geometry-stage resource introspection");
+        var entry = uniforms.get(program);
+        if (entry == null || !entry.matches(program)) {
+            entry = new UniformEntry(
+                    program.vertexSpirv, program.fragmentSpirv, program.computeSpirv, UniformReflection.read(program));
+            uniforms.put(program, entry);
+        }
+        return entry.resources();
+    }
+
     private final Map<ShaderManager.ProgramObject, Entry> entries = new WeakHashMap<>();
 
     public ProgramResources get(ShaderManager.ProgramObject program) {
@@ -35,5 +59,6 @@ public final class ProgramResourceCache {
 
     public void clear() {
         entries.clear();
+        uniforms.clear();
     }
 }

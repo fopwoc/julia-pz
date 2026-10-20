@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 /** A deterministic, merged program interface. Block and member indices are distinct from GL bindings. */
 public final class ProgramResources {
@@ -59,6 +60,27 @@ public final class ProgramResources {
                             && candidate.substring(0, candidate.length() - 3).equals(name)) return i;
         }
         return -1;
+    }
+
+    public int query(int api, int property) {
+        int size = count(api);
+        return switch (property) {
+            case GL_ACTIVE_RESOURCES -> size;
+            case GL_MAX_NAME_LENGTH ->
+                IntStream.range(0, size)
+                        .map(index -> name(api, index).length() + 1)
+                        .max()
+                        .orElse(0);
+            case GL_MAX_NUM_ACTIVE_VARIABLES -> {
+                if (api != GL_SHADER_STORAGE_BLOCK)
+                    throw new IllegalArgumentException("Active-variable interface query requires blocks");
+                yield activeVariables.stream()
+                        .mapToInt(values -> values.length)
+                        .max()
+                        .orElse(0);
+            }
+            default -> throw new UnsupportedOperationException("Unsupported program interface property: " + property);
+        };
     }
 
     public int count(int api) {

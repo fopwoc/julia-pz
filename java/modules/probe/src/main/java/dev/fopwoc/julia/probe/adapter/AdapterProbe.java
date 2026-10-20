@@ -44,6 +44,7 @@ public final class AdapterProbe {
                 initial_frame_checks=opaque black startup,empty frame preservation,clear color restoration
                 verified_framebuffer_pixels=480
                 verified_layer_view_pixels=208
+                verified_program_interface_pixels=64
                 gl_program_binary_formats=0
                 verified_texture_binding_pixels=112
                 verified_texture_binding_compute_words=4
