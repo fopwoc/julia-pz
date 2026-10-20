@@ -71,7 +71,9 @@ array and volume storage, mip levels, integer/float/half-float transfers, padded
 draw/upload ordering while preserving texture-unit bindings. Target-binding checks add 112 pixels and four compute
 words for independent 2D/3D/array bindings, save/restore, parameters, mixed samplers, pending clears and deletion.
 Named-framebuffer checks add 480 pixels for MRT/read routing, array slices, mips, scissored/masked clears, and
-depth-only slice switching and depth-tested drawing for D24 and D32 requests. These checks do not replace in-game validation.
+depth-only slice switching and depth-tested drawing for D24 and D32 requests. Native layer-view checks add 208 pixels
+for shared 2D/array views, nested mip/layer ranges, uploads, clears, depth-tested writes, and parent deletion.
+These checks do not replace in-game validation.
 
 The installed PZ and ZombieBuddy archives prepare together with zero blockers; a separate JVM smoke test initializes
 both agents. A Steam launch with both agents reaches the menu and loads a save in local testing. The approval UI's
@@ -81,11 +83,14 @@ passes ViewPoint named-texture initialization. One retry exposed a shared-target
 user run reached `glCreateFramebuffers` in shadow setup. Named framebuffer creation, routing, single-slice attachments
 and clears pass offscreen checks. The latest user retry passed that call and reached D24 shadow-array allocation.
 Immutable storage now chooses a supported D32 depth representation when D24 is unavailable, preserving the requested
-GL internal format and any stencil aspect; this change passes offscreen drawing/sampling checks but awaits a Steam retry.
+GL internal format and any stencil aspect. The next user retry passed allocation and reached GL43 texture-view creation.
+GL43/GL44/ARB texture-view entry points now support same-format 2D/array layer and mip ranges using native Metal
+storage views. Shadow-array views, rendering through a view, updates seen from the parent, nested offsets, and storage
+lifetime after source deletion pass offscreen checks; the new view implementation awaits a Steam retry.
 SDL documents [the platform-dependent D24/D32 support requirement](https://wiki.libsdl.org/SDL3/SDL_GPUTextureFormat).
 The same retry also logged a separate sampler-array translation failure: an array of 16 samplers plus two other samplers
 exceeds Metal's direct sampler slots. Array-element reflection/binding and a larger native resource-binding path remain
-unimplemented; this depth fix does not resolve that shader failure.
+unimplemented; the storage/view fixes do not resolve that shader failure.
 ZombieBuddy's standalone native-GL approval executable is outside game preparation and remains rejected if loaded
 into the game JVM.
 
@@ -96,7 +101,7 @@ and matching client transfer formats (plus RGB8 promotion and BGRA8 conversion).
 buffers bound, nonzero named texture base levels and unsupported wrap modes (including clamp-to-border) are rejected.
 Other limits include vertex-write compute replay rejecting divisors above 65,535 (ordinary native vertex fetch retains
 all 32 unsigned bits), buffer textures restricted to the nine R/RG/RGBA 32-bit formats (no sampler arrays or image load/store),
-full-image same-format 2D texture views, a costly stencil-extraction fallback, rejected compute sampling
+same-format 2D/array texture views (no format reinterpretation, cube or volume views), a costly stencil-extraction fallback, rejected compute sampling
 of stencil views, and rejected linked-stage regeneration with shader storage blocks. Unplanned or changed graphics
 consumers are refused at load time. ZombieBuddy owns mod approval. Julia prepares approved JARs before classpath
 publication and patch execution, translating supported graphics operations and replacing unsupported operations with
@@ -116,7 +121,7 @@ ASCII separators avoid missing glyphs.
 The repository root is the mod folder (`common/`, `42/mod.info`). The Gradle build lives in `java/`. You need
 JDK 25, and the build works on macOS and Linux only. macOS builds also require CMake 3.24+ and the Xcode
 command-line toolchain. The first build downloads a SHA-256-pinned SDL 3.4.12 source archive and builds Julia's
-Metal timestamp and buffer-texture extensions; later builds reuse the native build directory. Linux retains the upstream SDL binary;
+Metal timestamp, buffer-texture, vertex-input and texture-view extensions; later builds reuse the native build directory. Linux retains the upstream SDL binary;
 its native timer provider and game-window integration are not implemented yet.
 
 ```sh

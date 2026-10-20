@@ -247,6 +247,22 @@ public final class BackendInternals {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    public static void registerTextureView(int name, long handle, ResourceManager.TextureMeta meta) {
+        var resources = resources();
+        var lock = (ReentrantReadWriteLock.WriteLock) RESOURCE_LOCK.get(resources);
+        lock.lock();
+        try {
+            var handles = (Int2LongOpenHashMap) TEXTURE_HANDLES.get(resources);
+            if (handles.containsKey(name)) throw new IllegalArgumentException("Destination texture already allocated");
+            handles.put(name, handle);
+            ((Int2ObjectOpenHashMap<ResourceManager.TextureMeta>) TEXTURE_METAS.get(resources)).put(name, meta);
+            resources.trackTextureHandle(handle);
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public static boolean textureReferenced(ResourceManager resources, long handle) {
         var lock = (ReentrantReadWriteLock.WriteLock) RESOURCE_LOCK.get(resources);
         lock.lock();

@@ -85,6 +85,8 @@ public final class ResourcePass {
                     Endpoint.PROGRAM_RESOURCE_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL43.glGetProgramResourceiv(III[I[I[I)V", Endpoint.PROGRAM_RESOURCE_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL44.glTextureView(IIIIIIII)V", Endpoint.TEXTURE_VIEW_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43.glTextureView(IIIIIIII)V", Endpoint.TEXTURE_VIEW_BRIDGE),
+            Map.entry("org/lwjgl/opengl/ARBTextureView.glTextureView(IIIIIIII)V", Endpoint.TEXTURE_VIEW_BRIDGE),
             Map.entry(
                     "org/lwjgl/opengl/GL45.glNamedBufferStorage(ILjava/nio/ByteBuffer;I)V",
                     Endpoint.BUFFER_STORAGE_BRIDGE),

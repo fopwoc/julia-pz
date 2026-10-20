@@ -4,6 +4,7 @@ import dev.fopwoc.julia.backend.query.TimestampDriver;
 import dev.fopwoc.julia.backend.query.macos.MetalTimestamps;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextureDriver;
 import dev.fopwoc.julia.backend.texture.macos.MetalBufferTextures;
+import dev.fopwoc.julia.backend.texture.macos.MetalTextureViews;
 import dev.fopwoc.julia.backend.vertex.macos.MetalVertexInputs;
 import java.util.Locale;
 import org.lwjgl.sdl.SDL_GPUGraphicsPipelineCreateInfo;
@@ -17,6 +18,11 @@ public enum Platform {
         @Override
         public long createGraphicsPipeline(long device, SDL_GPUGraphicsPipelineCreateInfo info, int[] divisors) {
             return MetalVertexInputs.create(device, info, divisors);
+        }
+
+        @Override
+        public long createTextureView(long source, int type, int level, int levels, int layer, int layers) {
+            return MetalTextureViews.create(source, type, level, levels, layer, layers);
         }
 
         @Override
@@ -75,6 +81,10 @@ public enum Platform {
 
     public long createGraphicsPipeline(long device, SDL_GPUGraphicsPipelineCreateInfo info, int[] divisors) {
         throw new UnsupportedOperationException("Vertex input pipeline creation is not implemented on " + this);
+    }
+
+    public long createTextureView(long source, int type, int level, int levels, int layer, int layers) {
+        throw new UnsupportedOperationException("Native texture views are not implemented on " + this);
     }
 
     public BufferTextureDriver createBufferTextureDriver() {

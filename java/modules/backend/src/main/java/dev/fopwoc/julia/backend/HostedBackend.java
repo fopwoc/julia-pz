@@ -141,6 +141,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void clear(int mask) {
+        textureViews.flushSharedClears();
         var state = BackendInternals.context();
         framebuffers.validateDraw(state);
         var fbo = BackendInternals.resources().getFbo(state.boundFboId);

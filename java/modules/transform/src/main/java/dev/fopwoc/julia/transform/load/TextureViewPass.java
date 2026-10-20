@@ -19,11 +19,24 @@ public final class TextureViewPass {
         boolean resource = name.equals(ROOT + "resource.ResourceManager");
         boolean pipeline = name.equals(ROOT + "pipeline.PipelineApplier");
         boolean sampler = name.equals(ROOT + "sampler.SamplerBinder");
-        if (!glsm && !resource && !pipeline && !sampler) return bytes;
+        boolean clears = name.equals(ROOT + "resource.FBOClearTracker");
+        if (!glsm && !resource && !pipeline && !sampler && !clears) return bytes;
         var node = new ClassNode();
         new ClassReader(bytes).accept(node, 0);
         int edits = 0;
         for (var method : node.methods) {
+            if (clears
+                    && ((method.name.equals("materializePendingClearForTexture")
+                                    && method.desc.equals("(L" + STATE + ";J)V"))
+                            || (method.name.equals("resolveDestinationForWrite")
+                                    && method.desc.equals(
+                                            "(L" + STATE + ";JL" + RESOURCE + "$TextureMeta;IIIIIIZ)V")))) {
+                var head = new InsnList();
+                head.add(new VarInsnNode(Opcodes.LLOAD, 2));
+                head.add(call("sharedAccess", "(J)V"));
+                method.instructions.insert(head);
+                edits++;
+            }
             if (glsm && method.name.equals("deferDeleteTexture") && method.desc.equals("(I)V")) {
                 method.instructions.clear();
                 method.tryCatchBlocks.clear();
@@ -83,7 +96,7 @@ public final class TextureViewPass {
                     }
                 }
         }
-        int expected = resource ? 3 : 1;
+        int expected = resource ? 3 : clears ? 2 : 1;
         if (edits != expected)
             throw new IllegalStateException(
                     "Texture-view integration changed: " + name + " has " + edits + " anchors, expected " + expected);

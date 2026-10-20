@@ -19,6 +19,10 @@ public final class TextureViewHooks {
         return BackendInternals.textureReferenced(resources, handle);
     }
 
+    public static void sharedAccess(long handle) {
+        BackendInternals.views().sharedAccess(handle);
+    }
+
     public static void beforeAllocation(int name) {
         BackendInternals.views().beforeAllocation(name);
     }
