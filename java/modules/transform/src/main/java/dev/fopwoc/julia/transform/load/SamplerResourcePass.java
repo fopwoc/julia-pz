@@ -67,7 +67,7 @@ public final class SamplerResourcePass {
             if (replayLayout && method.name.equals("resolveSamplers")) {
                 for (var instruction : method.instructions.toArray())
                     if (instruction instanceof IntInsnNode value && value.operand == 31) {
-                        method.instructions.set(value, new IntInsnNode(Opcodes.BIPUSH, UNIT_COUNT - 1));
+                        method.instructions.set(value, new IntInsnNode(Opcodes.SIPUSH, UNIT_COUNT - 1));
                         edits++;
                     }
             }

@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.IntInsnNode;
 
 class SamplerResourcePassTest {
     @ParameterizedTest
@@ -34,6 +36,17 @@ class SamplerResourcePassTest {
         var adapted = SamplerResourcePass.adapt(name, bytes);
         var node = new ClassNode();
         new ClassReader(adapted).accept(node, 0);
+        if (suffix.equals("compute.VertexWriteReplayer$Replay")) {
+            int upperBounds = 0;
+            for (var method : node.methods)
+                if (method.name.equals("resolveSamplers"))
+                    for (var instruction : method.instructions)
+                        if (instruction instanceof IntInsnNode value && value.operand == 255) {
+                            assertEquals(Opcodes.SIPUSH, value.getOpcode(), "Unit 255 must not become signed byte -1");
+                            upperBounds++;
+                        }
+            assertEquals(1, upperBounds);
+        }
         if (suffix.equals("sampler.SamplerBinder")) {
             int strides = 0;
             for (var method : node.methods)

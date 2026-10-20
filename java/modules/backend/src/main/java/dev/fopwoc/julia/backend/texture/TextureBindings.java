@@ -13,7 +13,7 @@ import java.util.WeakHashMap;
 
 /** Logical bindings are per context, unit and target; the upstream single slot is only an execution mirror. */
 public final class TextureBindings {
-    public static final int UNIT_COUNT = 128;
+    public static final int UNIT_COUNT = 256;
 
     private static final class Bindings {
         final int[][] units;

@@ -28,8 +28,21 @@ final class HighTextureUnitChecks {
 
     static void run(Path output) throws IOException {
         Files.deleteIfExists(output.resolve("high-texture-units.txt"));
-        if (glGetInteger(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS) != 128 || glGetInteger(GL_MAX_TEXTURE_IMAGE_UNITS) != 32)
+        if (glGetInteger(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS) != 256 || glGetInteger(GL_MAX_TEXTURE_IMAGE_UNITS) != 32)
             throw new IllegalStateException("Logical and physical sampler limits are not separate");
+        run(new int[] {14, 96, 127, 78, 110});
+        run(new int[] {14, 192, 255, 140, 206});
+        Files.writeString(
+                output.resolve("high-texture-units.txt"),
+                "PASS\nverified_pixels=44\nchecks=shared-unit sampler types,relinked default units,runtime branch selectors,conditional vertex buffer reads,unreachable sampler helpers,256 logical units,32 graphics samplers,units 14/78/96/110/127/140/192/206/255,direct/argument bindings,buffer-mask aliasing,array uploads,atomic validation,sampler overrides,samplerless argument arrays,binding/unbinding,deletion\n");
+    }
+
+    private static void run(int[] units) {
+        int imageUnit = units[0],
+                firstImage = units[1],
+                secondImage = units[2],
+                firstBuffer = units[3],
+                secondBuffer = units[4];
         int[] textures = new int[5], buffers = new int[2];
         int target = GL45.glCreateTextures(GL_TEXTURE_2D), fbo = glGenFramebuffers();
         int direct = program(false, false),
@@ -38,7 +51,6 @@ final class HighTextureUnitChecks {
                 fetch = program(true, true);
         GL45.glTextureStorage2D(target, 1, GL_R32UI, 2, 1);
         try (var stack = MemoryStack.stackPush()) {
-            int[] units = {14, 96, 127, 78, 110};
             for (int i = 0; i < 5; i++) {
                 glActiveTexture(GL_TEXTURE0 + units[i]);
                 if (glGetInteger(GL_ACTIVE_TEXTURE) != GL_TEXTURE0 + units[i])
@@ -91,60 +103,60 @@ final class HighTextureUnitChecks {
             verify(target, 60); // Every sampler defaults to unit 0, where no buffer texture is bound.
             glUniform1i(glGetUniformLocation(direct, "image"), 0);
             verify(target, 60);
-            glUniform1i(glGetUniformLocation(direct, "conditionalRecords"), 78);
-            glUniform1i(glGetUniformLocation(direct, "image"), 14);
-            glUniform1i(glGetUniformLocation(direct, "first"), 78);
-            glUniform1i(glGetUniformLocation(direct, "second"), 110);
+            glUniform1i(glGetUniformLocation(direct, "conditionalRecords"), firstBuffer);
+            glUniform1i(glGetUniformLocation(direct, "image"), imageUnit);
+            glUniform1i(glGetUniformLocation(direct, "first"), firstBuffer);
+            glUniform1i(glGetUniformLocation(direct, "second"), secondBuffer);
             for (String name :
                     new String[] {"unusedCube", "unusedBuffer", "unusedLayers", "unusedLayers[0]", "unusedLayers[1]"})
                 if (glGetUniformLocation(direct, name) != -1)
                     throw new IllegalStateException("Unreachable sampler became an active uniform: " + name);
             int selector = glGetUniformLocation(direct, "readRecords");
             glUniform1i(selector, 1);
-            glUniform1i(glGetUniformLocation(direct, "first"), 14);
-            verify(target, 323); // Unit 14 serves image's 2D texture while first reads its empty buffer binding.
-            glUniform1i(glGetUniformLocation(direct, "first"), 78);
+            glUniform1i(glGetUniformLocation(direct, "first"), imageUnit);
+            verify(target, 323); // Unit imageUnit serves image's 2D texture while first reads its empty buffer binding.
+            glUniform1i(glGetUniformLocation(direct, "first"), firstBuffer);
             glUniform1i(selector, 0);
-            verify(target, 323); // Units 14, 78 and 110 all alias in a 32-bit unit mask.
+            verify(target, 323); // The original unit set aliases these bindings in a 32-bit unit mask.
             if (selector < 0 || glGetUniformLocation(direct, "conditionalRecords") < 0)
                 throw new IllegalStateException("Runtime-conditional sampler was mistaken for an unreachable helper");
             glUniform1i(selector, 1);
             verify(target, 424);
             glUniform1i(selector, 0);
             glUseProgram(indirect);
-            glUniform1i(glGetUniformLocation(indirect, "conditionalRecords"), 78);
+            glUniform1i(glGetUniformLocation(indirect, "conditionalRecords"), firstBuffer);
             int images = glGetUniformLocation(indirect, "images");
-            var assignments = stack.ints(-1, 96, 127, -1);
+            var assignments = stack.ints(-1, firstImage, secondImage, -1);
             assignments.position(1).limit(3);
             glUniform1iv(images, assignments);
             if (assignments.position() != 1 || assignments.limit() != 3)
                 throw new IllegalStateException("Unit upload consumed buffer");
-            glUniform1i(glGetUniformLocation(indirect, "first"), 78);
-            glUniform1i(glGetUniformLocation(indirect, "second"), 110);
+            glUniform1i(glGetUniformLocation(indirect, "first"), firstBuffer);
+            glUniform1i(glGetUniformLocation(indirect, "second"), secondBuffer);
             verify(target, 483);
             try {
-                glUniform1iv(images, new int[] {14, 128});
+                glUniform1iv(images, new int[] {imageUnit, 256});
                 throw new IllegalStateException("Out-of-range logical sampler unit accepted");
             } catch (IllegalArgumentException expected) {
             }
             verify(target, 483); // An invalid bulk assignment must leave every element unchanged.
-            glActiveTexture(GL_TEXTURE0 + 127);
+            glActiveTexture(GL_TEXTURE0 + secondImage);
             glBindTexture(GL_TEXTURE_2D, textures[1]);
             glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glBindSampler(127, sampler);
-            verify(target, 433); // Unit 96 samples red 60; unit 127 interpolates red 60 and 80 to 70.
-            glBindSampler(127, 0);
+            glBindSampler(secondImage, sampler);
+            verify(target, 433); // The second image interpolates red 60 and 80 to 70.
+            glBindSampler(secondImage, 0);
             verify(target, 443);
             glBindTexture(GL_TEXTURE_2D, 0);
-            glActiveTexture(GL_TEXTURE0 + 127);
+            glActiveTexture(GL_TEXTURE0 + secondImage);
             if (glGetInteger(GL_TEXTURE_BINDING_2D) != 0) throw new IllegalStateException("High unit did not unbind");
             glBindTexture(GL_TEXTURE_2D, textures[2]);
             glUseProgram(fetch);
-            glUniform1i(glGetUniformLocation(fetch, "conditionalRecords"), 78);
-            glUniform1iv(glGetUniformLocation(fetch, "images"), new int[] {96, 127});
-            glUniform1i(glGetUniformLocation(fetch, "first"), 78);
-            glUniform1i(glGetUniformLocation(fetch, "second"), 110);
+            glUniform1i(glGetUniformLocation(fetch, "conditionalRecords"), firstBuffer);
+            glUniform1iv(glGetUniformLocation(fetch, "images"), new int[] {firstImage, secondImage});
+            glUniform1i(glGetUniformLocation(fetch, "first"), firstBuffer);
+            glUniform1i(glGetUniformLocation(fetch, "second"), secondBuffer);
             verify(target, 483);
             glLinkProgram(direct);
             if (glGetProgrami(direct, GL_LINK_STATUS) == 0) throw new IllegalStateException("Trace relink failed");
@@ -155,9 +167,6 @@ final class HighTextureUnitChecks {
             textures[2] = 0;
             if (glGetInteger(GL_TEXTURE_BINDING_2D) != 0)
                 throw new IllegalStateException("Deletion retained high binding");
-            Files.writeString(
-                    output.resolve("high-texture-units.txt"),
-                    "PASS\nverified_pixels=22\nchecks=shared-unit sampler types,relinked default units,runtime branch selectors,conditional vertex buffer reads,unreachable sampler helpers,128 logical units,32 graphics samplers,units 14/78/96/110/127,direct/argument bindings,buffer-mask aliasing,array uploads,atomic validation,sampler overrides,samplerless argument arrays,binding/unbinding,deletion\n");
         } finally {
             glUseProgram(0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
