@@ -98,6 +98,44 @@ public final class ResourcePass {
             Map.entry("org/lwjgl/opengl/GL30.glFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
             Map.entry(
                     Endpoint.STATE_MANAGER.owner() + ".glFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glGetTextureLevelParameteri(III)I", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glGetTextureLevelParameterf(III)F", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glGetTextureLevelParameteriv(IIILjava/nio/IntBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glGetTextureLevelParameteriv(III[I)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glGetTextureLevelParameterfv(IIILjava/nio/FloatBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glGetTextureLevelParameterfv(III[F)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45C.glGetTextureLevelParameteri(III)I", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45C.glGetTextureLevelParameterf(III)F", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45C.glGetTextureLevelParameteriv(IIILjava/nio/IntBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45C.glGetTextureLevelParameteriv(III[I)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45C.glGetTextureLevelParameterfv(IIILjava/nio/FloatBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45C.glGetTextureLevelParameterfv(III[F)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameteri(III)I",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameterf(III)F",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameteriv(IIILjava/nio/IntBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameteriv(III[I)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameterfv(IIILjava/nio/FloatBuffer;)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameterfv(III[F)V",
+                    Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(I)I", Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(ILjava/nio/IntBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(I[I)V", Endpoint.NAMED_TEXTURE_BRIDGE),

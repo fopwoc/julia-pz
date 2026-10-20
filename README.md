@@ -268,3 +268,10 @@ an active-sampler validation failure, not yet a confirmed translation fix. Fatal
 sampler names and targets and list every active unit assignment, distinguishing an unset default-zero assignment
 from an explicit assignment. Windowless checks verify both default-zero and explicitly assigned conflicts retain
 fail-fast behavior and omit inactive declarations from the report.
+
+A fresh-save retry reached an earlier independent gap in named texture-level queries during light readback.
+GL45/GL45C/ARB direct-state queries now read object metadata without changing texture-unit bindings. Integer/float
+scalar, array and buffer destinations support width, height, depth and GL internal format; unsupported parameters
+remain fatal. Windowless checks cover 2D/volume/array mips, view-relative mips and layers, mutable objects, buffer
+texel counts, destination canaries and invalid/deleted names. This fresh-save failure precedes the sampler-conflict
+draw and therefore does not establish whether that conflict depends on the save.

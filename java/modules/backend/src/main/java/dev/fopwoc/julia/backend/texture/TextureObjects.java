@@ -85,6 +85,33 @@ public final class TextureObjects {
         views.immutable(name);
     }
 
+    public int levelParameter(int name, int level, int parameter) {
+        if (level < 0) throw new IllegalArgumentException("Negative texture mip level");
+        var buffers = BackendInternals.bufferTextures();
+        if (buffers.contains(name)) return buffers.levelParameter(name, level, parameter);
+        int target = target(name);
+        requireTarget(target);
+        int limit = BackendManager.RENDER_BACKEND.getInteger(
+                target == GL_TEXTURE_3D ? GL_MAX_3D_TEXTURE_SIZE : GL_MAX_TEXTURE_SIZE);
+        if (limit <= 0) throw new IllegalStateException("Texture size limit is unavailable");
+        if (level > 31 - Integer.numberOfLeadingZeros(limit))
+            throw new IllegalArgumentException("Texture mip level exceeds the implementation limit");
+        if (parameter != GL_TEXTURE_WIDTH
+                && parameter != GL_TEXTURE_HEIGHT
+                && parameter != GL_TEXTURE_DEPTH
+                && parameter != GL_TEXTURE_INTERNAL_FORMAT)
+            throw new UnsupportedOperationException("Named texture level parameter not implemented: " + parameter);
+        var meta = BackendInternals.resources().getTextureMeta(name);
+        if (meta == null || level >= meta.levels()) return parameter == GL_TEXTURE_INTERNAL_FORMAT ? GL_RGBA : 0;
+        return switch (parameter) {
+            case GL_TEXTURE_WIDTH -> Math.max(1, meta.width() >> Math.min(level, 30));
+            case GL_TEXTURE_HEIGHT -> Math.max(1, meta.height() >> Math.min(level, 30));
+            case GL_TEXTURE_DEPTH ->
+                target == GL_TEXTURE_3D ? Math.max(1, meta.depth() >> Math.min(level, 30)) : meta.depth();
+            default -> meta.glFormat();
+        };
+    }
+
     public void parameter(int name, int parameter, int value) {
         int target = target(name);
         if ((parameter == GL_TEXTURE_WRAP_S || parameter == GL_TEXTURE_WRAP_T || parameter == GL_TEXTURE_WRAP_R)

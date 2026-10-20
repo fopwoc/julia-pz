@@ -29,6 +29,34 @@ public final class NamedTextureBridge {
         for (int i = 0; i < names.length; i++) names[i] = glCreateTextures(target);
     }
 
+    public static int glGetTextureLevelParameteri(int name, int level, int parameter) {
+        return objects().levelParameter(name, level, parameter);
+    }
+
+    public static float glGetTextureLevelParameterf(int name, int level, int parameter) {
+        return glGetTextureLevelParameteri(name, level, parameter);
+    }
+
+    public static void glGetTextureLevelParameteriv(int name, int level, int parameter, IntBuffer result) {
+        if (!result.hasRemaining()) throw new IllegalArgumentException("Empty texture query destination");
+        result.put(result.position(), glGetTextureLevelParameteri(name, level, parameter));
+    }
+
+    public static void glGetTextureLevelParameteriv(int name, int level, int parameter, int[] result) {
+        if (result.length == 0) throw new IllegalArgumentException("Empty texture query destination");
+        result[0] = glGetTextureLevelParameteri(name, level, parameter);
+    }
+
+    public static void glGetTextureLevelParameterfv(int name, int level, int parameter, FloatBuffer result) {
+        if (!result.hasRemaining()) throw new IllegalArgumentException("Empty texture query destination");
+        result.put(result.position(), glGetTextureLevelParameterf(name, level, parameter));
+    }
+
+    public static void glGetTextureLevelParameterfv(int name, int level, int parameter, float[] result) {
+        if (result.length == 0) throw new IllegalArgumentException("Empty texture query destination");
+        result[0] = glGetTextureLevelParameterf(name, level, parameter);
+    }
+
     public static void glTextureParameteri(int name, int parameter, int value) {
         objects().parameter(name, parameter, value);
     }
