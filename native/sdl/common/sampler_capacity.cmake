@@ -1,0 +1,21 @@
+# Pinned SDL sampler table capacity, shared by every GPU backend; per-backend binding lives in each backend folder.
+set(sampler_header "${sdl_patched}/src/gpu/SDL_sysgpu.h")
+file(READ "${sampler_header}" sampler_definitions)
+string(FIND "${sampler_definitions}" "#define MAX_TEXTURE_SAMPLERS_PER_STAGE 16" old_capacity)
+if(NOT old_capacity EQUAL -1)
+    string(REPLACE "#define MAX_TEXTURE_SAMPLERS_PER_STAGE 16" "#define MAX_TEXTURE_SAMPLERS_PER_STAGE 32" sampler_definitions "${sampler_definitions}")
+    file(WRITE "${sampler_header}" "${sampler_definitions}")
+else()
+    string(FIND "${sampler_definitions}" "#define MAX_TEXTURE_SAMPLERS_PER_STAGE 32" new_capacity)
+    if(new_capacity EQUAL -1)
+        message(FATAL_ERROR "Pinned SDL sampler capacity changed")
+    endif()
+endif()
+
+# Compute keeps the direct 16-sampler limit. Only tagged graphics shaders use indirect samplers.
+set(gpu_api "${sdl_patched}/src/gpu/SDL_gpu.c")
+file(READ "${gpu_api}" gpu_api_source)
+string(REPLACE "MAX_TEXTURE_SAMPLERS_PER_STAGE == 16" "MAX_TEXTURE_SAMPLERS_PER_STAGE == 32" gpu_api_source "${gpu_api_source}")
+string(REPLACE "Shader sampler count cannot be higher than 16!" "Shader sampler count cannot be higher than 32!" gpu_api_source "${gpu_api_source}")
+string(REPLACE "createinfo->num_samplers > MAX_TEXTURE_SAMPLERS_PER_STAGE) {\n            SDL_COMPILE_TIME_ASSERT(compute_texture_samplers" "createinfo->num_samplers > 16) {\n            SDL_COMPILE_TIME_ASSERT(compute_texture_samplers" gpu_api_source "${gpu_api_source}")
+file(WRITE "${gpu_api}" "${gpu_api_source}")

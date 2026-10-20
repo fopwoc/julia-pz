@@ -1,0 +1,18 @@
+# Replaces a pinned SDL source anchor in ${source}. With an expected count the anchor must occur exactly that often;
+# without one it must occur at least once. A moved anchor means SDL changed and the patch needs review.
+function(julia_replace before after)
+    string(LENGTH "${source}" original_length)
+    string(REPLACE "${before}" "" removed "${source}")
+    string(LENGTH "${removed}" removed_length)
+    string(LENGTH "${before}" anchor_length)
+    math(EXPR count "(${original_length} - ${removed_length}) / ${anchor_length}")
+    if(ARGC GREATER 2)
+        if(NOT count EQUAL ARGV2)
+            message(FATAL_ERROR "Pinned SDL anchor changed: ${before}; count=${count}, expected ${ARGV2}")
+        endif()
+    elseif(count EQUAL 0)
+        message(FATAL_ERROR "Pinned SDL anchor changed: ${before}")
+    endif()
+    string(REPLACE "${before}" "${after}" source "${source}")
+    set(source "${source}" PARENT_SCOPE)
+endfunction()

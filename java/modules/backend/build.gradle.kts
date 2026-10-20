@@ -49,11 +49,10 @@ if (nativeClassifier.startsWith("natives-macos")) {
     val nativeRoot = rootProject.layout.projectDirectory.dir("../native/sdl")
     val nativeBuild = nativeRoot.dir("build")
     val nativeLibrary = nativeBuild.file("lib/libSDL3Julia.0.dylib")
+    // Every patch script and extension source; the build directory is CMake's own output.
+    val nativeSources = fileTree(nativeRoot) { exclude("build/**") }
     val configureSdl by tasks.registering(Exec::class) {
-        inputs.file(nativeRoot.file("CMakeLists.txt"))
-        inputs.file(nativeRoot.file("sampler_arguments.cmake"))
-        inputs.file(nativeRoot.file("sparse_targets.cmake"))
-        inputs.file(nativeRoot.file("visibility.cmake"))
+        inputs.files(nativeSources)
         outputs.file(nativeBuild.file("CMakeCache.txt"))
         // -U drops a stale override from older build trees that patched a machine-local SDL checkout.
         commandLine("cmake", "-S", nativeRoot.asFile.absolutePath, "-B", nativeBuild.asFile.absolutePath,
@@ -63,17 +62,7 @@ if (nativeClassifier.startsWith("natives-macos")) {
     }
     val buildSdl by tasks.registering(Exec::class) {
         dependsOn(configureSdl)
-        inputs.file(nativeRoot.file("CMakeLists.txt"))
-        inputs.file(nativeRoot.file("gpu_timestamps.m"))
-        inputs.file(nativeRoot.file("gpu_buffer_textures.m"))
-        inputs.file(nativeRoot.file("gpu_vertex_input.m"))
-        inputs.file(nativeRoot.file("gpu_texture_views.m"))
-        inputs.file(nativeRoot.file("gpu_sampler_arguments.m"))
-        inputs.file(nativeRoot.file("gpu_sparse_targets.m"))
-        inputs.file(nativeRoot.file("gpu_visibility.m"))
-        inputs.file(nativeRoot.file("sampler_arguments.cmake"))
-        inputs.file(nativeRoot.file("sparse_targets.cmake"))
-        inputs.file(nativeRoot.file("visibility.cmake"))
+        inputs.files(nativeSources)
         outputs.file(nativeLibrary)
         commandLine("cmake", "--build", nativeBuild.asFile.absolutePath, "--target", "SDL3-shared", "--parallel", "8")
     }
