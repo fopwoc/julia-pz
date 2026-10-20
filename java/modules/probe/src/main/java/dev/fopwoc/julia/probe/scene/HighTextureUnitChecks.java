@@ -95,7 +95,9 @@ final class HighTextureUnitChecks {
                         || !message.contains("image=0 (default)")
                         || !message.contains("second=0 (default)")
                         || !message.contains("readRecords=0 (default)")
-                        || message.contains("unused")) throw expected;
+                        || !message.contains("sampler trace={completed writes=0")
+                        || message.substring(0, message.indexOf("; sampler trace="))
+                                .contains("unused")) throw expected;
             }
             glUniform1i(glGetUniformLocation(direct, "image"), 0);
             try {
@@ -105,7 +107,10 @@ final class HighTextureUnitChecks {
                 String message = expected.getMessage();
                 if (message.contains("image=0 (default)")
                         || !message.contains("image=0")
-                        || !message.contains("first=0 (default)")) throw expected;
+                        || !message.contains("first=0 (default)")
+                        || !message.contains("image={writes=1, location=")
+                        || !message.contains("requested=0, stored=0, slot=0")
+                        || !message.contains("first caller=")) throw expected;
             }
             glUniform1i(glGetUniformLocation(direct, "conditionalRecords"), 78);
             glUniform1i(glGetUniformLocation(direct, "image"), 14);
@@ -129,7 +134,11 @@ final class HighTextureUnitChecks {
                         || !message.contains("first=14")
                         || !message.contains("second=110")
                         || !message.contains("readRecords=1")
-                        || message.contains("unused")) throw expected;
+                        || !message.contains("first={writes=2, location=")
+                        || !message.contains("requested=14, stored=14, slot=14")
+                        || !message.contains("unusedCube=-1")
+                        || message.substring(0, message.indexOf("; sampler trace="))
+                                .contains("unused")) throw expected;
             }
             glUniform1i(glGetUniformLocation(direct, "first"), 78);
             glUniform1i(selector, 0);
@@ -174,13 +183,23 @@ final class HighTextureUnitChecks {
             glUniform1i(glGetUniformLocation(fetch, "first"), 78);
             glUniform1i(glGetUniformLocation(fetch, "second"), 110);
             verify(target, 483);
+            glLinkProgram(direct);
+            if (glGetProgrami(direct, GL_LINK_STATUS) == 0) throw new IllegalStateException("Trace relink failed");
+            glUseProgram(direct);
+            try {
+                glDrawArrays(GL_TRIANGLES, 0, 3);
+                throw new AssertionError("Relinked default-unit sampler conflict accepted");
+            } catch (IllegalStateException expected) {
+                if (!expected.getMessage().contains("sampler trace={completed writes=0")) throw expected;
+            }
+            glUseProgram(fetch);
             glDeleteTextures(textures[2]);
             textures[2] = 0;
             if (glGetInteger(GL_TEXTURE_BINDING_2D) != 0)
                 throw new IllegalStateException("Deletion retained high binding");
             Files.writeString(
                     output.resolve("high-texture-units.txt"),
-                    "PASS\nverified_pixels=14\nchecks=runtime branch selectors,conditional vertex buffer reads,unreachable sampler helpers,active target conflicts,128 logical units,32 graphics samplers,units 14/78/96/110/127,direct/argument bindings,buffer-mask aliasing,array uploads,atomic validation,sampler overrides,samplerless argument arrays,binding/unbinding,deletion\n");
+                    "PASS\nverified_pixels=14\nchecks=bounded sampler assignment history,relink trace reset,runtime branch selectors,conditional vertex buffer reads,unreachable sampler helpers,active target conflicts,128 logical units,32 graphics samplers,units 14/78/96/110/127,direct/argument bindings,buffer-mask aliasing,array uploads,atomic validation,sampler overrides,samplerless argument arrays,binding/unbinding,deletion\n");
         } finally {
             glUseProgram(0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);

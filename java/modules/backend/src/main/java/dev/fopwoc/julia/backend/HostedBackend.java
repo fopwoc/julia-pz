@@ -37,6 +37,7 @@ import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 import dev.fopwoc.julia.backend.buffer.IndexBufferUploads;
 import dev.fopwoc.julia.backend.diagnostic.ModelDrawTrace;
+import dev.fopwoc.julia.backend.diagnostic.SamplerAssignmentTrace;
 import dev.fopwoc.julia.backend.framebuffer.Framebuffers;
 import dev.fopwoc.julia.backend.platform.Platform;
 import dev.fopwoc.julia.backend.query.TimerQueries;
@@ -492,7 +493,9 @@ public final class HostedBackend extends SDLGPURenderBackend {
         String backendName = shaderPrograms.backendUniformName(program, name.toString());
         var object = BackendInternals.shaders().getProgram(program);
         if (object != null && object.allSamplerNames.contains(backendName + "[0]")) backendName += "[0]";
-        return super.getUniformLocation(program, backendName);
+        int location = super.getUniformLocation(program, backendName);
+        SamplerAssignmentTrace.lookup(object, name.toString(), location);
+        return location;
     }
 
     @Override
@@ -581,6 +584,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
                 throw new UnsupportedOperationException("SDL shader program translation failed for program " + program
                         + ": " + super.getProgramInfoLog(program));
             ProgramLinkState.linked(BackendInternals.shaders().getProgram(program), BackendInternals.context());
+            SamplerAssignmentTrace.linked(BackendInternals.shaders().getProgram(program));
             shaderPrograms.initializeUniforms(program);
         }
     }
@@ -588,13 +592,14 @@ public final class HostedBackend extends SDLGPURenderBackend {
     @Override
     public void uniform1i(int location, int value) {
         super.uniform1i(location, value);
-        if (value != 0 || location < 0) return;
         var program = BackendInternals.context().boundProgramObj;
-        if (program != null
-                && location < program.locationKind.length
-                && program.locationKind[location] == ProgramObject.LOCATION_KIND_SAMPLER)
-            // The upstream value cache skips zero-to-zero writes, but diagnostics need that explicit assignment.
-            program.samplerTextureUnits.putIfAbsent(program.locationName[location], 0);
+        if (program == null
+                || location < 0
+                || location >= program.locationKind.length
+                || program.locationKind[location] != ProgramObject.LOCATION_KIND_SAMPLER) return;
+        // The upstream value cache skips zero-to-zero writes, but diagnostics need that explicit assignment.
+        if (value == 0) program.samplerTextureUnits.putIfAbsent(program.locationName[location], 0);
+        SamplerAssignmentTrace.assigned(program, location, value);
     }
 
     @Override

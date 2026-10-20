@@ -32,6 +32,7 @@ public final class SamplerFailureState {
                         name, type == SPVC_BASETYPE_UINT32 ? Integer.toUnsignedString(bits) : Integer.toString(bits));
             }
         }
-        return "; program=" + state.boundProgram + "; scalar integer uniforms=" + selectors;
+        return "; program=" + state.boundProgram + "; scalar integer uniforms=" + selectors
+                + SamplerAssignmentTrace.describe(program);
     }
 }
