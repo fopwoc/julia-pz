@@ -12,11 +12,16 @@ data class BuildInfo(val version: String, val buildNumber: Int, val commitHash: 
 
     companion object {
         private val RELEASE = Regex("""\d+\.\d+\.\d+""")
-        private val resolved = mutableMapOf<File, BuildInfo>()
+        private const val KEY = "julia.buildInfo"
 
-        fun of(project: Project): BuildInfo = synchronized(resolved) {
-            val repository = project.rootDir.canonicalFile
-            resolved.getOrPut(repository) { project.resolve(repository) }
+        // Cached on the root project, so it lives for one build only. A static cache would survive in the Gradle
+        // daemon and label later builds with the commit that was checked out when the daemon started.
+        fun of(project: Project): BuildInfo {
+            val extra = project.rootProject.extensions.extraProperties
+            return synchronized(extra) {
+                if (!extra.has(KEY)) extra.set(KEY, project.resolve(project.rootDir.canonicalFile))
+                extra.get(KEY) as BuildInfo
+            }
         }
 
         private fun Project.resolve(repository: File): BuildInfo {
