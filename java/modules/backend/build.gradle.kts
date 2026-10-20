@@ -3,16 +3,37 @@ plugins {
     id("julia.java-conventions")
 }
 
-val nativeClassifier = run {
+/** A platform the one agent jar serves, as LWJGL's native classifier and its in-jar library directory. */
+data class NativeTarget(val classifier: String, val os: String, val arch: String) {
+    val directory get() = "$os/$arch"
+    val sdlLibrary get() = when (os) {
+        "macos" -> "libSDL3Julia.dylib"
+        "windows" -> "SDL3Julia.dll"
+        else -> "libSDL3Julia.so"
+    }
+}
+
+// Every platform PZ ships on. LWJGL's own natives are packed for all of them; Julia's SDL build comes from the host
+// and from -PjuliaNatives=<dir> holding other hosts' builds as <os>/<arch>/<library>.
+val nativeTargets = listOf(
+    NativeTarget("natives-macos-arm64", "macos", "arm64"),
+    NativeTarget("natives-macos", "macos", "x64"),
+    NativeTarget("natives-linux", "linux", "x64"),
+    NativeTarget("natives-windows", "windows", "x64"),
+)
+
+val hostTarget = run {
     val arm = when (System.getProperty("os.arch")) {
         "aarch64", "arm64" -> true
         "amd64", "x86_64" -> false
         else -> throw GradleException("The graphics backend supports ARM64 and x86-64")
     }
-    when (System.getProperty("os.name")) {
-        "Mac OS X" -> if (arm) "natives-macos-arm64" else "natives-macos"
-        "Linux" -> if (arm) "natives-linux-arm64" else "natives-linux"
-        else -> throw GradleException("The graphics backend supports macOS and Linux")
+    val os = System.getProperty("os.name").lowercase()
+    when {
+        os.startsWith("mac") -> nativeTargets.first { it.os == "macos" && (it.arch == "arm64") == arm }
+        os.startsWith("linux") && !arm -> nativeTargets.first { it.os == "linux" }
+        os.startsWith("windows") && !arm -> nativeTargets.first { it.os == "windows" }
+        else -> throw GradleException("No native target for $os on ${System.getProperty("os.arch")}")
     }
 }
 
@@ -25,9 +46,8 @@ dependencies {
     for (module in listOf("lwjgl", "lwjgl-sdl", "lwjgl-shaderc", "lwjgl-spvc", "lwjgl-opengl")) {
         val coordinates = "org.lwjgl:$module:${libs.versions.lwjgl.get()}"
         api(coordinates)
-        if (module != "lwjgl-sdl" || !nativeClassifier.startsWith("natives-macos")) {
-            runtimeOnly("$coordinates:$nativeClassifier")
-        }
+        // Julia always loads its own patched SDL build, never LWJGL's stock library.
+        if (module != "lwjgl-sdl") for (target in nativeTargets) runtimeOnly("$coordinates:${target.classifier}")
     }
     implementation(variantOf(libs.lwjgl3ify) { classifier("dev") }) { isTransitive = false }
 
@@ -45,39 +65,52 @@ dependencies {
 
 
 // Keep the extension and SDL on the same ABI. No private native layout is read from Java.
-if (nativeClassifier.startsWith("natives-macos")) {
-    val nativeRoot = rootProject.layout.projectDirectory.dir("../native/sdl")
-    val nativeBuild = nativeRoot.dir("build")
-    val nativeLibrary = nativeBuild.file("lib/libSDL3Julia.0.dylib")
-    // Every patch script and extension source; the build directory is CMake's own output.
-    val nativeSources = fileTree(nativeRoot) { exclude("build/**") }
-    val configureSdl by tasks.registering(Exec::class) {
-        inputs.files(nativeSources)
-        outputs.file(nativeBuild.file("CMakeCache.txt"))
+val nativeRoot = rootProject.layout.projectDirectory.dir("../native/sdl")
+val nativeBuild = nativeRoot.dir("build")
+// SDL names its shared library per OS; the unversioned name is what LWJGL loads.
+val hostLibrary = nativeBuild.file(
+    when (hostTarget.os) {
+        "macos" -> "lib/libSDL3Julia.0.dylib"
+        "windows" -> "lib/SDL3Julia.dll"
+        else -> "lib/libSDL3Julia.so"
+    })
+// Every patch script and extension source; the build directory is CMake's own output.
+val nativeSources = fileTree(nativeRoot) { exclude("build/**") }
+val configureSdl by tasks.registering(Exec::class) {
+    inputs.files(nativeSources)
+    outputs.file(nativeBuild.file("CMakeCache.txt"))
+    val output = nativeBuild.dir("lib").asFile.absolutePath
+    val arguments = mutableListOf(
+        "cmake", "-S", nativeRoot.asFile.absolutePath, "-B", nativeBuild.asFile.absolutePath,
         // -U drops a stale override from older build trees that patched a machine-local SDL checkout.
-        commandLine("cmake", "-S", nativeRoot.asFile.absolutePath, "-B", nativeBuild.asFile.absolutePath,
-            "-UFETCHCONTENT_SOURCE_DIR_SDL", "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${nativeBuild.dir("lib").asFile.absolutePath}",
-            "-DSDL_HIDAPI_LIBUSB=OFF",
-            "-DCMAKE_OSX_ARCHITECTURES=${if (nativeClassifier.endsWith("arm64")) "arm64" else "x86_64"}")
+        "-UFETCHCONTENT_SOURCE_DIR_SDL", "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=$output", "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=$output",
+        "-DSDL_HIDAPI_LIBUSB=OFF")
+    if (hostTarget.os == "macos")
+        arguments += "-DCMAKE_OSX_ARCHITECTURES=${if (hostTarget.arch == "arm64") "arm64" else "x86_64"}"
+    commandLine(arguments)
+}
+val buildSdl by tasks.registering(Exec::class) {
+    dependsOn(configureSdl)
+    inputs.files(nativeSources)
+    outputs.file(hostLibrary)
+    commandLine("cmake", "--build", nativeBuild.asFile.absolutePath, "--target", "SDL3-shared", "--config", "Release",
+        "--parallel", "8")
+}
+val prebuiltNatives = providers.gradleProperty("juliaNatives")
+tasks.processResources {
+    dependsOn(buildSdl)
+    inputs.property("prebuiltNatives", prebuiltNatives.orElse(""))
+    doFirst { delete(destinationDir.resolve("macos"), destinationDir.resolve("linux"), destinationDir.resolve("windows")) }
+    from(hostLibrary) {
+        into("${hostTarget.directory}/org/lwjgl/sdl")
+        rename { hostTarget.sdlLibrary }
     }
-    val buildSdl by tasks.registering(Exec::class) {
-        dependsOn(configureSdl)
-        inputs.files(nativeSources)
-        outputs.file(nativeLibrary)
-        commandLine("cmake", "--build", nativeBuild.asFile.absolutePath, "--target", "SDL3-shared", "--parallel", "8")
-    }
-    tasks.processResources {
-        dependsOn(buildSdl)
-        val architecture = if (nativeClassifier.endsWith("arm64")) "arm64" else "x64"
-        inputs.property("nativeLibraryName", "libSDL3Julia.dylib")
-        doFirst {
-            delete(destinationDir.resolve("macos/$architecture/org/lwjgl/sdl/libSDL3.dylib"))
-            delete(destinationDir.resolve("macos/$architecture/org/lwjgl/sdl/libSDL3-Julia.dylib"))
+    if (prebuiltNatives.isPresent) for (target in nativeTargets - hostTarget) {
+        from(file(prebuiltNatives.get()).resolve(target.directory)) {
+            include(target.sdlLibrary)
+            into("${target.directory}/org/lwjgl/sdl")
         }
-        from(nativeLibrary) {
-            into("macos/$architecture/org/lwjgl/sdl")
-            rename { "libSDL3Julia.dylib" }
-        }
-        from(rootProject.file("../licenses/SDL.txt")) { into("META-INF/licenses") }
     }
+    from(rootProject.file("../licenses/SDL.txt")) { into("META-INF/licenses") }
 }
