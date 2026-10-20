@@ -10,7 +10,7 @@ import static org.lwjgl.sdl.SDLGPU.SDL_WaitForGPUIdle;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import org.lwjgl.sdl.SDL_GPUTextureRegion;
 import org.lwjgl.sdl.SDL_GPUTextureTransferInfo;
 import org.lwjgl.sdl.SDL_GPUTransferBufferCreateInfo;
@@ -21,8 +21,8 @@ public final class ResourceReadback {
     private ResourceReadback() {}
 
     public static byte[] layer(int texture, int layer) {
-        var resources = BackendInternals.resources();
-        var frames = BackendInternals.frames();
+        var resources = Upstream.resources();
+        var frames = Upstream.frames();
         var meta = resources.getTextureMeta(texture);
         int bytes = Math.multiplyExact(Math.multiplyExact(meta.width(), meta.height()), 4);
         long device = SDLGPUGate.device().getDevice();
@@ -48,9 +48,9 @@ public final class ResourceReadback {
                                 .transfer_buffer(download)
                                 .pixels_per_row(meta.width())
                                 .rows_per_layer(meta.height()));
-                BackendInternals.submitPendingCommands();
+                Upstream.submitPendingCommands();
                 if (!SDL_WaitForGPUIdle(device)) throw new IllegalStateException("Cannot drain diagnostic download");
-                var state = BackendInternals.context();
+                var state = Upstream.context();
                 int drawFbo = state.boundFboId, readFbo = state.boundReadFboId;
                 BackendManager.RENDER_BACKEND.invalidateStateMirror();
                 state.boundFboId = drawFbo;

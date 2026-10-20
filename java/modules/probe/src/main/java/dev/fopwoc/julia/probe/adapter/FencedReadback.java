@@ -3,7 +3,7 @@ package dev.fopwoc.julia.probe.adapter;
 import static org.lwjgl.sdl.SDLGPU.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import org.lwjgl.sdl.SDL_GPUTextureRegion;
 import org.lwjgl.sdl.SDL_GPUTextureTransferInfo;
 import org.lwjgl.sdl.SDL_GPUTransferBufferCreateInfo;
@@ -16,10 +16,10 @@ public final class FencedReadback implements AutoCloseable {
     private final int bytes;
 
     public FencedReadback(int texture) {
-        var resources = BackendInternals.resources();
+        var resources = Upstream.resources();
         var meta = resources.getTextureMeta(texture);
         bytes = Math.multiplyExact(Math.multiplyExact(meta.width(), meta.height()), 4);
-        BackendInternals.timestampCommandBuffer();
+        Upstream.commandBufferOutsidePasses();
         try (var stack = MemoryStack.stackPush()) {
             transfer = SDL_CreateGPUTransferBuffer(
                     device,
@@ -27,7 +27,7 @@ public final class FencedReadback implements AutoCloseable {
                             .usage(SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD)
                             .size(bytes));
             if (transfer == 0) throw new IllegalStateException("Cannot allocate fenced download");
-            long copy = BackendInternals.frames().ensureCopyPass();
+            long copy = Upstream.frames().ensureCopyPass();
             if (copy == 0) {
                 SDL_ReleaseGPUTransferBuffer(device, transfer);
                 throw new IllegalStateException("Cannot begin fenced download");

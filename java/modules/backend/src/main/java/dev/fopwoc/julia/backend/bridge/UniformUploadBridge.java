@@ -2,7 +2,7 @@ package dev.fopwoc.julia.backend.bridge;
 
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.shader.SamplerUniforms;
 import java.nio.IntBuffer;
 import org.lwjgl.system.MemoryUtil;
@@ -19,7 +19,7 @@ public final class UniformUploadBridge {
     public static void glUniform1iv(int location, int[] values) {
         if (location < 0 || values.length == 0) return;
         if (SamplerUniforms.upload(location, IntBuffer.wrap(values))) return;
-        var program = BackendInternals.context().boundProgramObj;
+        var program = Upstream.context().boundProgramObj;
         if (program == null
                 || !program.linked
                 || location >= program.uniformSlotCount

@@ -3,7 +3,7 @@ package dev.fopwoc.julia.backend.sync;
 import static org.lwjgl.opengl.GL32.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import java.util.HashSet;
 
 /** Public GL fence lifetimes over the backend's reference-counted native SDL submission fences. */
@@ -18,11 +18,11 @@ public final class GpuSyncs {
     public long create(int condition, int flags) {
         if (condition != GL_SYNC_GPU_COMMANDS_COMPLETE || flags != 0)
             throw new IllegalArgumentException("Fence requires GPU_COMMANDS_COMPLETE and zero flags");
-        BackendInternals.timestampCommandBuffer();
+        Upstream.commandBufferOutsidePasses();
         long sync = backend.fenceSync(condition, flags);
         // Submit at the GL fence boundary. Later commands cannot extend the fence, and deleting a
         // fence before a frame swap cannot resurrect an unresolved upstream fence token.
-        BackendInternals.submitFenceCommands(sync);
+        Upstream.submitFenceCommands(sync);
         if (sync == 0 || !live.add(sync)) throw new IllegalStateException("Invalid native fence identity: " + sync);
         return sync;
     }

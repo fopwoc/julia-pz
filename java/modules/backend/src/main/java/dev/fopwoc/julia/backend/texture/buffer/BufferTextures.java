@@ -8,7 +8,8 @@ import static org.lwjgl.sdl.SDLGPU.*;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.texture.SamplerLayout;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.utils.Sdl;
@@ -114,11 +115,11 @@ public final class BufferTextures implements AutoCloseable {
             if (ordinaryTextures.contains(name))
                 throw new IllegalArgumentException("Texture target cannot change to GL_TEXTURE_BUFFER");
             views.computeIfAbsent(name, ignored -> new View());
-            BackendInternals.views().bound(name);
+            Subsystems.current().textureViews().bound(name);
         }
         if (bound[unit] != name) {
             bound[unit] = name;
-            BackendInternals.context().samplerBindGen++;
+            Upstream.context().samplerBindGen++;
         }
     }
 
@@ -141,10 +142,10 @@ public final class BufferTextures implements AutoCloseable {
             var view = views.get(name);
             clear(view);
             view.format = layout;
-            BackendInternals.context().samplerBindGen++;
+            Upstream.context().samplerBindGen++;
             return;
         }
-        var resources = BackendInternals.resources();
+        var resources = Upstream.resources();
         long handle = resources.getBufferHandle(buffer);
         long actualSize = resources.getBufferSize(buffer);
         // glTexBuffer accepts an empty store; only an explicit range must be non-empty.
@@ -171,11 +172,11 @@ public final class BufferTextures implements AutoCloseable {
         }
         views.put(name, view);
         clear(old);
-        BackendInternals.context().samplerBindGen++;
+        Upstream.context().samplerBindGen++;
     }
 
     private void refresh(View view) {
-        var resources = BackendInternals.resources();
+        var resources = Upstream.resources();
         long handle = view.deleted ? view.bufferHandle : resources.getBufferHandle(view.buffer);
         long length = view.deleted ? view.size : view.whole ? resources.getBufferSize(view.buffer) : view.size;
         if (!view.deleted
@@ -188,7 +189,7 @@ public final class BufferTextures implements AutoCloseable {
             if (view.texture != 0) {
                 driver().release(view.texture);
                 view.texture = 0;
-                BackendInternals.context().samplerBindGen++;
+                Upstream.context().samplerBindGen++;
             }
             view.identity = 0;
             view.bufferHandle = handle;
@@ -207,7 +208,7 @@ public final class BufferTextures implements AutoCloseable {
         view.bufferHandle = handle;
         view.size = length;
         view.texels = texels;
-        BackendInternals.context().samplerBindGen++;
+        Upstream.context().samplerBindGen++;
     }
 
     private SamplerLayout layout(ProgramObject program) {
@@ -227,13 +228,13 @@ public final class BufferTextures implements AutoCloseable {
     public int samplerBinding(ContextState state, int unit) {
         if (unit < 0 || unit >= bound.length)
             throw new IllegalArgumentException("Sampler texture unit out of range: " + unit);
-        if (BackendInternals.textureBindings().samplerOverride(state)) return state.boundTexture(unit);
+        if (Subsystems.current().textureBindings().samplerOverride(state)) return state.boundTexture(unit);
         var program = state.boundProgramObj;
         if (program == null || !program.linked)
-            return BackendInternals.textureBindings().get(state, unit, GL_TEXTURE_2D);
+            return Subsystems.current().textureBindings().get(state, unit, GL_TEXTURE_2D);
         var layout = layout(program);
         if (!layout.bufferUnit(program, unit) || layout.hasOrdinaryTarget(program, unit))
-            return BackendInternals.textureBindings().get(state, unit, layout.ordinaryTarget(program, unit));
+            return Subsystems.current().textureBindings().get(state, unit, layout.ordinaryTarget(program, unit));
         return bufferBinding(unit, layout.bufferType(program, unit));
     }
 
@@ -242,12 +243,12 @@ public final class BufferTextures implements AutoCloseable {
         var program = state.boundProgramObj;
         if (program == null
                 || !program.linked
-                || BackendInternals.textureBindings().samplerOverride(state)) return samplerBinding(state, unit);
+                || Subsystems.current().textureBindings().samplerOverride(state)) return samplerBinding(state, unit);
         var layout = layout(program);
         int target = layout.slotTarget(program, slot, fragment);
         if (target == 0) return samplerBinding(state, unit);
         if (target == GL_TEXTURE_BUFFER) return bufferBinding(unit, layout.slotBufferType(program, slot, fragment));
-        return BackendInternals.textureBindings().get(state, unit, target);
+        return Subsystems.current().textureBindings().get(state, unit, target);
     }
 
     // GL reads an unbound buffer texture without failing, so typed placeholders stand in for the missing view.
@@ -343,7 +344,7 @@ public final class BufferTextures implements AutoCloseable {
     public void beforeSubData(int name) {
         for (var view : views.values()) {
             if (view.buffer != name || view.deleted || view.readEpoch != epoch) continue;
-            BackendInternals.submitPendingCommands();
+            Upstream.submitPendingCommands();
             epoch++;
             return;
         }

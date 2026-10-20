@@ -8,7 +8,7 @@ import static org.lwjgl.sdl.SDLVideo.SDL_GetWindowSizeInPixels;
 import com.gtnewhorizons.angelica.glsm.profiling.DebugCounters;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.utils.Sdl;
 import dev.fopwoc.julia.backend.window.BorrowedWindow;
 import dev.fopwoc.julia.backend.window.HostWindow;
@@ -67,7 +67,7 @@ public final class GameRuntime {
 
     public static void beforeCall() {
         var runtime = require();
-        if (!BackendInternals.frames().isFrameActive()) {
+        if (!Upstream.frames().isFrameActive()) {
             var logical = size(runtime.window.handle(), false);
             runtime.binding.dimensions(logical.width(), logical.height());
             runtime.session.backend().onFrameBegin();
@@ -89,7 +89,7 @@ public final class GameRuntime {
         if (current == null || current.session == null) return;
         var backend = (SDLGPURenderBackend) current.session.backend();
         backend.endComputeDispatchBatch();
-        var frames = BackendInternals.frames();
+        var frames = Upstream.frames();
         var frame = frames.frame();
         frames.endRenderPassIfActive(frame);
         frames.endCopyPassIfActive();

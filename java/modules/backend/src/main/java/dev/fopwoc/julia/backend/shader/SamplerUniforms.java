@@ -2,7 +2,7 @@ package dev.fopwoc.julia.backend.shader;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
 import java.nio.IntBuffer;
 
@@ -12,7 +12,7 @@ public final class SamplerUniforms {
 
     public static boolean upload(int location, IntBuffer values) {
         if (location < 0 || !values.hasRemaining()) return false;
-        var program = BackendInternals.context().boundProgramObj;
+        var program = Upstream.context().boundProgramObj;
         if (program == null
                 || location >= program.locationKind.length
                 || program.locationKind[location] != ProgramObject.LOCATION_KIND_SAMPLER) return false;

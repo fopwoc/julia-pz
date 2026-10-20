@@ -1,7 +1,7 @@
 package dev.fopwoc.julia.backend.bridge;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
 import java.nio.IntBuffer;
 
 /** Named operations address explicit objects and preserve both logical framebuffer bindings. */
@@ -21,24 +21,24 @@ public final class FramebufferBridge {
     }
 
     public static void glNamedFramebufferTexture(int fbo, int attachment, int texture, int level) {
-        BackendInternals.framebuffers().attach(fbo, attachment, texture, level, 0, false);
+        Subsystems.current().framebuffers().attach(fbo, attachment, texture, level, 0, false);
     }
 
     public static void glNamedFramebufferTextureLayer(int fbo, int attachment, int texture, int level, int layer) {
-        BackendInternals.framebuffers().attach(fbo, attachment, texture, level, layer, true);
+        Subsystems.current().framebuffers().attach(fbo, attachment, texture, level, layer, true);
     }
 
     public static void glFramebufferTextureLayer(int target, int attachment, int texture, int level, int layer) {
         glNamedFramebufferTextureLayer(
-                BackendInternals.framebuffers().selected(target), attachment, texture, level, layer);
+                Subsystems.current().framebuffers().selected(target), attachment, texture, level, layer);
     }
 
     public static void glNamedFramebufferDrawBuffer(int fbo, int buffer) {
-        BackendInternals.framebuffers().drawBuffers(fbo, new int[] {buffer});
+        Subsystems.current().framebuffers().drawBuffers(fbo, new int[] {buffer});
     }
 
     public static void glNamedFramebufferDrawBuffers(int fbo, int[] buffers) {
-        BackendInternals.framebuffers().drawBuffers(fbo, buffers);
+        Subsystems.current().framebuffers().drawBuffers(fbo, buffers);
     }
 
     public static void glNamedFramebufferDrawBuffers(int fbo, IntBuffer buffers) {
@@ -48,10 +48,10 @@ public final class FramebufferBridge {
     }
 
     public static void glNamedFramebufferReadBuffer(int fbo, int buffer) {
-        BackendInternals.framebuffers().readBuffer(fbo, buffer);
+        Subsystems.current().framebuffers().readBuffer(fbo, buffer);
     }
 
     public static int glCheckNamedFramebufferStatus(int fbo, int target) {
-        return BackendInternals.framebuffers().status(fbo, target);
+        return Subsystems.current().framebuffers().status(fbo, target);
     }
 }

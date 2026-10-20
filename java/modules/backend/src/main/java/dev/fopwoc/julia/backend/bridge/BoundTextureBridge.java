@@ -4,7 +4,8 @@ import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL12.GL_TEXTURE_3D;
 import static org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY;
 
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.texture.NamedTextureUploads;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -19,9 +20,9 @@ public final class BoundTextureBridge {
     public static void glTexStorage3D(int target, int levels, int format, int width, int height, int depth) {
         if (target != GL_TEXTURE_3D && target != GL_TEXTURE_2D_ARRAY)
             throw new UnsupportedOperationException("Volume storage requires a 3D or 2D-array target");
-        var state = BackendInternals.context();
-        int name = BackendInternals.textureBindings().get(state, state.activeTextureUnit, target);
-        BackendInternals.textureObjects().storage(name, levels, format, width, height, depth, true);
+        var state = Upstream.context();
+        int name = Subsystems.current().textureBindings().get(state, state.activeTextureUnit, target);
+        Subsystems.current().textureObjects().storage(name, levels, format, width, height, depth, true);
     }
 
     public static void glTexSubImage2D(
@@ -54,8 +55,8 @@ public final class BoundTextureBridge {
             throw new UnsupportedOperationException("Integer volume uploads require a 3D or 2D-array target");
         if (data != null && !data.isDirect())
             throw new IllegalArgumentException("Texture upload requires direct client data");
-        var state = BackendInternals.context();
-        int name = BackendInternals.textureBindings().get(state, state.activeTextureUnit, target);
+        var state = Upstream.context();
+        int name = Subsystems.current().textureBindings().get(state, state.activeTextureUnit, target);
         NamedTextureUploads.upload(
                 name,
                 level,
@@ -75,8 +76,8 @@ public final class BoundTextureBridge {
             int target, int level, int x, int y, int width, int height, int format, int type, ByteBuffer data) {
         if (target != GL_TEXTURE_2D)
             throw new UnsupportedOperationException("Typed texture uploads currently require a 2D target");
-        var state = BackendInternals.context();
-        int name = BackendInternals.textureBindings().get(state, state.activeTextureUnit, target);
+        var state = Upstream.context();
+        int name = Subsystems.current().textureBindings().get(state, state.activeTextureUnit, target);
         NamedTextureUploads.upload(name, level, x, y, 0, width, height, 1, format, type, data, false);
     }
 }

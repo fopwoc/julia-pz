@@ -4,7 +4,7 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL32.*;
 
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.probe.adapter.FencedReadback;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -40,11 +40,11 @@ final class SyncChecks {
                     long second = ARBSync.glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
                     if (!glIsSync(first) || !glIsSync(second) || first == second)
                         throw new IllegalStateException("Fence lifetime or identity is invalid");
-                    int submits = BackendInternals.frames().frame().submitsThisFrame;
+                    int submits = Upstream.frames().frame().submitsThisFrame;
                     int poll = glClientWaitSync(second, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
                     if (poll != GL_TIMEOUT_EXPIRED && poll != GL_ALREADY_SIGNALED && poll != GL_CONDITION_SATISFIED)
                         throw new IllegalStateException("Invalid fence polling result: " + poll);
-                    if (BackendInternals.frames().frame().submitsThisFrame != submits)
+                    if (Upstream.frames().frame().submitsThisFrame != submits)
                         throw new IllegalStateException("Polling submitted later commands");
                     invalid(() -> glClientWaitSync(first, 2, 0));
                     glDeleteSync(first); // Delete before a frame swap while another fence remains live.

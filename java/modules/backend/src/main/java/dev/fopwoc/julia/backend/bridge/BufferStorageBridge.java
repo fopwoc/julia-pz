@@ -19,7 +19,7 @@ import static org.lwjgl.opengl.GL44.GL_MAP_PERSISTENT_BIT;
 
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
@@ -61,7 +61,7 @@ public final class BufferStorageBridge {
         if (buffer <= 0 || size <= 0) throw new IllegalArgumentException("Buffer and storage size must be positive");
         if (size > Integer.MAX_VALUE)
             throw new UnsupportedOperationException("Named buffer storage exceeds the supported byte range");
-        var context = BackendInternals.context();
+        var context = Upstream.context();
         boolean known = GLStateManager.glIsBuffer(buffer);
         for (int target : BINDING_TARGETS) known |= context.getBoundBuffer(target) == buffer;
         if (!known) {
@@ -76,7 +76,7 @@ public final class BufferStorageBridge {
             GLStateManager.glBindBuffer(GL_COPY_WRITE_BUFFER, buffer);
             if (data == null) GLStateManager.glBufferStorage(GL_COPY_WRITE_BUFFER, size, flags);
             else GLStateManager.glBufferStorage(GL_COPY_WRITE_BUFFER, data.duplicate(), flags);
-            var resources = BackendInternals.resources();
+            var resources = Upstream.resources();
             if (resources.getBufferHandle(buffer) == 0 || resources.getBufferSize(buffer) != size)
                 throw new IllegalStateException("Named buffer storage allocation failed");
         } finally {

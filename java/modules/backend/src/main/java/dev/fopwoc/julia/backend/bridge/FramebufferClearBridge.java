@@ -6,7 +6,8 @@ import static org.lwjgl.opengl.GL30.*;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.PixelOps;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
+import dev.fopwoc.julia.backend.Upstream;
 import java.nio.FloatBuffer;
 import java.util.Arrays;
 
@@ -49,11 +50,11 @@ public final class FramebufferClearBridge {
     }
 
     private static void clear(int buffer, int drawbuffer, float red, float green, float blue, float alpha) {
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         var backend = BackendManager.RENDER_BACKEND;
-        var framebuffers = BackendInternals.framebuffers();
+        var framebuffers = Subsystems.current().framebuffers();
         framebuffers.validateDraw(state);
-        if (BackendInternals.frames().getCommandBuffer() == 0)
+        if (Upstream.frames().getCommandBuffer() == 0)
             throw new IllegalStateException("Framebuffer clear requires an active frame");
         if (buffer == GL_DEPTH) {
             float previous = state.depthClearValue;
@@ -65,7 +66,7 @@ public final class FramebufferClearBridge {
             }
             return;
         }
-        var fbo = BackendInternals.resources().getFbo(state.boundFboId);
+        var fbo = Upstream.resources().getFbo(state.boundFboId);
         if (fbo == null && state.boundFboId != 0)
             throw new IllegalStateException("Framebuffer clear target does not exist");
         if (fbo == null ? drawbuffer != 0 : drawbuffer >= fbo.drawBuffers.length || fbo.drawBuffers[drawbuffer] < 0)

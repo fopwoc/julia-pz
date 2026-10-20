@@ -7,7 +7,7 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.compat.StencilReference;
 import org.lwjgl.sdl.*;
 import org.lwjgl.system.MemoryStack;
@@ -37,8 +37,8 @@ final class StencilSampling implements AutoCloseable {
     }
 
     void refresh(ContextState state, long source, ResourceManager.TextureMeta meta) {
-        var frames = BackendInternals.frames();
-        var resources = BackendInternals.resources();
+        var frames = Upstream.frames();
+        var resources = Upstream.resources();
         if (frames.getCommandBuffer() == 0)
             throw new IllegalStateException("Stencil sampling requires an active frame");
         if (texture == 0)
@@ -48,7 +48,7 @@ final class StencilSampling implements AutoCloseable {
                     meta.height(),
                     SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER);
         if (pipeline == 0) createPipeline(meta.sdlFormat());
-        BackendInternals.clears().materializePendingClearForTexture(state, source);
+        Upstream.clears().materializePendingClearForTexture(state, source);
         frames.endRenderPassIfActive(FrameManager.PASS_END_READBACK);
         long pass = 0;
         int drawFbo = state.boundFboId, readFbo = state.boundReadFboId;
@@ -94,7 +94,7 @@ final class StencilSampling implements AutoCloseable {
     }
 
     private void createPipeline(int depthFormat) {
-        var shaders = BackendInternals.shaders();
+        var shaders = Upstream.shaders();
         int vs = shaders.createShader(GL_VERTEX_SHADER), fs = shaders.createShader(GL_FRAGMENT_SHADER);
         int program = shaders.createProgram();
         try {
@@ -162,7 +162,7 @@ final class StencilSampling implements AutoCloseable {
         if (pipeline != 0) SDL_ReleaseGPUGraphicsPipeline(device, pipeline);
         if (vertex != 0) SDL_ReleaseGPUShader(device, vertex);
         if (fragment != 0) SDL_ReleaseGPUShader(device, fragment);
-        if (texture != 0) BackendInternals.resources().releaseTextureHandle(texture);
+        if (texture != 0) Upstream.resources().releaseTextureHandle(texture);
         pipeline = 0;
         vertex = 0;
         fragment = 0;

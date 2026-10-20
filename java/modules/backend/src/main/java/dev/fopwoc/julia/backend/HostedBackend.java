@@ -35,30 +35,19 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 import dev.fopwoc.julia.backend.buffer.IndexBufferUploads;
-import dev.fopwoc.julia.backend.framebuffer.Framebuffers;
-import dev.fopwoc.julia.backend.platform.Platform;
-import dev.fopwoc.julia.backend.query.Queries;
 import dev.fopwoc.julia.backend.shader.MatrixUniformUploads;
 import dev.fopwoc.julia.backend.shader.ProgramLinkState;
-import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.shader.SamplerResources;
 import dev.fopwoc.julia.backend.shader.SamplerUniforms;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
-import dev.fopwoc.julia.backend.sync.GpuSyncs;
 import dev.fopwoc.julia.backend.texture.ClientPixels;
 import dev.fopwoc.julia.backend.texture.NamedTextureUploads;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
-import dev.fopwoc.julia.backend.texture.TextureObjects;
-import dev.fopwoc.julia.backend.texture.TextureViews;
-import dev.fopwoc.julia.backend.texture.VolumeUnpack;
-import dev.fopwoc.julia.backend.texture.buffer.BufferTextures;
 import dev.fopwoc.julia.backend.vertex.BaseInstanceDraws;
 import dev.fopwoc.julia.backend.vertex.VertexInputs;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.HashSet;
-import java.util.WeakHashMap;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
@@ -66,24 +55,24 @@ import org.lwjgl.system.MemoryUtil;
 public final class HostedBackend extends SDLGPURenderBackend {
     private static final System.Logger LOG = System.getLogger(HostedBackend.class.getName());
     private int error;
-    private final GpuSyncs syncs = new GpuSyncs(this);
+    private final Subsystems subsystems = new Subsystems(this);
 
-    GpuSyncs syncs() {
-        return syncs;
+    Subsystems subsystems() {
+        return subsystems;
     }
 
     @Override
     public void drawArraysInstanced(int mode, int first, int count, int instances) {
         if (count <= 0 || instances <= 0) return;
-        try (var _ = BaseInstanceDraws.offsets(BackendInternals.context())) {
+        try (var _ = BaseInstanceDraws.offsets(Upstream.context())) {
             super.drawArraysInstanced(mode, first, count, instances);
         }
     }
 
     @Override
     public void flush() {
-        BackendInternals.timestampCommandBuffer();
-        BackendInternals.submitPendingCommands();
+        Upstream.commandBufferOutsidePasses();
+        Upstream.submitPendingCommands();
     }
 
     @Override
@@ -92,17 +81,10 @@ public final class HostedBackend extends SDLGPURenderBackend {
         super.finish();
     }
 
-    private final ShaderPrograms shaderPrograms = new ShaderPrograms();
-    private final Framebuffers framebuffers = new Framebuffers();
-
-    public Framebuffers framebuffers() {
-        return framebuffers;
-    }
-
     @Override
     public void bindFramebuffer(int target, int name) {
         super.bindFramebuffer(target, name);
-        if (target != GL_READ_FRAMEBUFFER) framebuffers.bound(BackendInternals.context().boundFboId);
+        if (target != GL_READ_FRAMEBUFFER) subsystems.framebuffers().bound(Upstream.context().boundFboId);
     }
 
     @Override
@@ -110,34 +92,38 @@ public final class HostedBackend extends SDLGPURenderBackend {
         if (texture != 0 && textureTarget != GL_TEXTURE_2D)
             throw new UnsupportedOperationException(
                     "FramebufferTexture2D texture target not implemented: " + textureTarget);
-        framebuffers.attach(framebuffers.selected(target), attachment, texture, level, 0, false);
+        subsystems
+                .framebuffers()
+                .attach(subsystems.framebuffers().selected(target), attachment, texture, level, 0, false);
     }
 
     @Override
     public void framebufferTexture(int target, int attachment, int texture, int level) {
-        framebuffers.attach(framebuffers.selected(target), attachment, texture, level, 0, false);
+        subsystems
+                .framebuffers()
+                .attach(subsystems.framebuffers().selected(target), attachment, texture, level, 0, false);
     }
 
     @Override
     public int checkFramebufferStatus(int target) {
-        return framebuffers.status(framebuffers.selected(target), target);
+        return subsystems.framebuffers().status(subsystems.framebuffers().selected(target), target);
     }
 
     @Override
     public void namedFramebufferTexture(int name, int attachment, int texture, int level) {
-        framebuffers.attach(name, attachment, texture, level, 0, false);
+        subsystems.framebuffers().attach(name, attachment, texture, level, 0, false);
     }
 
     @Override
     public void namedFramebufferReadBuffer(int name, int buffer) {
-        framebuffers.readBuffer(name, buffer);
+        subsystems.framebuffers().readBuffer(name, buffer);
     }
 
     @Override
     public void namedFramebufferDrawBuffers(int name, IntBuffer buffers) {
         int[] values = new int[buffers.remaining()];
         for (int i = 0; i < values.length; i++) values[i] = buffers.get(buffers.position() + i);
-        framebuffers.drawBuffers(name, values);
+        subsystems.framebuffers().drawBuffers(name, values);
     }
 
     @Override
@@ -147,17 +133,17 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void drawBuffers(int buffer) {
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         if (state.boundFboId == 0 || state.boundFboId == state.defaultFboId) {
             super.drawBuffers(buffer);
             return;
         }
-        framebuffers.drawBuffers(state.boundFboId, new int[] {buffer});
+        subsystems.framebuffers().drawBuffers(state.boundFboId, new int[] {buffer});
     }
 
     @Override
     public void drawBuffers(IntBuffer buffers) {
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         if (state.boundFboId == 0 || state.boundFboId == state.defaultFboId) {
             super.drawBuffers(buffers);
             return;
@@ -167,22 +153,22 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void readBuffer(int buffer) {
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         if (state.boundReadFboId == 0 || state.boundReadFboId == state.defaultFboId) {
             super.readBuffer(buffer);
             return;
         }
-        framebuffers.readBuffer(state.boundReadFboId, buffer);
+        subsystems.framebuffers().readBuffer(state.boundReadFboId, buffer);
     }
 
     @Override
     public void clear(int mask) {
-        textureViews.flushSharedClears();
-        var state = BackendInternals.context();
-        framebuffers.validateDraw(state);
-        var fbo = BackendInternals.resources().getFbo(state.boundFboId);
-        if (fbo != null && framebuffers.sliced(fbo)) {
-            BackendInternals.clearFramebufferSlice(mask);
+        subsystems.textureViews().flushSharedClears();
+        var state = Upstream.context();
+        subsystems.framebuffers().validateDraw(state);
+        var fbo = Upstream.resources().getFbo(state.boundFboId);
+        if (fbo != null && subsystems.framebuffers().sliced(fbo)) {
+            subsystems.framebuffers().clearSlice(mask);
             return;
         }
         super.clear(mask);
@@ -190,37 +176,37 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void readPixels(int x, int y, int w, int h, int format, int type, ByteBuffer pixels) {
-        framebuffers.validateRead(format);
+        subsystems.framebuffers().validateRead(format);
         super.readPixels(x, y, w, h, format, type, pixels);
     }
 
     @Override
     public void readPixels(int x, int y, int w, int h, int format, int type, FloatBuffer pixels) {
-        framebuffers.validateRead(format);
+        subsystems.framebuffers().validateRead(format);
         super.readPixels(x, y, w, h, format, type, pixels);
     }
 
     @Override
     public void readPixels(int x, int y, int w, int h, int format, int type, IntBuffer pixels) {
-        framebuffers.validateRead(format);
+        subsystems.framebuffers().validateRead(format);
         super.readPixels(x, y, w, h, format, type, pixels == null ? null : MemoryUtil.memByteBuffer(pixels));
     }
 
     @Override
     public void readPixels(int x, int y, int w, int h, int format, int type, long pixels) {
-        framebuffers.validateRead(format);
+        subsystems.framebuffers().validateRead(format);
         super.readPixels(x, y, w, h, format, type, pixels);
     }
 
     @Override
     public void copyTexSubImage2D(int target, int level, int x, int y, int sx, int sy, int width, int height) {
-        framebuffers.requireFlatRead(BackendInternals.context().boundReadFboId);
+        subsystems.framebuffers().requireFlatRead(Upstream.context().boundReadFboId);
         super.copyTexSubImage2D(target, level, x, y, sx, sy, width, height);
     }
 
     @Override
     public void copyTexImage2D(int target, int level, int format, int x, int y, int width, int height, int border) {
-        framebuffers.requireFlatRead(BackendInternals.context().boundReadFboId);
+        subsystems.framebuffers().requireFlatRead(Upstream.context().boundReadFboId);
         super.copyTexImage2D(target, level, format, x, y, width, height, border);
     }
 
@@ -238,74 +224,51 @@ public final class HostedBackend extends SDLGPURenderBackend {
             int dy1,
             int mask,
             int filter) {
-        framebuffers.requireFlatRead(read);
-        framebuffers.requireFlatRead(draw);
+        subsystems.framebuffers().requireFlatRead(read);
+        subsystems.framebuffers().requireFlatRead(draw);
         super.blitNamedFramebuffer(read, draw, sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, mask, filter);
-    }
-
-    private final TextureBindings textureBindings = new TextureBindings();
-
-    public TextureBindings textureBindings() {
-        return textureBindings;
-    }
-
-    private final TextureObjects textureObjects = new TextureObjects();
-    private final WeakHashMap<ContextState, VolumeUnpack> volumeUnpack = new WeakHashMap<>();
-
-    private final TextureViews textureViews = new TextureViews();
-    private final BufferTextures bufferTextures =
-            new BufferTextures(() -> Platform.current().createBufferTextureDriver());
-
-    public TextureObjects textureObjects() {
-        return textureObjects;
-    }
-
-    public VolumeUnpack volumeUnpack() {
-        return volumeUnpack.computeIfAbsent(BackendInternals.context(), ignored -> new VolumeUnpack());
     }
 
     @Override
     public int createTextures(int target) {
-        return textureObjects.create(target);
+        return subsystems.textureObjects().create(target);
     }
 
     @Override
     public void pixelStorei(int parameter, int value) {
         if (parameter == GL_UNPACK_IMAGE_HEIGHT || parameter == GL_UNPACK_SKIP_IMAGES) {
             if (value < 0) throw new IllegalArgumentException("Negative pixel unpack value");
-            if (parameter == GL_UNPACK_IMAGE_HEIGHT) volumeUnpack().imageHeight = value;
-            else volumeUnpack().skipImages = value;
-        } else if (parameter == GL_UNPACK_SWAP_BYTES) volumeUnpack().swapBytes = value != 0;
+            if (parameter == GL_UNPACK_IMAGE_HEIGHT) subsystems.volumeUnpack().imageHeight = value;
+            else subsystems.volumeUnpack().skipImages = value;
+        } else if (parameter == GL_UNPACK_SWAP_BYTES) subsystems.volumeUnpack().swapBytes = value != 0;
         else super.pixelStorei(parameter, value);
-    }
-
-    public BufferTextures bufferTextures() {
-        return bufferTextures;
     }
 
     @Override
     public int getInteger(int parameter) {
         int target = TextureBindings.queryTarget(parameter);
         if (target != 0) {
-            var state = BackendInternals.context();
-            return textureBindings.get(state, state.activeTextureUnit, target);
+            var state = Upstream.context();
+            return subsystems.textureBindings().get(state, state.activeTextureUnit, target);
         }
         return switch (parameter) {
             // Julia does not expose OpenGL program binaries; its internal shader cache is separate.
             case GL_NUM_PROGRAM_BINARY_FORMATS -> 0;
             case GL_MAX_TEXTURE_IMAGE_UNITS, GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS -> SamplerResources.LIMIT;
             case GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS -> TextureBindings.UNIT_COUNT;
-            case GL_COPY_READ_BUFFER -> BackendInternals.context().boundCopyReadBuffer;
-            case GL_COPY_WRITE_BUFFER -> BackendInternals.context().boundCopyWriteBuffer;
-            case GL_DRAW_INDIRECT_BUFFER_BINDING -> BackendInternals.context().boundIndirectBuffer;
-            case GL_UNPACK_IMAGE_HEIGHT -> volumeUnpack().imageHeight;
-            case GL_UNPACK_SKIP_IMAGES -> volumeUnpack().skipImages;
-            case GL_UNPACK_SWAP_BYTES -> volumeUnpack().swapBytes ? GL_TRUE : GL_FALSE;
+            case GL_COPY_READ_BUFFER -> Upstream.context().boundCopyReadBuffer;
+            case GL_COPY_WRITE_BUFFER -> Upstream.context().boundCopyWriteBuffer;
+            case GL_DRAW_INDIRECT_BUFFER_BINDING -> Upstream.context().boundIndirectBuffer;
+            case GL_UNPACK_IMAGE_HEIGHT -> subsystems.volumeUnpack().imageHeight;
+            case GL_UNPACK_SKIP_IMAGES -> subsystems.volumeUnpack().skipImages;
+            case GL_UNPACK_SWAP_BYTES -> subsystems.volumeUnpack().swapBytes ? GL_TRUE : GL_FALSE;
             case GL_MAX_VERTEX_ATTRIB_BINDINGS -> ContextState.MAX_VERTEX_ATTRIBS;
-            case GL_MAX_TEXTURE_BUFFER_SIZE -> bufferTextures.limit();
-            case GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT -> bufferTextures.alignment();
-            case GL_TEXTURE_BINDING_BUFFER -> bufferTextures.boundTexture(BackendInternals.context().activeTextureUnit);
-            case GL_TEXTURE_BUFFER -> bufferTextures.boundBuffer();
+            case GL_MAX_TEXTURE_BUFFER_SIZE -> subsystems.bufferTextures().limit();
+            case GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT ->
+                subsystems.bufferTextures().alignment();
+            case GL_TEXTURE_BINDING_BUFFER ->
+                subsystems.bufferTextures().boundTexture(Upstream.context().activeTextureUnit);
+            case GL_TEXTURE_BUFFER -> subsystems.bufferTextures().boundBuffer();
             default -> super.getInteger(parameter);
         };
     }
@@ -361,36 +324,35 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void bindBuffer(int target, int name) {
-        if (target == GL_TEXTURE_BUFFER) bufferTextures.bindBuffer(name);
+        if (target == GL_TEXTURE_BUFFER) subsystems.bufferTextures().bindBuffer(name);
         else super.bindBuffer(target, name);
-        if (name != 0 && BackendInternals.context().getBoundBuffer(target) == name) bufferObjects.add(name);
+        if (name != 0 && Upstream.context().getBoundBuffer(target) == name)
+            subsystems.bufferObjects().add(name);
     }
 
     @Override
     public void bufferSubData(int target, long offset, ByteBuffer data) {
         endComputeDispatchBatch();
-        bufferTextures.beforeSubData(BackendInternals.context().getBoundBuffer(target));
+        subsystems.bufferTextures().beforeSubData(Upstream.context().getBoundBuffer(target));
         super.bufferSubData(target, offset, data);
     }
-
-    private final HashSet<Integer> bufferObjects = new HashSet<>();
 
     @Override
     public int createBuffers() {
         int name = super.createBuffers();
-        bufferObjects.add(name);
+        subsystems.bufferObjects().add(name);
         return name;
     }
 
     @Override
     public boolean isBuffer(int name) {
-        return bufferObjects.contains(name) || super.isBuffer(name);
+        return subsystems.bufferObjects().contains(name) || super.isBuffer(name);
     }
 
     @Override
     public void deleteBuffers(int name) {
-        bufferObjects.remove(name);
-        bufferTextures.deletedBuffer(name);
+        subsystems.bufferObjects().remove(name);
+        subsystems.bufferTextures().deletedBuffer(name);
         super.deleteBuffers(name);
     }
 
@@ -402,26 +364,25 @@ public final class HostedBackend extends SDLGPURenderBackend {
     @Override
     public int getTexLevelParameteri(int target, int level, int parameter) {
         if (target == GL_TEXTURE_BUFFER)
-            return bufferTextures.levelParameter(
-                    bufferTextures.boundTexture(BackendInternals.context().activeTextureUnit), level, parameter);
+            return subsystems
+                    .bufferTextures()
+                    .levelParameter(
+                            subsystems.bufferTextures().boundTexture(Upstream.context().activeTextureUnit),
+                            level,
+                            parameter);
         if (parameter == GL_TEXTURE_DEPTH && TextureBindings.selectable(target)) {
-            var state = BackendInternals.context();
-            var meta = BackendInternals.resources()
-                    .getTextureMeta(textureBindings.get(state, state.activeTextureUnit, target));
+            var state = Upstream.context();
+            var meta = Upstream.resources()
+                    .getTextureMeta(subsystems.textureBindings().get(state, state.activeTextureUnit, target));
             if (meta == null || level < 0 || level >= meta.levels()) return 0;
             return target == GL_TEXTURE_3D ? Math.max(1, meta.depth() >> Math.min(level, 30)) : meta.depth();
         }
         return super.getTexLevelParameteri(target, level, parameter);
     }
 
-    private final ProgramResourceCache programResources = new ProgramResourceCache();
-
-    private final Queries queries =
-            new Queries(Platform.current()::createTimestampDriver, Platform.current()::createOcclusionDriver);
-
     @Override
     public int genQueries() {
-        return queries.generate();
+        return subsystems.queries().generate();
     }
 
     @Override
@@ -431,37 +392,37 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void deleteQueries(int name) {
-        queries.delete(name);
+        subsystems.queries().delete(name);
     }
 
     @Override
     public boolean isQuery(int name) {
-        return queries.isQuery(name);
+        return subsystems.queries().isQuery(name);
     }
 
     @Override
     public void queryCounter(int name, int target) {
-        queries.timestamp(name, target);
+        subsystems.queries().timestamp(name, target);
     }
 
     @Override
     public void beginQuery(int target, int name) {
-        queries.begin(target, name);
+        subsystems.queries().begin(target, name);
     }
 
     @Override
     public void endQuery(int target) {
-        queries.end(target);
+        subsystems.queries().end(target);
     }
 
     @Override
     public int getQueryObjecti(int name, int parameter) {
-        return (int) queries.get(name, parameter);
+        return (int) subsystems.queries().get(name, parameter);
     }
 
     @Override
     public long getQueryObjectui64(int name, int parameter) {
-        return queries.get(name, parameter);
+        return subsystems.queries().get(name, parameter);
     }
 
     @Override
@@ -469,26 +430,14 @@ public final class HostedBackend extends SDLGPURenderBackend {
         result.put(result.position(), getQueryObjecti(name, parameter));
     }
 
-    ShaderPrograms shaderPrograms() {
-        return shaderPrograms;
-    }
-
-    public ProgramResourceCache programResources() {
-        return programResources;
-    }
-
-    public TextureViews textureViews() {
-        return textureViews;
-    }
-
     public void renamedTexture(int shader, boolean renamed) {
-        shaderPrograms.renamedTexture(shader, renamed);
+        subsystems.shaderPrograms().renamedTexture(shader, renamed);
     }
 
     @Override
     public int getUniformLocation(int program, CharSequence name) {
-        String backendName = shaderPrograms.backendUniformName(program, name.toString());
-        var object = BackendInternals.shaders().getProgram(program);
+        String backendName = subsystems.shaderPrograms().backendUniformName(program, name.toString());
+        var object = Upstream.shaders().getProgram(program);
         if (object != null && object.allSamplerNames.contains(backendName + "[0]")) backendName += "[0]";
         return super.getUniformLocation(program, backendName);
     }
@@ -510,9 +459,11 @@ public final class HostedBackend extends SDLGPURenderBackend {
             int at = sizeType.position() + 1;
             sizeType.put(
                     at,
-                    bufferTextures.uniformType(BackendInternals.shaders().getProgram(program), name, sizeType.get(at)));
+                    subsystems
+                            .bufferTextures()
+                            .uniformType(Upstream.shaders().getProgram(program), name, sizeType.get(at)));
         }
-        return shaderPrograms.publicUniformName(program, name);
+        return subsystems.shaderPrograms().publicUniformName(program, name);
     }
 
     @Override
@@ -528,58 +479,58 @@ public final class HostedBackend extends SDLGPURenderBackend {
     }
 
     public String preprocessShaderSource(int type, String source) {
-        return shaderPrograms.preprocess(type, source);
+        return subsystems.shaderPrograms().preprocess(type, source);
     }
 
     @Override
     public int createShader(int type) {
         int id = super.createShader(type);
-        shaderPrograms.created(id, type);
+        subsystems.shaderPrograms().created(id, type);
         return id;
     }
 
     @Override
     public int createProgram() {
         int id = super.createProgram();
-        shaderPrograms.programCreated(id);
+        subsystems.shaderPrograms().programCreated(id);
         return id;
     }
 
     @Override
     public void shaderSource(int shader, CharSequence source) {
-        shaderPrograms.source(shader, source);
+        subsystems.shaderPrograms().source(shader, source);
     }
 
     @Override
     public void compileShader(int shader) {
-        shaderPrograms.compile(shader);
+        subsystems.shaderPrograms().compile(shader);
     }
 
     @Override
     public void deleteShader(int shader) {
-        shaderPrograms.delete(shader);
+        subsystems.shaderPrograms().delete(shader);
     }
 
     @Override
     public void attachShader(int program, int shader) {
-        shaderPrograms.attach(program, shader);
+        subsystems.shaderPrograms().attach(program, shader);
     }
 
     @Override
     public void detachShader(int program, int shader) {
-        shaderPrograms.detach(program, shader);
+        subsystems.shaderPrograms().detach(program, shader);
     }
 
     @Override
     public void linkProgram(int program) {
-        if (shaderPrograms.link(program)) {
-            ProgramLinkState.reset(BackendInternals.shaders().getProgram(program));
+        if (subsystems.shaderPrograms().link(program)) {
+            ProgramLinkState.reset(Upstream.shaders().getProgram(program));
             super.linkProgram(program);
             if (super.getProgrami(program, GL_LINK_STATUS) == 0)
                 throw new UnsupportedOperationException("SDL shader program translation failed for program " + program
                         + ": " + super.getProgramInfoLog(program));
-            ProgramLinkState.linked(BackendInternals.shaders().getProgram(program), BackendInternals.context());
-            shaderPrograms.initializeUniforms(program);
+            ProgramLinkState.linked(Upstream.shaders().getProgram(program), Upstream.context());
+            subsystems.shaderPrograms().initializeUniforms(program);
         }
     }
 
@@ -591,64 +542,64 @@ public final class HostedBackend extends SDLGPURenderBackend {
     @Override
     public void deleteProgram(int program) {
         super.deleteProgram(program);
-        shaderPrograms.programDeleted(program);
+        subsystems.shaderPrograms().programDeleted(program);
     }
 
     @Override
     public void useProgram(int program) {
         super.useProgram(program);
-        shaderPrograms.releaseDeletedPrograms();
+        subsystems.shaderPrograms().releaseDeletedPrograms();
     }
 
     @Override
     public int getShaderi(int shader, int parameter) {
-        return shaderPrograms.contains(shader)
-                ? shaderPrograms.parameter(shader, parameter)
+        return subsystems.shaderPrograms().contains(shader)
+                ? subsystems.shaderPrograms().parameter(shader, parameter)
                 : super.getShaderi(shader, parameter);
     }
 
     @Override
     public int getProgrami(int program, int parameter) {
-        if (parameter == GL_ACTIVE_UNIFORM_MAX_LENGTH && shaderPrograms.renamedTexture(program)) {
+        if (parameter == GL_ACTIVE_UNIFORM_MAX_LENGTH
+                && subsystems.shaderPrograms().renamedTexture(program)) {
             int longest = 0;
             for (int i = 0; i < super.getProgrami(program, GL_ACTIVE_UNIFORMS); i++)
                 longest = Math.max(longest, publicUniformName(program, i, null).length() + 1);
             return longest;
         }
         return parameter == GL_ATTACHED_SHADERS
-                ? shaderPrograms.attached(program)
+                ? subsystems.shaderPrograms().attached(program)
                 : super.getProgrami(program, parameter);
     }
 
     @Override
     public void getAttachedShaders(int program, IntBuffer count, IntBuffer shaders) {
-        shaderPrograms.attached(program, count, shaders);
+        subsystems.shaderPrograms().attached(program, count, shaders);
     }
 
     @Override
     public String getShaderInfoLog(int shader, int maxLength) {
-        return ShaderPrograms.truncate(shaderPrograms.log(shader), maxLength);
+        return ShaderPrograms.truncate(subsystems.shaderPrograms().log(shader), maxLength);
     }
 
     @Override
     public void getShaderInfoLog(int shader, IntBuffer length, ByteBuffer output) {
-        ShaderPrograms.write(shaderPrograms.log(shader), length, output);
+        ShaderPrograms.write(subsystems.shaderPrograms().log(shader), length, output);
     }
 
     @Override
     public String getShaderSource(int shader, int maxLength) {
-        return ShaderPrograms.truncate(shaderPrograms.source(shader), maxLength);
+        return ShaderPrograms.truncate(subsystems.shaderPrograms().source(shader), maxLength);
     }
 
     @Override
     public void getShaderSource(int shader, IntBuffer length, ByteBuffer output) {
-        ShaderPrograms.write(shaderPrograms.source(shader), length, output);
+        ShaderPrograms.write(subsystems.shaderPrograms().source(shader), length, output);
     }
 
     @Override
     public void bufferData(int target, ByteBuffer data, int usage) {
-        int name =
-                target == GL_ELEMENT_ARRAY_BUFFER ? BackendInternals.context().getBoundBuffer(target) : 0;
+        int name = target == GL_ELEMENT_ARRAY_BUFFER ? Upstream.context().getBoundBuffer(target) : 0;
         boolean remember = name != 0 && data != null && data.hasRemaining() && !isBufferImmutable(name);
         super.bufferData(target, data, usage);
         if (remember) IndexBufferUploads.remember(name, data);
@@ -659,14 +610,14 @@ public final class HostedBackend extends SDLGPURenderBackend {
         super.viewport(x, y, width, height);
         // SDL still needs a clipping rectangle when GL scissor testing is disabled.
         // Upstream derives it from the viewport, so both native states must change together.
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         if (!state.scissorEnabled) state.scissorDirty = true;
     }
 
     @Override
     public void drawElementsInstanced(int mode, int count, int type, long indices, int instances) {
         if (count <= 0 || instances <= 0) return;
-        try (var _ = BaseInstanceDraws.offsets(BackendInternals.context())) {
+        try (var _ = BaseInstanceDraws.offsets(Upstream.context())) {
             super.drawElementsInstanced(mode, count, type, indices, instances);
         }
     }
@@ -674,7 +625,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
     @Override
     public int genTextures() {
         int name = super.genTextures();
-        textureViews.generated(name);
+        subsystems.textureViews().generated(name);
         return name;
     }
 
@@ -685,34 +636,40 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void bindImageTexture(int unit, int texture, int level, boolean layered, int layer, int access, int format) {
-        if (bufferTextures.contains(texture))
+        if (subsystems.bufferTextures().contains(texture))
             throw new UnsupportedOperationException("Buffer texture image load/store is not implemented");
         super.bindImageTexture(unit, texture, level, layered, layer, access, format);
     }
 
     @Override
     public boolean isTexture(int name) {
-        return textureObjects.contains(name) || bufferTextures.contains(name) || super.isTexture(name);
+        return subsystems.textureObjects().contains(name)
+                || subsystems.bufferTextures().contains(name)
+                || super.isTexture(name);
     }
 
     @Override
     public void bindTextureUnit(int unit, int name) {
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         if (name == 0) {
-            textureBindings.unbindUnit(state, unit);
-            bufferTextures.bindTexture(unit, 0);
-        } else if (bufferTextures.contains(name)) bufferTextures.bindTexture(unit, name);
-        else textureBindings.bind(state, unit, textureObjects.target(name), name);
+            subsystems.textureBindings().unbindUnit(state, unit);
+            subsystems.bufferTextures().bindTexture(unit, 0);
+        } else if (subsystems.bufferTextures().contains(name))
+            subsystems.bufferTextures().bindTexture(unit, name);
+        else
+            subsystems
+                    .textureBindings()
+                    .bind(state, unit, subsystems.textureObjects().target(name), name);
         super.bindTextureUnit(unit, name);
     }
 
     @Override
     public void bindTexture(int target, int name) {
-        textureObjects.bound(name, target);
-        var state = BackendInternals.context();
-        textureBindings.bind(state, state.activeTextureUnit, target, name);
-        textureViews.bound(name);
-        bufferTextures.ordinaryTextureBound(name);
+        subsystems.textureObjects().bound(name, target);
+        var state = Upstream.context();
+        subsystems.textureBindings().bind(state, state.activeTextureUnit, target, name);
+        subsystems.textureViews().bound(name);
+        subsystems.bufferTextures().ordinaryTextureBound(name);
         super.bindTexture(target, name);
     }
 
@@ -737,7 +694,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
                 && height > 0) {
             // PZ samples empty video storage before decoding its first frame. Keep initialization
             // in the same upload queue as decoded frames so it cannot overwrite a later frame.
-            try (var empty = ClientPixels.transparent(width, height, BackendInternals.context().pixelStore)) {
+            try (var empty = ClientPixels.transparent(width, height, Upstream.context().pixelStore)) {
                 super.texImage2D(target, level, storageFormat, width, height, border, pixelFormat, type, empty.data());
             }
         } else {
@@ -756,7 +713,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
             int pixelFormat,
             int type,
             long pixels) {
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         if (state.boundPixelUnpackBuffer != 0) {
             super.texImage2D(target, level, format, width, height, border, pixelFormat, type, pixels);
             return;
@@ -792,8 +749,8 @@ public final class HostedBackend extends SDLGPURenderBackend {
         // SDL stores RGB32 integer pixels as RGBA32; the generic upstream uploader copies only three components.
         super.texImage3D(target, level, format, width, height, depth, border, pixelFormat, type, (ByteBuffer) null);
         if (data != null) {
-            var state = BackendInternals.context();
-            int name = textureBindings.get(state, state.activeTextureUnit, target);
+            var state = Upstream.context();
+            int name = subsystems.textureBindings().get(state, state.activeTextureUnit, target);
             NamedTextureUploads.upload(name, level, 0, 0, 0, width, height, depth, pixelFormat, type, data, true);
         }
     }
@@ -801,39 +758,41 @@ public final class HostedBackend extends SDLGPURenderBackend {
     @Override
     public void texStorage2D(int target, int levels, int format, int width, int height) {
         super.texStorage2D(target, levels, format, width, height);
-        var context = BackendInternals.context();
+        var context = Upstream.context();
         int name = context.boundTextures[context.activeTextureUnit];
-        if (BackendInternals.resources().getTextureHandle(name) != 0) textureViews.immutable(name);
+        if (Upstream.resources().getTextureHandle(name) != 0)
+            subsystems.textureViews().immutable(name);
     }
 
     @Override
     public void deleteTextures(int name) {
-        textureBindings.deleted(BackendInternals.context(), name);
-        textureObjects.deleted(name);
-        bufferTextures.deleteTexture(name);
-        long handle = BackendInternals.resources().getTextureHandle(name);
-        textureViews.beforeDelete(name);
+        subsystems.textureBindings().deleted(Upstream.context(), name);
+        subsystems.textureObjects().deleted(name);
+        subsystems.bufferTextures().deleteTexture(name);
+        long handle = Upstream.resources().getTextureHandle(name);
+        subsystems.textureViews().beforeDelete(name);
         super.deleteTextures(name);
-        textureViews.deleted(name, handle);
+        subsystems.textureViews().deleted(name, handle);
     }
 
     @Override
     public void texParameteri(int target, int parameter, int value) {
-        var context = BackendInternals.context();
-        if (!textureViews.parameter(context.boundTextures[context.activeTextureUnit], parameter, value)) {
+        var context = Upstream.context();
+        if (!subsystems.textureViews().parameter(context.boundTextures[context.activeTextureUnit], parameter, value)) {
             super.texParameteri(target, parameter, value);
         }
     }
 
     @Override
     public void textureParameteri(int name, int target, int parameter, int value) {
-        if (!textureViews.parameter(name, parameter, value)) super.textureParameteri(name, target, parameter, value);
+        if (!subsystems.textureViews().parameter(name, parameter, value))
+            super.textureParameteri(name, target, parameter, value);
     }
 
     @Override
     public int getTexParameteri(int target, int parameter) {
-        var context = BackendInternals.context();
-        var value = textureViews.parameter(context.boundTextures[context.activeTextureUnit], parameter);
+        var context = Upstream.context();
+        var value = subsystems.textureViews().parameter(context.boundTextures[context.activeTextureUnit], parameter);
         return value != null ? value : super.getTexParameteri(target, parameter);
     }
 
@@ -851,20 +810,20 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public float getTexParameterf(int target, int parameter) {
-        var context = BackendInternals.context();
-        var value = textureViews.parameter(context.boundTextures[context.activeTextureUnit], parameter);
+        var context = Upstream.context();
+        var value = subsystems.textureViews().parameter(context.boundTextures[context.activeTextureUnit], parameter);
         return value != null ? value.floatValue() : super.getTexParameterf(target, parameter);
     }
 
     @Override
     public void dispatchCompute(int x, int y, int z) {
-        textureViews.beforeCompute();
+        subsystems.textureViews().beforeCompute();
         super.dispatchCompute(x, y, z);
     }
 
     @Override
     public void dispatchComputeIndirect(long offset) {
-        textureViews.beforeCompute();
+        subsystems.textureViews().beforeCompute();
         super.dispatchComputeIndirect(offset);
     }
 
@@ -895,7 +854,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     private FloatBuffer matrixUpload(int location, FloatBuffer value, int size) {
         if (location == -1) return null;
-        var context = BackendInternals.context();
+        var context = Upstream.context();
         try {
             return MatrixUniformUploads.prepare(context.boundProgramObj, location, size, value);
         } catch (IllegalArgumentException invalid) {
@@ -921,19 +880,15 @@ public final class HostedBackend extends SDLGPURenderBackend {
         // Rebuild cached encoder bindings rather than treating pointer equality as state continuity.
         invalidateStateMirror();
         super.onFrameBegin();
-        bufferTextures.beginFrame();
+        subsystems.bufferTextures().beginFrame();
     }
 
     @Override
     public void shutdown() {
         // The upstream relay is static and would otherwise retain the host callback after device shutdown.
         DebugMessageRelay.setListener(null, 0L, false);
-        queries.close();
-        bufferTextures.close();
-        programResources.clear();
-        shaderPrograms.close();
         try {
-            textureViews.close();
+            subsystems.close();
         } catch (RuntimeException | Error failure) {
             try {
                 super.shutdown();

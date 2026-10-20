@@ -4,7 +4,7 @@ import static org.lwjgl.opengl.GL31.GL_COPY_READ_BUFFER;
 import static org.lwjgl.opengl.GL31.GL_COPY_WRITE_BUFFER;
 
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
@@ -22,9 +22,9 @@ public final class BufferTransferBridge {
                 && destinationOffset < sourceOffset + size)
             throw new IllegalArgumentException("Overlapping same-buffer copy");
         if (size == 0) return;
-        if (BackendInternals.frames().getCommandBuffer() == 0)
+        if (Upstream.frames().getCommandBuffer() == 0)
             throw new IllegalStateException("Named GPU copy requires an active frame");
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         int read = state.boundCopyReadBuffer, write = state.boundCopyWriteBuffer;
         try {
             GLStateManager.glBindBuffer(GL_COPY_READ_BUFFER, source);
@@ -43,7 +43,7 @@ public final class BufferTransferBridge {
             throw new IllegalArgumentException("Named buffer readback requires writable direct storage");
         range(buffer, offset, result.remaining());
         if (!result.hasRemaining()) return;
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         int read = state.boundCopyReadBuffer;
         try {
             GLStateManager.glBindBuffer(GL_COPY_READ_BUFFER, buffer);
@@ -57,7 +57,7 @@ public final class BufferTransferBridge {
         if (offset < 0 || length < 0) throw new IllegalArgumentException("Negative buffer transfer range");
         if (!GLStateManager.glIsBuffer(buffer))
             throw new IllegalArgumentException("Named buffer does not exist: " + buffer);
-        long size = BackendInternals.resources().getBufferSize(buffer);
+        long size = Upstream.resources().getBufferSize(buffer);
         if (offset > size || length > size - offset)
             throw new IllegalArgumentException("Buffer transfer exceeds storage");
     }

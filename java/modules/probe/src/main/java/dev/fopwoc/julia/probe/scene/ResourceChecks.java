@@ -8,7 +8,7 @@ import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 import static org.lwjgl.opengl.GL44.*;
 import static org.lwjgl.opengl.GL45.glNamedBufferStorage;
 
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.nio.ByteBuffer;
 import org.lwjgl.opengl.GL12;
@@ -35,8 +35,8 @@ public final class ResourceChecks {
     }
 
     private static void buffers() {
-        int previous = BackendInternals.context().boundCopyWriteBuffer;
-        int previousSsbo = BackendInternals.context().boundSSBO;
+        int previous = Upstream.context().boundCopyWriteBuffer;
+        int previousSsbo = Upstream.context().boundSSBO;
         int buffer = glGenBuffers();
         int sentinel = glGenBuffers();
         try (var stack = MemoryStack.stackPush()) {
@@ -49,8 +49,8 @@ public final class ResourceChecks {
             glNamedBufferStorage(buffer, data, GL_DYNAMIC_STORAGE_BIT);
             if (data.position() != 2
                     || data.limit() != 10
-                    || BackendInternals.context().boundCopyWriteBuffer != sentinel
-                    || BackendInternals.context().boundSSBO != buffer)
+                    || Upstream.context().boundCopyWriteBuffer != sentinel
+                    || Upstream.context().boundSSBO != buffer)
                 throw new IllegalStateException("Named storage changed caller state");
             glBindBuffer(GL_COPY_WRITE_BUFFER, buffer);
             if (glGetBufferParameteri(GL_COPY_WRITE_BUFFER, GL_BUFFER_SIZE) != 8
@@ -106,7 +106,7 @@ public final class ResourceChecks {
             glBindTexture(GL_TEXTURE_2D_ARRAY, fresh);
             GL42.glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, 4, 4, 2);
             GL43.glCopyImageSubData(plane, GL_TEXTURE_2D, 0, 0, 0, 0, fresh, GL_TEXTURE_2D_ARRAY, 0, 0, 0, 1, 3, 2, 1);
-            var resources = BackendInternals.resources();
+            var resources = Upstream.resources();
             if (!resources.isTextureContentDefined(resources.getTextureHandle(fresh)))
                 throw new IllegalStateException("Image copy did not define destination content");
             var copied = ResourceReadback.layer(fresh, 1);
@@ -119,7 +119,7 @@ public final class ResourceChecks {
                             || (copied[at + 3] & 255) != 255)
                         throw new IllegalStateException("Core image-copy array slice mismatch");
                 }
-            int format = BackendInternals.resources().getTextureMeta(texture).sdlFormat();
+            int format = Upstream.resources().getTextureMeta(texture).sdlFormat();
             boolean bgra = format == SDLGPU.SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
             // 0.2, 0.4, 0.6, 1.0 as normalized bytes, in storage channel order.
             byte[] changed =

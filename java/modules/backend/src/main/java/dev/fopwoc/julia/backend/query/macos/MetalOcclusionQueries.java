@@ -1,7 +1,7 @@
 package dev.fopwoc.julia.backend.query.macos;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.query.OcclusionDriver;
 import dev.fopwoc.julia.backend.utils.Sdl;
 import org.lwjgl.sdl.SDL;
@@ -26,13 +26,13 @@ public final class MetalOcclusionQueries implements OcclusionDriver {
 
     @Override
     public long begin() {
-        BackendInternals.timestampCommandBuffer();
+        Upstream.commandBufferOutsidePasses();
         return Sdl.require(JNI.invokePP(SDLGPUGate.device().getDevice(), BEGIN), "Begin GPU visibility query");
     }
 
     @Override
     public void end(long query) {
-        BackendInternals.timestampCommandBuffer();
+        Upstream.commandBufferOutsidePasses();
         if (JNI.invokePI(query, END) != 0) throw Sdl.failure("End GPU visibility query");
     }
 
@@ -46,7 +46,7 @@ public final class MetalOcclusionQueries implements OcclusionDriver {
         // A blocking GL result request must submit the counted passes before waiting for the GPU.
         long available = read(query, false);
         if (available >= 0) return available;
-        BackendInternals.submitPendingCommands();
+        Upstream.submitPendingCommands();
         long result = read(query, true);
         if (result < 0) throw new IllegalStateException("Blocking GPU visibility read remained unavailable");
         return result;

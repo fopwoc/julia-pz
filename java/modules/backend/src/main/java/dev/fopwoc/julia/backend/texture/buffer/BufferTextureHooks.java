@@ -2,7 +2,7 @@ package dev.fopwoc.julia.backend.texture.buffer;
 
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.texture.TextureViewHooks;
 import org.lwjgl.util.spvc.Spvc;
 
@@ -11,17 +11,17 @@ public final class BufferTextureHooks {
     private BufferTextureHooks() {}
 
     public static int boundBuffer() {
-        return BackendInternals.bufferTextures().boundBuffer();
+        return Subsystems.current().bufferTextures().boundBuffer();
     }
 
     public static int samplerBinding(ContextState state, int unit) {
         // Unread moved samplers use -1; they have no texture dependency.
         if (unit == -1) return 0;
-        return BackendInternals.bufferTextures().samplerBinding(state, unit);
+        return Subsystems.current().bufferTextures().samplerBinding(state, unit);
     }
 
     public static int samplerBinding(ContextState state, int unit, int slot, boolean fragment) {
-        return BackendInternals.bufferTextures().samplerBinding(state, unit, slot, fragment);
+        return Subsystems.current().bufferTextures().samplerBinding(state, unit, slot, fragment);
     }
 
     public static long samplingHandle(ResourceManager resources, int name) {
@@ -29,7 +29,7 @@ public final class BufferTextureHooks {
     }
 
     public static boolean retire(ResourceManager resources, long handle) {
-        if (!BackendInternals.bufferTextures().retains(handle)) return false;
+        if (!Subsystems.current().bufferTextures().retains(handle)) return false;
         resources.releaseBufferHandle(handle);
         return true;
     }

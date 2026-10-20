@@ -12,7 +12,7 @@ import static org.lwjgl.util.spvc.Spvc.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.sampler.SamplerLookup;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -93,7 +93,7 @@ public final class SamplerLayout {
                 LOG.log(
                         System.Logger.Level.WARNING,
                         "Program {0} shares texture units between sampler types, binding each by target: {1}",
-                        BackendInternals.context().boundProgram,
+                        Upstream.context().boundProgram,
                         shared);
             }
         }

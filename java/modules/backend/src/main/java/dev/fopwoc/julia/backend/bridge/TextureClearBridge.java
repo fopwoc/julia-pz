@@ -9,7 +9,7 @@ import static org.lwjgl.sdl.SDLGPU.SDL_UnmapGPUTransferBuffer;
 import static org.lwjgl.sdl.SDLGPU.SDL_UploadToGPUTexture;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import org.lwjgl.sdl.SDL_GPUTextureRegion;
 import org.lwjgl.sdl.SDL_GPUTextureTransferInfo;
 import org.lwjgl.system.MemoryStack;
@@ -33,8 +33,8 @@ public final class TextureClearBridge {
         if (format != GL_RGBA || type != GL_FLOAT) {
             throw new UnsupportedOperationException("Clear bridge requires RGBA / FLOAT input");
         }
-        var resources = BackendInternals.resources();
-        var frames = BackendInternals.frames();
+        var resources = Upstream.resources();
+        var frames = Upstream.frames();
         var meta = resources.getTextureMeta(texture);
         long handle = resources.getTextureHandle(texture);
         if (meta == null || handle == 0) throw new IllegalArgumentException("Texture has no allocated storage");
@@ -53,9 +53,8 @@ public final class TextureClearBridge {
         if (region.empty()) return;
         if (frames.getCommandBuffer() == 0) throw new IllegalStateException("Texture clear requires an active frame");
 
-        BackendInternals.clears()
-                .resolveDestinationForWrite(
-                        BackendInternals.context(), handle, meta, level, x, y, z, width, height, false);
+        Upstream.clears()
+                .resolveDestinationForWrite(Upstream.context(), handle, meta, level, x, y, z, width, height, false);
         long copy = frames.ensureCopyPass();
         if (copy == 0) throw new IllegalStateException("Cannot acquire texture-clear copy pass");
         resources.flushBatchedUploads(copy);

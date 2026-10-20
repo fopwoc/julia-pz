@@ -2,7 +2,8 @@ package dev.fopwoc.julia.backend.bridge;
 
 import static org.lwjgl.opengl.GL43.*;
 
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.shader.ProgramResources;
 import dev.fopwoc.julia.backend.shader.ResourceOutput;
 import dev.fopwoc.julia.backend.shader.UniformResources;
@@ -20,7 +21,8 @@ public final class ProgramResourceBridge {
             for (int i = 0; i < reflected.query(GL_ACTIVE_RESOURCES); i++)
                 maximum = Math.max(
                         maximum,
-                        BackendInternals.programs()
+                        Subsystems.current()
+                                        .shaderPrograms()
                                         .publicUniformName(program, reflected.name(i))
                                         .length()
                                 + 1);
@@ -44,13 +46,14 @@ public final class ProgramResourceBridge {
     public static int glGetProgramResourceIndex(int program, int api, CharSequence name) {
         String text = Objects.requireNonNull(name).toString();
         return api == GL_UNIFORM
-                ? uniforms(program).index(BackendInternals.programs().backendUniformName(program, text))
+                ? uniforms(program).index(Subsystems.current().shaderPrograms().backendUniformName(program, text))
                 : resources(program).index(api, text);
     }
 
     public static String glGetProgramResourceName(int program, int api, int index, int capacity) {
         String name = api == GL_UNIFORM
-                ? BackendInternals.programs()
+                ? Subsystems.current()
+                        .shaderPrograms()
                         .publicUniformName(program, uniforms(program).name(index))
                 : resources(program).name(api, index);
         return ResourceOutput.name(name, capacity);
@@ -76,7 +79,8 @@ public final class ProgramResourceBridge {
         if (api == GL_UNIFORM)
             for (int i = 0; i < properties.length; i++)
                 if (properties[i] == GL_NAME_LENGTH)
-                    values[i] = BackendInternals.programs()
+                    values[i] = Subsystems.current()
+                                    .shaderPrograms()
                                     .publicUniformName(
                                             program, uniforms(program).name(index))
                                     .length()
@@ -85,12 +89,12 @@ public final class ProgramResourceBridge {
     }
 
     private static UniformResources uniforms(int program) {
-        return BackendInternals.programResources()
-                .uniforms(BackendInternals.shaders().getProgram(program));
+        return Subsystems.current()
+                .programResources()
+                .uniforms(Upstream.shaders().getProgram(program));
     }
 
     private static ProgramResources resources(int program) {
-        return BackendInternals.programResources()
-                .get(BackendInternals.shaders().getProgram(program));
+        return Subsystems.current().programResources().get(Upstream.shaders().getProgram(program));
     }
 }

@@ -6,7 +6,8 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL43.*;
 
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -135,17 +136,17 @@ final class ProgramResourceChecks {
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_SCISSOR_TEST);
             glUseProgram(program);
-            var state = BackendInternals.context();
-            var linked = BackendInternals.shaders().getProgram(program);
+            var state = Upstream.context();
+            var linked = Upstream.shaders().getProgram(program);
             if (state.boundSsboByIndex[3] != buffer
                     || linked.vertexGraphicsBindingMap.roSsboGlSlots().length != 1
                     || linked.vertexGraphicsBindingMap.roSsboGlSlots()[0] != 3) {
                 throw new IllegalStateException(
                         "Storage buffer binding changed: " + state.boundSsboByIndex[3] + "/" + buffer);
             }
-            long droppedBefore = BackendInternals.frames().frame().droppedDrawsThisFrame;
+            long droppedBefore = Upstream.frames().frame().droppedDrawsThisFrame;
             glDrawArrays(GL_TRIANGLES, 0, 3);
-            if (BackendInternals.frames().frame().droppedDrawsThisFrame != droppedBefore) {
+            if (Upstream.frames().frame().droppedDrawsThisFrame != droppedBefore) {
                 throw new IllegalStateException("Storage-buffer draw was dropped");
             }
             var pixels = ResourceReadback.layer(target, 0);
@@ -158,14 +159,14 @@ final class ProgramResourceChecks {
                     }
                 }
             glUseProgram(0);
-            var object = BackendInternals.shaders().getProgram(program);
-            var before = BackendInternals.programResources().get(object);
+            var object = Upstream.shaders().getProgram(program);
+            var before = Subsystems.current().programResources().get(object);
             compile(vs, VERTEX.replace("instances[2]", "instances[3]"));
             compile(fs, FRAGMENT.replace("instances[2]", "instances[3]"));
             link(program);
             int afterBlock = glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, "InstancedData");
             if (query(program, GL_SHADER_STORAGE_BLOCK, afterBlock, GL_BUFFER_DATA_SIZE)[0] != 192
-                    || before == BackendInternals.programResources().get(object)) {
+                    || before == Subsystems.current().programResources().get(object)) {
                 throw new IllegalStateException("Program resource cache survived a changed relink");
             }
         } finally {

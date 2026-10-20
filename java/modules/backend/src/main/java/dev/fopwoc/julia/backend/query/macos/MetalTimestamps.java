@@ -1,7 +1,7 @@
 package dev.fopwoc.julia.backend.query.macos;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.query.TimestampDriver;
 import dev.fopwoc.julia.backend.utils.Sdl;
 import org.lwjgl.sdl.SDL;
@@ -27,8 +27,7 @@ public final class MetalTimestamps implements TimestampDriver {
     @Override
     public long record() {
         if (clock == 0) throw new IllegalStateException("Timestamp clock is closed");
-        return Sdl.require(
-                JNI.invokePPP(clock, BackendInternals.timestampCommandBuffer(), RECORD), "Record GPU timestamp");
+        return Sdl.require(JNI.invokePPP(clock, Upstream.commandBufferOutsidePasses(), RECORD), "Record GPU timestamp");
     }
 
     @Override
@@ -41,7 +40,7 @@ public final class MetalTimestamps implements TimestampDriver {
         // A blocking GL result request must submit recorded markers before waiting for the GPU.
         long available = read(sample, false);
         if (available >= 0) return available;
-        BackendInternals.submitPendingCommands();
+        Upstream.submitPendingCommands();
         long result = read(sample, true);
         if (result < 0) throw new IllegalStateException("Blocking GPU timestamp read remained unavailable");
         return result;

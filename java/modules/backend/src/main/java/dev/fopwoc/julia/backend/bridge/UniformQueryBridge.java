@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.backend.bridge;
 
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
@@ -33,12 +33,12 @@ public final class UniformQueryBridge {
     }
 
     private static UniformValue read(int program, int location) {
-        var object = BackendInternals.shaders().getProgram(program);
+        var object = Upstream.shaders().getProgram(program);
         if (object == null || !object.linked)
             throw new IllegalArgumentException("Unknown or unlinked program: " + program);
         if (object.externalUboBinding >= 0) {
             throw new UnsupportedOperationException("External uniform-buffer state is not an ordinary uniform query");
         }
-        return UniformState.read(object, BackendInternals.context().uniformStaging(object), location);
+        return UniformState.read(object, Upstream.context().uniformStaging(object), location);
     }
 }

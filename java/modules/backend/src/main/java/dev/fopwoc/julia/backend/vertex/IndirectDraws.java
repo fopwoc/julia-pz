@@ -6,14 +6,14 @@ import static org.lwjgl.sdl.SDLGPU.SDL_DrawGPUPrimitivesIndirect;
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FormatMap;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 
 /** Commands stay GPU-resident; padded command streams use one native indirect call per record. */
 public final class IndirectDraws {
     private IndirectDraws() {}
 
     public static void glMultiDrawArraysIndirect(int mode, long offset, int count, int stride) {
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         if (count < 0 || stride < 0 || (stride & 3) != 0 || offset < 0 || (offset & 3) != 0)
             throw new IllegalArgumentException("Invalid indirect command range or alignment");
         if (count == 0) return;
@@ -25,14 +25,14 @@ public final class IndirectDraws {
             throw new UnsupportedOperationException("Indirect primitive mode not implemented: " + mode);
         int step = stride == 0 ? 16 : stride;
         long size = Math.addExact(Math.multiplyExact((long) count - 1, step), 16);
-        var resources = BackendInternals.resources();
+        var resources = Upstream.resources();
         long buffer = resources.getBufferHandle(state.boundIndirectBuffer);
         if (buffer == 0
                 || offset > resources.getBufferSize(state.boundIndirectBuffer)
                 || size > resources.getBufferSize(state.boundIndirectBuffer) - offset
                 || offset + size > 0x100000000L)
             throw new IllegalArgumentException("Indirect commands outside allocated GPU buffer");
-        BackendInternals.lockedDraw(() -> {
+        Upstream.lockedDraw(() -> {
             GLStateManager.preDraw(GLStateManager.ctx(), mode);
             draw(state, mode, buffer, offset, count, step);
         });
@@ -41,10 +41,10 @@ public final class IndirectDraws {
     private static void draw(ContextState state, int mode, long buffer, long offset, int count, int stride) {
         if (state.rasterizerDiscard || state.boundProgramObj != null && state.boundProgramObj.vertexWriteReplay != null)
             throw new UnsupportedOperationException("Indirect draws with vertex side effects are not implemented");
-        var frames = BackendInternals.frames();
+        var frames = Upstream.frames();
         if (!frames.isFrameActive()) throw new IllegalStateException("Indirect draw requires an active frame");
-        var pipeline = BackendInternals.pipeline();
-        BackendInternals.drawDispatch().setPrimitiveTypeForDraw(state, FormatMap.mapPrimitiveType(mode));
+        var pipeline = Upstream.pipeline();
+        Upstream.drawDispatch().setPrimitiveTypeForDraw(state, FormatMap.mapPrimitiveType(mode));
         pipeline.ensureDrawRenderPass(state);
         if (!frames.isRenderPassActive() || !pipeline.applyPipelineAndState(state))
             throw new IllegalStateException("Cannot prepare indirect draw pipeline");

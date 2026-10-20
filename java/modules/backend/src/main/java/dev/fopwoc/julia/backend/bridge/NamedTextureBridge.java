@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.backend.bridge;
 
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.texture.NamedTextureUploads;
 import dev.fopwoc.julia.backend.texture.TextureObjects;
 import java.nio.ByteBuffer;
@@ -14,7 +14,7 @@ public final class NamedTextureBridge {
     private NamedTextureBridge() {}
 
     private static TextureObjects objects() {
-        return BackendInternals.textureObjects();
+        return Subsystems.current().textureObjects();
     }
 
     public static int glCreateTextures(int target) {

@@ -2,7 +2,7 @@ package dev.fopwoc.julia.probe.scene;
 
 import static org.lwjgl.opengl.GL11.*;
 
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.nio.ByteBuffer;
 import org.lwjgl.sdl.SDLGPU;
@@ -72,9 +72,8 @@ final class ClientPointerChecks {
                     // GL owns a copy when the upload returns; the video decoder can reuse its buffer.
                     MemoryUtil.memSet(pointer, 0, span);
                     var pixels = ResourceReadback.layer(texture, 0);
-                    boolean bgra =
-                            BackendInternals.resources().getTextureMeta(texture).sdlFormat()
-                                    == SDLGPU.SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
+                    boolean bgra = Upstream.resources().getTextureMeta(texture).sdlFormat()
+                            == SDLGPU.SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
                     int[] expected = bgra ? new int[] {blue, green, red, 255} : new int[] {red, green, blue, 255};
                     for (int i = 0; i < 6; i++)
                         for (int c = 0; c < 4; c++)

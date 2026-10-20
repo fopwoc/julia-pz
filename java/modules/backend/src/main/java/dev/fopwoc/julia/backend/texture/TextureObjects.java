@@ -10,7 +10,8 @@ import static org.lwjgl.sdl.SDLGPU.*;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.utils.Sdl;
 import java.util.HashMap;
 
@@ -33,7 +34,7 @@ public final class TextureObjects {
     }
 
     public int target(int name) {
-        var meta = BackendInternals.resources().getTextureMeta(name);
+        var meta = Upstream.resources().getTextureMeta(name);
         Integer target = targets.get(name);
         if (target == null && meta != null) target = meta.glTarget();
         if (name == 0 || target == null) throw new IllegalArgumentException("Named texture does not exist: " + name);
@@ -44,7 +45,7 @@ public final class TextureObjects {
         requireTarget(target);
         int name = BackendManager.RENDER_BACKEND.genTextures();
         bound(name, target);
-        BackendInternals.views().bound(name);
+        Subsystems.current().textureViews().bound(name);
         return name;
     }
 
@@ -60,8 +61,8 @@ public final class TextureObjects {
                 || levels <= 0
                 || levels > 32 - Integer.numberOfLeadingZeros(largest))
             throw new IllegalArgumentException("Invalid immutable texture dimensions or mip count");
-        var resources = BackendInternals.resources();
-        var views = BackendInternals.views();
+        var resources = Upstream.resources();
+        var views = Subsystems.current().textureViews();
         views.beforeAllocation(name);
         int sdlType = target == GL_TEXTURE_2D
                 ? SDL_GPU_TEXTURETYPE_2D
@@ -75,7 +76,7 @@ public final class TextureObjects {
                 format,
                 candidate -> SDL_GPUTextureSupportsFormat(
                         SDLGPUGate.device().getDevice(), candidate, sdlType, requiredUsage));
-        BackendInternals.clears().scrubPendingClearsForTexture(BackendInternals.context(), name);
+        Upstream.clears().scrubPendingClearsForTexture(Upstream.context(), name);
         resources.releaseTextureHandleForRealloc(name);
         Sdl.require(
                 resources.createTextureWithSdlFormat(
@@ -87,7 +88,7 @@ public final class TextureObjects {
 
     public int levelParameter(int name, int level, int parameter) {
         if (level < 0) throw new IllegalArgumentException("Negative texture mip level");
-        var buffers = BackendInternals.bufferTextures();
+        var buffers = Subsystems.current().bufferTextures();
         if (buffers.contains(name)) return buffers.levelParameter(name, level, parameter);
         int target = target(name);
         requireTarget(target);
@@ -101,7 +102,7 @@ public final class TextureObjects {
                 && parameter != GL_TEXTURE_DEPTH
                 && parameter != GL_TEXTURE_INTERNAL_FORMAT)
             throw new UnsupportedOperationException("Named texture level parameter not implemented: " + parameter);
-        var meta = BackendInternals.resources().getTextureMeta(name);
+        var meta = Upstream.resources().getTextureMeta(name);
         if (meta == null || level >= meta.levels()) return parameter == GL_TEXTURE_INTERNAL_FORMAT ? GL_RGBA : 0;
         return switch (parameter) {
             case GL_TEXTURE_WIDTH -> Math.max(1, meta.width() >> Math.min(level, 30));

@@ -4,7 +4,7 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.nio.ByteBuffer;
 import org.lwjgl.system.MemoryStack;
@@ -64,7 +64,7 @@ final class DepthRangeChecks {
                 glDepthRange(outside ? -10 : 0, outside ? 10 : 1);
                 var range = stack.mallocDouble(2);
                 glGetDoublev(GL_DEPTH_RANGE, range);
-                var state = BackendInternals.context();
+                var state = Upstream.context();
                 if (range.get(0) != 0
                         || range.get(1) != 1
                         || state.viewportDepthNear != 0

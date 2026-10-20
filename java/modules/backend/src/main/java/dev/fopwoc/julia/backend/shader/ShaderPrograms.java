@@ -2,7 +2,7 @@ package dev.fopwoc.julia.backend.shader;
 
 import static org.lwjgl.opengl.GL20.*;
 
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.charset.StandardCharsets;
@@ -120,7 +120,7 @@ public final class ShaderPrograms implements AutoCloseable {
 
     private void destroy(int id, Shader shader) {
         shaders.remove(id);
-        BackendInternals.shaders().deleteShader(id);
+        Upstream.shaders().deleteShader(id);
     }
 
     public void programDeleted(int id) {
@@ -131,7 +131,7 @@ public final class ShaderPrograms implements AutoCloseable {
     public void releaseDeletedPrograms() {
         for (var iterator = deletedPrograms.iterator(); iterator.hasNext(); ) {
             int id = iterator.next();
-            if (BackendInternals.shaders().getProgram(id) != null) continue;
+            if (Upstream.shaders().getProgram(id) != null) continue;
             var program = programs.remove(id);
             for (int shader : program.attachments) release(shader);
             iterator.remove();
@@ -140,7 +140,7 @@ public final class ShaderPrograms implements AutoCloseable {
 
     public boolean link(int id) {
         var program = programs.get(id);
-        var manager = BackendInternals.shaders();
+        var manager = Upstream.shaders();
         var compiled = new ArrayList<ShaderFrontend.Compiled>();
         boolean renamedTexture = false;
         for (int shader : program.attachments) {
@@ -174,7 +174,7 @@ public final class ShaderPrograms implements AutoCloseable {
                     throw translationFailure(
                             id, "Backend stage translation: " + manager.getShaderInfoLog(shader), null);
             }
-            for (int old : program.stages) BackendInternals.detachShader(id, old);
+            for (int old : program.stages) Upstream.detachShader(id, old);
             for (int shader : stages) manager.attachShader(id, shader);
             program.stages.clear();
             program.stages.addAll(stages);
@@ -188,19 +188,33 @@ public final class ShaderPrograms implements AutoCloseable {
         }
     }
 
+    /** Applies GLSL uniform initializers to a just-linked program without binding it or releasing a current one. */
     public void initializeUniforms(int id) {
-        BackendInternals.initializeUniforms(id, programs.get(id).initializers);
+        var state = Upstream.context();
+        var target = Upstream.shaders().getProgram(id);
+        var previous = state.boundProgramObj;
+        var applier = Upstream.pipeline();
+        try {
+            // putUniform reads the program object only; encoder and logical bindings stay untouched.
+            state.boundProgramObj = target;
+            for (var entry : programs.get(id).initializers.entrySet()) {
+                int location = Upstream.shaders().getUniformLocation(id, entry.getKey());
+                if (location >= 0) applier.putUniform(state, location, entry.getValue());
+            }
+        } finally {
+            state.boundProgramObj = previous;
+        }
     }
 
     private static UnsupportedOperationException translationFailure(int id, String log, Throwable cause) {
-        var object = BackendInternals.shaders().getProgram(id);
+        var object = Upstream.shaders().getProgram(id);
         object.linked = false;
         object.infoLog = log;
         return new UnsupportedOperationException("Shader translation failed for program " + id + ": " + log, cause);
     }
 
     private static boolean fail(int id, String log) {
-        var object = BackendInternals.shaders().getProgram(id);
+        var object = Upstream.shaders().getProgram(id);
         object.linked = false;
         object.infoLog = log;
         LOG.log(System.Logger.Level.ERROR, "Program {0} link failed: {1}", id, log);

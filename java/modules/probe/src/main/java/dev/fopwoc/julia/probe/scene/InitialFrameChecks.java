@@ -6,7 +6,7 @@ import static org.lwjgl.opengl.GL30.glBindFramebuffer;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.runtime.InitialFrame;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 
@@ -16,8 +16,8 @@ final class InitialFrameChecks {
 
     static void run() {
         var backend = BackendManager.RENDER_BACKEND;
-        var frames = BackendInternals.frames();
-        var resources = BackendInternals.resources();
+        var frames = Upstream.frames();
+        var resources = Upstream.resources();
         var target = frames.finalTarget();
         boolean owned = !target.isReady();
         if (owned) target.create(SDLGPUGate.device(), resources, 8, 8, resources.mapTextureFormat(GL_RGBA8));
@@ -27,7 +27,7 @@ final class InitialFrameChecks {
             InitialFrame.present(backend);
             if (frames.isFrameActive() || !target.hasContent())
                 throw new IllegalStateException("Initial frame was not completed with defined contents");
-            var state = BackendInternals.context();
+            var state = Upstream.context();
             if (state.clearR != 0.25f || state.clearG != 0.5f || state.clearB != 0.75f || state.clearA != 0.125f)
                 throw new IllegalStateException("Initial frame changed the game's clear color");
             for (int frame = 0; frame < 2; frame++) {

@@ -6,7 +6,8 @@ import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.sdl.SDLGPU.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
+import dev.fopwoc.julia.backend.Upstream;
 import java.nio.ByteBuffer;
 import org.lwjgl.sdl.SDL_GPUTextureRegion;
 import org.lwjgl.sdl.SDL_GPUTextureTransferInfo;
@@ -30,10 +31,10 @@ public final class NamedTextureUploads {
             int type,
             ByteBuffer data,
             boolean volume) {
-        int target = BackendInternals.textureObjects().target(name);
+        int target = Subsystems.current().textureObjects().target(name);
         if (volume ? target != GL_TEXTURE_3D && target != GL_TEXTURE_2D_ARRAY : target != GL_TEXTURE_2D)
             throw new IllegalArgumentException("Named upload dimensionality does not match texture target");
-        var resources = BackendInternals.resources();
+        var resources = Upstream.resources();
         var meta = resources.getTextureMeta(name);
         if (meta == null || resources.getTextureHandle(name) == 0)
             throw new IllegalArgumentException("Named upload requires allocated storage");
@@ -57,12 +58,12 @@ public final class NamedTextureUploads {
             throw new UnsupportedOperationException("Named texture upload conversion not implemented: storage="
                     + meta.glFormat() + " format=" + format + " type=" + type);
         if (width == 0 || height == 0 || depth == 0) return;
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         if (state.boundPixelUnpackBuffer != 0)
             throw new UnsupportedOperationException("Client upload with a pixel-unpack buffer bound");
         if (data == null || !data.isDirect())
             throw new IllegalArgumentException("Named upload requires direct client data");
-        var unpack = BackendInternals.volumeUnpack();
+        var unpack = Subsystems.current().volumeUnpack();
         UnpackLayout layout = UnpackLayout.of(
                 width,
                 height,
@@ -124,10 +125,10 @@ public final class NamedTextureUploads {
                 SDL_UnmapGPUTransferBuffer(device, staging);
             }
             long handle = resources.getTextureHandle(name);
-            var frames = BackendInternals.frames();
+            var frames = Upstream.frames();
             if (frames.getCommandBuffer() == 0)
                 throw new IllegalStateException("Named upload requires an active frame");
-            var clears = BackendInternals.clears();
+            var clears = Upstream.clears();
             clears.resolveDestinationForWrite(state, handle, meta, level, x, y, z, width, height, false);
             long copy = frames.ensureCopyPass();
             if (copy == 0) throw new IllegalStateException("Cannot acquire named upload copy pass");

@@ -3,7 +3,7 @@ package dev.fopwoc.julia.backend.vertex;
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.GLTypes;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 
 /** GL base instance biases attribute records after division, while the shader instance ID stays zero-based. */
 public final class BaseInstanceDraws {
@@ -12,7 +12,7 @@ public final class BaseInstanceDraws {
     private BaseInstanceDraws() {}
 
     public static void glDrawArraysInstancedBaseInstance(int mode, int first, int count, int instances, int base) {
-        BackendInternals.context();
+        Upstream.context();
         if (first < 0 || count < 0 || instances < 0)
             throw new IllegalArgumentException("Negative instanced draw range");
         if (count == 0 || instances == 0) return;

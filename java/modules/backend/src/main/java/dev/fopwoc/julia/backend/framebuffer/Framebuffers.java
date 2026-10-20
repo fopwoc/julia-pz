@@ -8,9 +8,11 @@ import static org.lwjgl.sdl.SDLGPU.*;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
+import com.gtnewhorizons.angelica.sdlgpu.pipeline.AttachmentClear;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FboState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.PixelOps;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.platform.Platform;
 import java.util.Arrays;
 import java.util.WeakHashMap;
@@ -33,13 +35,13 @@ public final class Framebuffers {
     }
 
     public FboState named(int name) {
-        var fbo = BackendInternals.resources().getFbo(name);
+        var fbo = Upstream.resources().getFbo(name);
         if (name == 0 || fbo == null) throw new IllegalArgumentException("Named framebuffer does not exist: " + name);
         return fbo;
     }
 
     public int selected(int target) {
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         return switch (target) {
             case GL_FRAMEBUFFER, GL_DRAW_FRAMEBUFFER -> state.boundFboId;
             case GL_READ_FRAMEBUFFER -> state.boundReadFboId;
@@ -57,12 +59,12 @@ public final class Framebuffers {
                 && attachment != GL_DEPTH_STENCIL_ATTACHMENT)
             throw new IllegalArgumentException("Invalid framebuffer attachment: " + attachment);
         Slice next = texture == 0 ? null : new Slice(texture, level, layer, sliced);
-        var meta = texture == 0 ? null : BackendInternals.resources().getTextureMeta(texture);
+        var meta = texture == 0 ? null : Upstream.resources().getTextureMeta(texture);
         if (next != null) {
-            if (!BackendInternals.textureObjects().contains(texture) && meta == null)
+            if (!Subsystems.current().textureObjects().contains(texture) && meta == null)
                 throw new IllegalArgumentException("Framebuffer texture does not exist: " + texture);
             if (level < 0 || layer < 0) throw new IllegalArgumentException("Negative framebuffer mip or slice");
-            int target = BackendInternals.textureObjects().target(texture);
+            int target = Subsystems.current().textureObjects().target(texture);
             if (sliced ? target != GL_TEXTURE_2D_ARRAY && target != GL_TEXTURE_3D : target != GL_TEXTURE_2D)
                 throw new UnsupportedOperationException(
                         "Framebuffer attachment target not implemented: " + target + " single slice=" + sliced);
@@ -80,12 +82,11 @@ public final class Framebuffers {
                 ? fields.colors[color]
                 : fields.depth != null ? fields.depth : fields.stencil;
         if (previous != null)
-            BackendInternals.clears()
+            Upstream.clears()
                     .materializePendingClearForTexture(
-                            BackendInternals.context(),
-                            BackendInternals.resources().getTextureHandle(previous.texture));
-        if (name == BackendInternals.context().boundFboId)
-            BackendInternals.frames().endRenderPassIfActive(FrameManager.PASS_END_TARGET);
+                            Upstream.context(), Upstream.resources().getTextureHandle(previous.texture));
+        if (name == Upstream.context().boundFboId)
+            Upstream.frames().endRenderPassIfActive(FrameManager.PASS_END_TARGET);
         long handle = 0;
         int format = 0;
         if (meta != null) {
@@ -99,10 +100,10 @@ public final class Framebuffers {
                     SDLGPUGate.device().getDevice(), meta.sdlFormat(), type, meta.usage() | usage))
                 throw new UnsupportedOperationException(
                         "Framebuffer attachment usage is unsupported for this texture format and target");
-            handle = BackendInternals.resources().ensureTextureUsage(texture, usage);
+            handle = Upstream.resources().ensureTextureUsage(texture, usage);
             if (handle == 0) throw new IllegalStateException("Cannot allocate framebuffer attachment usage");
-            format = BackendInternals.resources().getTextureMeta(texture).sdlFormat();
-            BackendInternals.resources().markFboAttachment(texture);
+            format = Upstream.resources().getTextureMeta(texture).sdlFormat();
+            Upstream.resources().markFboAttachment(texture);
         }
         if (color >= 0 && color < fields.colors.length) {
             fields.colors[color] = next;
@@ -123,19 +124,17 @@ public final class Framebuffers {
                 fbo.depthTexture = 0;
                 fbo.depthFormat = 0;
             } else {
-                fbo.depthTexture = BackendInternals.resources().getTextureHandle(active.texture);
-                fbo.depthFormat = BackendInternals.resources().getTextureMeta(active.texture) == null
+                fbo.depthTexture = Upstream.resources().getTextureHandle(active.texture);
+                fbo.depthFormat = Upstream.resources().getTextureMeta(active.texture) == null
                         ? 0
-                        : BackendInternals.resources()
-                                .getTextureMeta(active.texture)
-                                .sdlFormat();
+                        : Upstream.resources().getTextureMeta(active.texture).sdlFormat();
             }
         }
         changed(name, fbo);
     }
 
     private static void validate(Slice slice, boolean color) {
-        var meta = BackendInternals.resources().getTextureMeta(slice.texture);
+        var meta = Upstream.resources().getTextureMeta(slice.texture);
         if (meta == null) return;
         int layers = meta.glTarget() == GL_TEXTURE_3D
                 ? Math.max(1, meta.depth() >> Math.min(slice.level, 30))
@@ -169,8 +168,8 @@ public final class Framebuffers {
         if (!any) slots = new int[0];
         for (int slot : slots) if (slot < 0) Platform.current().requireSparseColorTargets();
         if (Arrays.equals(fbo.drawBuffers, slots)) return;
-        if (name == BackendInternals.context().boundFboId)
-            BackendInternals.frames().endRenderPassIfActive(FrameManager.PASS_END_TARGET);
+        if (name == Upstream.context().boundFboId)
+            Upstream.frames().endRenderPassIfActive(FrameManager.PASS_END_TARGET);
         fbo.drawBuffers = slots;
         changed(name, fbo);
     }
@@ -192,7 +191,7 @@ public final class Framebuffers {
         fbo.cachedFormatsDirty = true;
         fbo.cachedTargetsValid = false;
         recomputeDimensions(fbo);
-        if (name == BackendInternals.context().boundFboId) bound(name);
+        if (name == Upstream.context().boundFboId) bound(name);
     }
 
     private void recomputeDimensions(FboState fbo) {
@@ -200,7 +199,7 @@ public final class Framebuffers {
         int width = Integer.MAX_VALUE, height = Integer.MAX_VALUE;
         for (var slice : fields.colors)
             if (slice != null) {
-                var meta = BackendInternals.resources().getTextureMeta(slice.texture);
+                var meta = Upstream.resources().getTextureMeta(slice.texture);
                 if (meta != null) {
                     width = Math.min(width, Math.max(1, meta.width() >> Math.min(slice.level, 30)));
                     height = Math.min(height, Math.max(1, meta.height() >> Math.min(slice.level, 30)));
@@ -208,7 +207,7 @@ public final class Framebuffers {
             }
         var slice = fields.depth != null ? fields.depth : fields.stencil;
         if (slice != null) {
-            var meta = BackendInternals.resources().getTextureMeta(slice.texture);
+            var meta = Upstream.resources().getTextureMeta(slice.texture);
             if (meta != null) {
                 width = Math.min(width, Math.max(1, meta.width() >> Math.min(slice.level, 30)));
                 height = Math.min(height, Math.max(1, meta.height() >> Math.min(slice.level, 30)));
@@ -219,11 +218,11 @@ public final class Framebuffers {
     }
 
     public void bound(int name) {
-        var context = BackendInternals.context();
+        var context = Upstream.context();
         if (name == 0 || name == context.defaultFboId) return;
         var fbo = named(name);
         recomputeDimensions(fbo);
-        BackendInternals.clears().updatePipelineCacheColorFormats(context, fbo);
+        Upstream.clears().updatePipelineCacheColorFormats(context, fbo);
         context.pipeline.setDepthTargetFormat(fbo.depthTexture == 0 ? 0 : fbo.depthFormat);
         context.pipeline.markOutputDirty();
     }
@@ -231,7 +230,7 @@ public final class Framebuffers {
     public int status(int name, int target) {
         if (target != GL_FRAMEBUFFER && target != GL_DRAW_FRAMEBUFFER && target != GL_READ_FRAMEBUFFER)
             throw new IllegalArgumentException("Invalid framebuffer status target");
-        if (name == 0 || name == BackendInternals.context().defaultFboId) return GL_FRAMEBUFFER_COMPLETE;
+        if (name == 0 || name == Upstream.context().defaultFboId) return GL_FRAMEBUFFER_COMPLETE;
         var fbo = named(name);
         var fields = state(fbo);
         boolean present = false;
@@ -239,21 +238,21 @@ public final class Framebuffers {
             if (slice != null) {
                 present = true;
                 if (!allocated(slice)
-                        || PixelOps.isDepthFormat(BackendInternals.resources()
+                        || PixelOps.isDepthFormat(Upstream.resources()
                                 .getTextureMeta(slice.texture)
                                 .sdlFormat())) return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
             }
         if (fields.depth != null) {
             present = true;
             if (!allocated(fields.depth)
-                    || !PixelOps.isDepthFormat(BackendInternals.resources()
+                    || !PixelOps.isDepthFormat(Upstream.resources()
                             .getTextureMeta(fields.depth.texture)
                             .sdlFormat())) return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
         }
         if (fields.stencil != null) {
             present = true;
             if (!allocated(fields.stencil)
-                    || !PixelOps.isDepthStencilFormat(BackendInternals.resources()
+                    || !PixelOps.isDepthStencilFormat(Upstream.resources()
                             .getTextureMeta(fields.stencil.texture)
                             .sdlFormat())) return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
         }
@@ -261,9 +260,9 @@ public final class Framebuffers {
     }
 
     private static boolean allocated(Slice slice) {
-        var meta = BackendInternals.resources().getTextureMeta(slice.texture);
+        var meta = Upstream.resources().getTextureMeta(slice.texture);
         return meta != null
-                && BackendInternals.resources().getTextureHandle(slice.texture) != 0
+                && Upstream.resources().getTextureHandle(slice.texture) != 0
                 && slice.level < meta.levels()
                 && slice.layer
                         < (meta.glTarget() == GL_TEXTURE_3D
@@ -290,8 +289,8 @@ public final class Framebuffers {
     }
 
     public boolean sameSlices(int a, int b) {
-        var first = attachments.get(BackendInternals.resources().getFbo(a));
-        var second = attachments.get(BackendInternals.resources().getFbo(b));
+        var first = attachments.get(Upstream.resources().getFbo(a));
+        var second = attachments.get(Upstream.resources().getFbo(b));
         if (first == null || second == null) return first == second;
         for (int i = 0; i < first.colors.length; i++) if (!sameSlice(first.colors[i], second.colors[i])) return false;
         return sameSlice(first.depth, second.depth) && sameSlice(first.stencil, second.stencil);
@@ -302,7 +301,7 @@ public final class Framebuffers {
     }
 
     public long begin(FrameManager frames, SDL_GPUColorTargetInfo.Buffer colors, SDL_GPUDepthStencilTargetInfo depth) {
-        var fbo = named(BackendInternals.context().boundFboId);
+        var fbo = named(Upstream.context().boundFboId);
         var fields = state(fbo);
         if (colors != null)
             for (int i = 0; i < colors.remaining(); i++) {
@@ -336,7 +335,7 @@ public final class Framebuffers {
     }
 
     public void validateRead(int format) {
-        var context = BackendInternals.context();
+        var context = Upstream.context();
         int name = context.boundReadFboId;
         if (name == 0 || name == context.defaultFboId) return;
         var fbo = named(name);
@@ -348,7 +347,30 @@ public final class Framebuffers {
     }
 
     public void requireFlatRead(int name) {
-        if (name != 0 && name != BackendInternals.context().defaultFboId && sliced(named(name)))
+        if (name != 0 && name != Upstream.context().defaultFboId && sliced(named(name)))
             throw new UnsupportedOperationException("Readback/blit of framebuffer slices is not implemented");
+    }
+
+    /** Whole-texture deferred clears cannot identify slices; encode the existing masked shader clear immediately. */
+    public void clearSlice(int mask) {
+        var state = Upstream.context();
+        var fbo = Upstream.resources().getFbo(state.boundFboId);
+        if (fbo.targetsDirty) fbo.recomputeTargets();
+        bound(state.boundFboId);
+        var clear = Upstream.attachmentClear();
+        var target = clear.forFbo(fbo);
+        boolean color = (mask & GL_COLOR_BUFFER_BIT) != 0 && (state.pipeline.colorWriteMask & 15) != 0;
+        boolean depth = (mask & GL_DEPTH_BUFFER_BIT) != 0 && state.pipeline.depthWriteEnabled;
+        boolean stencil = (mask & GL_STENCIL_BUFFER_BIT) != 0 && (state.pipeline.stencilWriteMask & 255) != 0;
+        int coverage = clear.coverage(state, target);
+        if (coverage == AttachmentClear.EMPTY) return;
+        color &= fbo.hasAnyColor;
+        depth &= fbo.depthTexture != 0;
+        stencil &= fbo.depthTexture != 0 && PixelOps.isDepthStencilFormat(fbo.depthFormat);
+        if (!color && !depth && !stencil) return;
+        Upstream.pipeline().ensureRenderPass(state);
+        var frame = Upstream.frames().frame();
+        if (frame.renderPass == 0 || !clear.clearInPass(state, frame, target, color, depth, stencil))
+            throw new UnsupportedOperationException("Cannot clear framebuffer slice with current masks and formats");
     }
 }

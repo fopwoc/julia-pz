@@ -12,18 +12,8 @@ import com.gtnewhorizons.angelica.sdlgpu.pipeline.AttachmentClear;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.DrawDispatch;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineApplier;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FBOClearTracker;
-import com.gtnewhorizons.angelica.sdlgpu.resource.PixelOps;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
-import dev.fopwoc.julia.backend.framebuffer.Framebuffers;
-import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
-import dev.fopwoc.julia.backend.shader.ShaderPrograms;
-import dev.fopwoc.julia.backend.sync.GpuSyncs;
-import dev.fopwoc.julia.backend.texture.TextureBindings;
-import dev.fopwoc.julia.backend.texture.TextureObjects;
-import dev.fopwoc.julia.backend.texture.TextureViews;
-import dev.fopwoc.julia.backend.texture.VolumeUnpack;
-import dev.fopwoc.julia.backend.texture.buffer.BufferTextures;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -33,16 +23,16 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Version-pinned access to private state of the published SDL backend (Angelica 2.2.34).
+ * Version-pinned access to private state of the published SDL backend (Angelica 2.2.34). Julia's own state lives in
+ * {@link Subsystems}.
  *
  * <p>All private upstream integration is resolved here once; every accessor requires Julia's hosted backend and the
  * thread that owns the SDL context.
  */
-public final class BackendInternals {
+public final class Upstream {
     private static final VarHandle PIPELINE_APPLIER;
     private static final VarHandle DRAW_DISPATCH;
     private static final VarHandle ATTACHMENT_CLEAR;
@@ -110,25 +100,7 @@ public final class BackendInternals {
         }
     }
 
-    private BackendInternals() {}
-
-    /** Initializes a just-linked program without binding it or releasing a pending-deletion current program. */
-    public static void initializeUniforms(int program, Map<String, float[]> values) {
-        var state = context();
-        var target = shaders().getProgram(program);
-        var previous = state.boundProgramObj;
-        var applier = (PipelineApplier) PIPELINE_APPLIER.get(backend());
-        try {
-            // putUniform reads the program object only; encoder and logical bindings stay untouched.
-            state.boundProgramObj = target;
-            for (var entry : values.entrySet()) {
-                int location = shaders().getUniformLocation(program, entry.getKey());
-                if (location >= 0) applier.putUniform(state, location, entry.getValue());
-            }
-        } finally {
-            state.boundProgramObj = previous;
-        }
-    }
+    private Upstream() {}
 
     public static PipelineApplier pipeline() {
         return (PipelineApplier) PIPELINE_APPLIER.get(ownedBackend());
@@ -216,64 +188,8 @@ public final class BackendInternals {
         return (FBOClearTracker) CLEARS.get(ownedBackend());
     }
 
-    public static ProgramResourceCache programResources() {
-        return ownedBackend().programResources();
-    }
-
-    public static BufferTextures bufferTextures() {
-        return ownedBackend().bufferTextures();
-    }
-
-    public static Framebuffers framebuffers() {
-        return ownedBackend().framebuffers();
-    }
-
-    /** Whole-texture deferred clears cannot identify slices; encode the existing masked shader clear immediately. */
-    public static void clearFramebufferSlice(int mask) {
-        var backend = ownedBackend();
-        var state = context();
-        var fbo = resources().getFbo(state.boundFboId);
-        if (fbo.targetsDirty) fbo.recomputeTargets();
-        framebuffers().bound(state.boundFboId);
-        var clear = (AttachmentClear) ATTACHMENT_CLEAR.get(backend);
-        var target = clear.forFbo(fbo);
-        boolean color = (mask & GL_COLOR_BUFFER_BIT) != 0 && (state.pipeline.colorWriteMask & 15) != 0;
-        boolean depth = (mask & GL_DEPTH_BUFFER_BIT) != 0 && state.pipeline.depthWriteEnabled;
-        boolean stencil = (mask & GL_STENCIL_BUFFER_BIT) != 0 && (state.pipeline.stencilWriteMask & 255) != 0;
-        int coverage = clear.coverage(state, target);
-        if (coverage == AttachmentClear.EMPTY) return;
-        color &= fbo.hasAnyColor;
-        depth &= fbo.depthTexture != 0;
-        stencil &= fbo.depthTexture != 0 && PixelOps.isDepthStencilFormat(fbo.depthFormat);
-        if (!color && !depth && !stencil) return;
-        ((PipelineApplier) PIPELINE_APPLIER.get(backend)).ensureRenderPass(state);
-        var frame = frames().frame();
-        if (frame.renderPass == 0 || !clear.clearInPass(state, frame, target, color, depth, stencil))
-            throw new UnsupportedOperationException("Cannot clear framebuffer slice with current masks and formats");
-    }
-
-    public static TextureBindings textureBindings() {
-        return ownedBackend().textureBindings();
-    }
-
-    public static TextureObjects textureObjects() {
-        return ownedBackend().textureObjects();
-    }
-
-    public static VolumeUnpack volumeUnpack() {
-        return ownedBackend().volumeUnpack();
-    }
-
-    public static GpuSyncs syncs() {
-        return ownedBackend().syncs();
-    }
-
-    public static ShaderPrograms programs() {
-        return ownedBackend().shaderPrograms();
-    }
-
-    public static TextureViews views() {
-        return ownedBackend().textureViews();
+    public static AttachmentClear attachmentClear() {
+        return (AttachmentClear) ATTACHMENT_CLEAR.get(ownedBackend());
     }
 
     public static void forgetTextureName(int name) {
@@ -348,8 +264,11 @@ public final class BackendInternals {
         }
     }
 
-    /** Submit queued uploads before the consuming commands, including when a diagnostic ends a frame early. */
-    public static long timestampCommandBuffer() {
+    /**
+     * Ends any open render or copy pass, after flushing queued compute and clears, and returns the command buffer the
+     * next pass will record into. Timestamps and occlusion query boundaries must sit between passes.
+     */
+    public static long commandBufferOutsidePasses() {
         ownedBackend().endComputeDispatchBatch();
         var state = context();
         var manager = frames();
@@ -394,7 +313,7 @@ public final class BackendInternals {
         }
     }
 
-    private static HostedBackend ownedBackend() {
+    static HostedBackend ownedBackend() {
         context();
         return backend();
     }

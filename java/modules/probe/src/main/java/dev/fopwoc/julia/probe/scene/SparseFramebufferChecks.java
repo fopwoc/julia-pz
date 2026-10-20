@@ -4,7 +4,7 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -109,16 +109,16 @@ final class SparseFramebufferChecks {
             } catch (IllegalArgumentException accepted) {
             }
             // Leading holes must keep the same open render pass across consecutive draws.
-            long before = BackendInternals.frames().frame().renderPassGeneration;
+            long before = Upstream.frames().frame().renderPassGeneration;
             glEnable(GL_SCISSOR_TEST);
             glUniform1f(gain, 0.5f);
             glScissor(0, 0, 4, HEIGHT);
             glDrawArrays(GL_TRIANGLES, 0, 3);
-            long opened = BackendInternals.frames().frame().renderPassGeneration;
+            long opened = Upstream.frames().frame().renderPassGeneration;
             glUniform1f(gain, 0.25f);
             glScissor(4, 0, 4, HEIGHT);
             glDrawArrays(GL_TRIANGLES, 0, 3);
-            if (opened <= before || BackendInternals.frames().frame().renderPassGeneration != opened)
+            if (opened <= before || Upstream.frames().frame().renderPassGeneration != opened)
                 throw new IllegalStateException("Leading sparse slot prevented open-pass reuse");
             glDisable(GL_SCISSOR_TEST);
             verified += verifySplit(textures[1], new int[] {128, 128, 0, 255}, new int[] {64, 64, 0, 255});
@@ -127,7 +127,7 @@ final class SparseFramebufferChecks {
             glClearColor(0.2f, 0.4f, 0.6f, 1);
             glClear(GL_COLOR_BUFFER_BIT);
             glDrawArrays(GL_TRIANGLES, 0, 0);
-            BackendInternals.clears().materializeAllPendingClears(BackendInternals.context());
+            Upstream.clears().materializeAllPendingClears(Upstream.context());
             int[] clear = {51, 102, 153, 255};
             verified += verify(textures[0], RED)
                     + verify(textures[1], clear)

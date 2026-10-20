@@ -5,7 +5,7 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -55,10 +55,10 @@ final class CullingChecks {
             glColorMask(true, true, true, true);
             glClearColor(0, 0, 1, 1);
             // A windowless session has no final target until one is explicitly allocated.
-            var resources = BackendInternals.resources();
-            if (!BackendInternals.frames().finalTarget().isReady()) {
+            var resources = Upstream.resources();
+            if (!Upstream.frames().finalTarget().isReady()) {
                 ownedFinalTarget = true;
-                BackendInternals.frames()
+                Upstream.frames()
                         .finalTarget()
                         .create(SDLGPUGate.device(), resources, 8, 8, resources.mapTextureFormat(GL_RGBA8));
             }
@@ -106,7 +106,7 @@ final class CullingChecks {
             glUseProgram(0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glBindTexture(GL_TEXTURE_2D, 0);
-            if (ownedFinalTarget) BackendInternals.frames().destroyFinalTarget();
+            if (ownedFinalTarget) Upstream.frames().destroyFinalTarget();
             glDeleteFramebuffers(fbo);
             glDeleteTextures(target);
             glDeleteProgram(program);

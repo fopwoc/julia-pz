@@ -1,7 +1,8 @@
 package dev.fopwoc.julia.backend.texture;
 
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
+import dev.fopwoc.julia.backend.Upstream;
 
 /** Pinned GLSM integration keeps its operation cache aligned without changing any logical binding. */
 public final class TextureBindingHooks {
@@ -12,23 +13,24 @@ public final class TextureBindingHooks {
     }
 
     public static int query(int parameter) {
-        var state = BackendInternals.context();
-        return BackendInternals.textureBindings()
+        var state = Upstream.context();
+        return Subsystems.current()
+                .textureBindings()
                 .get(state, state.activeTextureUnit, TextureBindings.queryTarget(parameter));
     }
 
     public static void select(int target) {
         if (!TextureBindings.selectable(target)) return;
-        var state = BackendInternals.context();
-        int name = BackendInternals.textureBindings().get(state, state.activeTextureUnit, target);
+        var state = Upstream.context();
+        int name = Subsystems.current().textureBindings().get(state, state.activeTextureUnit, target);
         GLStateManager.glBindTexture(target, name);
     }
 
     public static void samplerOverride(long[] overrides) {
-        BackendInternals.textureBindings().samplerOverride(BackendInternals.context(), overrides != null);
+        Subsystems.current().textureBindings().samplerOverride(Upstream.context(), overrides != null);
     }
 
     public static void deleted(int name) {
-        BackendInternals.textureBindings().deleted(BackendInternals.context(), name);
+        Subsystems.current().textureBindings().deleted(Upstream.context(), name);
     }
 }

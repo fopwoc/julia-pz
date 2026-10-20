@@ -7,7 +7,8 @@ import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FboState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.platform.Platform;
 import org.lwjgl.sdl.SDL_GPUColorTargetInfo;
 import org.lwjgl.sdl.SDL_GPUDepthStencilTargetInfo;
@@ -25,7 +26,7 @@ public final class FramebufferHooks {
     }
 
     public static long unusedTarget(ResourceManager resources) {
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         var fbo = resources.getFbo(state.boundFboId);
         if (fbo != null) for (int output : fbo.drawBuffers) if (output < 0) return 0;
         return resources.getOrCreateDummyColorTarget();
@@ -45,19 +46,19 @@ public final class FramebufferHooks {
     }
 
     public static void layout(FboState fbo) {
-        BackendInternals.framebuffers().layout(fbo);
+        Subsystems.current().framebuffers().layout(fbo);
     }
 
     public static boolean sameSlices(int a, int b) {
-        return BackendInternals.framebuffers().sameSlices(a, b);
+        return Subsystems.current().framebuffers().sameSlices(a, b);
     }
 
     public static void validateDraw(ContextState context) {
-        BackendInternals.framebuffers().validateDraw(context);
+        Subsystems.current().framebuffers().validateDraw(context);
     }
 
     public static long begin(
             FrameManager frames, SDL_GPUColorTargetInfo.Buffer colors, SDL_GPUDepthStencilTargetInfo depth) {
-        return BackendInternals.framebuffers().begin(frames, colors, depth);
+        return Subsystems.current().framebuffers().begin(frames, colors, depth);
     }
 }

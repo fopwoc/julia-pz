@@ -7,7 +7,7 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.nio.ByteBuffer;
 import org.lwjgl.system.MemoryStack;
@@ -114,8 +114,8 @@ final class MapQuadChecks {
             glVertexAttribPointer(0, 3, GL_FLOAT, false, 36, 0L);
             glVertexAttribPointer(1, 4, GL_FLOAT, true, 36, 12L);
             glVertexAttribPointer(2, 2, GL_FLOAT, false, 36, 28L);
-            var resources = BackendInternals.resources();
-            var finalTarget = BackendInternals.frames().finalTarget();
+            var resources = Upstream.resources();
+            var finalTarget = Upstream.frames().finalTarget();
             if (!finalTarget.isReady()) {
                 ownedFinalTarget = true;
                 finalTarget.create(SDLGPUGate.device(), resources, 8, 8, resources.mapTextureFormat(GL_RGBA8));
@@ -139,11 +139,11 @@ final class MapQuadChecks {
                     // Each map tile can be a distinct run, reusing the converter's scratch EBO.
                     for (int tile = 0; tile < 8; tile++) {
                         glBindTexture(GL_TEXTURE_2D, tile % 2 == 0 ? image : alternate);
-                        int submissions = BackendInternals.frames().frame().midFrameSubmitsThisFrame;
+                        int submissions = Upstream.frames().frame().midFrameSubmitsThisFrame;
                         glDrawRangeElements(GL_QUADS, 4 + tile * 4, 8 + tile * 4, 4, GL_UNSIGNED_SHORT, 6L + tile * 8L);
-                        if (BackendInternals.frames().frame().midFrameSubmitsThisFrame != submissions)
+                        if (Upstream.frames().frame().midFrameSubmitsThisFrame != submissions)
                             throw new IllegalStateException("Uploaded quad indices caused a blocking GPU readback");
-                        if (run >= 4) BackendInternals.submitPendingCommands();
+                        if (run >= 4) Upstream.submitPendingCommands();
                     }
                     if (glGetInteger(GL_ARRAY_BUFFER_BINDING) != vertices
                             || glGetInteger(GL_ELEMENT_ARRAY_BUFFER_BINDING) != indices)
@@ -172,7 +172,7 @@ final class MapQuadChecks {
             glBindTexture(GL_TEXTURE_2D, 0);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-            if (ownedFinalTarget) BackendInternals.frames().destroyFinalTarget();
+            if (ownedFinalTarget) Upstream.frames().destroyFinalTarget();
             glDeleteFramebuffers(fbo);
             glDeleteTextures(target);
             glDeleteTextures(image);

@@ -6,7 +6,7 @@ import static org.lwjgl.util.spvc.Spvc.*;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineCache;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.platform.Platform;
 import java.util.WeakHashMap;
 import org.lwjgl.sdl.SDL_GPUGraphicsPipelineCreateInfo;
@@ -19,29 +19,29 @@ public final class VertexInputs {
 
     public static void modernAttribute(int attribute) {
         validateBinding(attribute);
-        var vao = BackendInternals.context().currentVao;
+        var vao = Upstream.context().currentVao;
         MODERN_LAYOUTS.put(vao, MODERN_LAYOUTS.getOrDefault(vao, 0) | 1 << attribute);
     }
 
     public static void modernBinding(int binding) {
         validateBinding(binding);
-        var vao = BackendInternals.context().currentVao;
+        var vao = Upstream.context().currentVao;
         for (int attribute = 0; attribute < ContextState.MAX_VERTEX_ATTRIBS; attribute++)
             if (vao.attribBinding[attribute] == binding) modernAttribute(attribute);
     }
 
     public static void legacyPointer(int attribute) {
         validateBinding(attribute);
-        var vao = BackendInternals.context().currentVao;
+        var vao = Upstream.context().currentVao;
         MODERN_LAYOUTS.put(vao, MODERN_LAYOUTS.getOrDefault(vao, 0) & ~(1 << attribute));
     }
 
     public static boolean preserveLayout(int attribute) {
-        return (MODERN_LAYOUTS.getOrDefault(BackendInternals.context().currentVao, 0) & 1 << attribute) != 0;
+        return (MODERN_LAYOUTS.getOrDefault(Upstream.context().currentVao, 0) & 1 << attribute) != 0;
     }
 
     public static void bindingDivisor(int binding, int divisor) {
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         if (state.boundVAO == 0) throw new IllegalStateException("Vertex binding divisor requires a bound VAO");
         modernBinding(binding);
         setDivisor(state, binding, divisor);
@@ -51,7 +51,7 @@ public final class VertexInputs {
         validateBinding(attribute);
         // The legacy API restores the attribute's same-numbered binding before setting its divisor.
         BackendManager.RENDER_BACKEND.vertexAttribBinding(attribute, attribute);
-        setDivisor(BackendInternals.context(), attribute, divisor);
+        setDivisor(Upstream.context(), attribute, divisor);
     }
 
     private static void setDivisor(ContextState state, int binding, int divisor) {
@@ -66,7 +66,7 @@ public final class VertexInputs {
 
     public static int divisor(int binding) {
         validateBinding(binding);
-        return BackendInternals.context().currentVao.bindingDivisor[binding];
+        return Upstream.context().currentVao.bindingDivisor[binding];
     }
 
     public static void validateBinding(int binding) {
@@ -85,13 +85,12 @@ public final class VertexInputs {
     }
 
     public static long createPipeline(long device, SDL_GPUGraphicsPipelineCreateInfo info) {
-        var state = BackendInternals.context();
+        var state = Upstream.context();
         int[] rates = new int[ContextState.MAX_VERTEX_ATTRIBS];
         var vao = state.currentVao;
         for (int attribute = 0; attribute < rates.length; attribute++) {
             int binding = vao.attribBinding[attribute];
-            if (vao.attribEnabled[attribute]
-                    && BackendInternals.resources().getBufferHandle(vao.bindingBuffer[binding]) != 0)
+            if (vao.attribEnabled[attribute] && Upstream.resources().getBufferHandle(vao.bindingBuffer[binding]) != 0)
                 rates[attribute] = vao.bindingDivisor[binding];
         }
         return Platform.current().createGraphicsPipeline(device, info, rates);

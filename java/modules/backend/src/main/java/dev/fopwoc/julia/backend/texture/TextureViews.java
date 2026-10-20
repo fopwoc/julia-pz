@@ -10,7 +10,8 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.sampler.SamplerLookup;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Subsystems;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.platform.Platform;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,7 +43,7 @@ public final class TextureViews implements AutoCloseable {
 
     public void create(
             int name, int target, int original, int format, int minLevel, int levels, int minLayer, int layers) {
-        var resources = BackendInternals.resources();
+        var resources = Upstream.resources();
         var meta = resources.getTextureMeta(original);
         if (!fresh.contains(name) || name == original || resources.getTextureHandle(name) != 0) {
             throw new IllegalArgumentException("Texture view requires a fresh generated, unbound destination name");
@@ -54,15 +55,15 @@ public final class TextureViews implements AutoCloseable {
         var range = sourceRange.subset(meta, target, format, minLevel, levels, minLayer, layers);
         long source = resources.getTextureHandle(original);
         // Resolve queued parent clears/uploads before exposing an independently addressed native handle.
-        BackendInternals.flushTextureReferences();
-        BackendInternals.clears().materializePendingClearForTexture(BackendInternals.context(), source);
+        Upstream.flushTextureReferences();
+        Upstream.clears().materializePendingClearForTexture(Upstream.context(), source);
         boolean whole2d = target == GL_TEXTURE_2D
                 && meta.glTarget() == GL_TEXTURE_2D
                 && minLevel == 0
                 && range.levels() == meta.levels()
                 && minLayer == 0;
         if (whole2d) {
-            BackendInternals.aliasTexture(name, original);
+            Upstream.aliasTexture(name, original);
         } else {
             int sdlType = target == GL_TEXTURE_2D ? SDL_GPU_TEXTURETYPE_2D : SDL_GPU_TEXTURETYPE_2D_ARRAY;
             long handle = Platform.current()
@@ -78,7 +79,7 @@ public final class TextureViews implements AutoCloseable {
                         range.layers(),
                         range.levels(),
                         meta.usage());
-                BackendInternals.registerTextureView(name, handle, viewMeta);
+                Upstream.registerTextureView(name, handle, viewMeta);
                 registered = true;
                 var family = shared.computeIfAbsent(source, ignored -> new HashSet<>());
                 family.add(source);
@@ -112,8 +113,7 @@ public final class TextureViews implements AutoCloseable {
         resolvingSharedClears = true;
         try {
             for (long peer : family)
-                if (peer != handle)
-                    BackendInternals.clears().materializePendingClearForTexture(BackendInternals.context(), peer);
+                if (peer != handle) Upstream.clears().materializePendingClearForTexture(Upstream.context(), peer);
         } finally {
             resolvingSharedClears = false;
         }
@@ -124,7 +124,7 @@ public final class TextureViews implements AutoCloseable {
         resolvingSharedClears = true;
         try {
             for (long handle : shared.keySet())
-                BackendInternals.clears().materializePendingClearForTexture(BackendInternals.context(), handle);
+                Upstream.clears().materializePendingClearForTexture(Upstream.context(), handle);
         } finally {
             resolvingSharedClears = false;
         }
@@ -140,7 +140,7 @@ public final class TextureViews implements AutoCloseable {
             throw new IllegalArgumentException("Invalid depth/stencil texture mode");
         }
         if (value == GL_STENCIL_INDEX) {
-            var meta = BackendInternals.resources().getTextureMeta(name);
+            var meta = Upstream.resources().getTextureMeta(name);
             if (meta == null
                     || meta.glTarget() != GL_TEXTURE_2D
                     || meta.levels() != 1
@@ -149,12 +149,12 @@ public final class TextureViews implements AutoCloseable {
             }
         }
         modes.put(name, value);
-        BackendInternals.context().samplerBindGen++;
+        Upstream.context().samplerBindGen++;
         return true;
     }
 
     public Integer parameter(int name, int parameter) {
-        var meta = BackendInternals.resources().getTextureMeta(name);
+        var meta = Upstream.resources().getTextureMeta(name);
         var range = meta == null || !immutable.contains(name)
                 ? null
                 : ranges.getOrDefault(name, TextureViewRange.storage(meta));
@@ -171,15 +171,15 @@ public final class TextureViews implements AutoCloseable {
     }
 
     public void beforeDelete(int name) {
-        var resources = BackendInternals.resources();
+        var resources = Upstream.resources();
         long handle = resources.getTextureHandle(name);
-        if (handle != 0 && BackendInternals.frames().getCommandBuffer() != 0) {
-            BackendInternals.clears().materializePendingClearForTexture(BackendInternals.context(), handle);
+        if (handle != 0 && Upstream.frames().getCommandBuffer() != 0) {
+            Upstream.clears().materializePendingClearForTexture(Upstream.context(), handle);
         }
     }
 
     public void deleted(int name, long handle) {
-        if (handle != 0 && !BackendInternals.textureReferenced(BackendInternals.resources(), handle)) {
+        if (handle != 0 && !Upstream.textureReferenced(Upstream.resources(), handle)) {
             var sampling = stencil.remove(handle);
             if (sampling != null) sampling.close();
             var family = shared.remove(handle);
@@ -195,7 +195,7 @@ public final class TextureViews implements AutoCloseable {
     public void beforeCompute() {
         flushSharedClears();
         if (!modes.containsValue(GL_STENCIL_INDEX)) return;
-        for (int name : BackendInternals.context().boundTextures) {
+        for (int name : Upstream.context().boundTextures) {
             if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) == GL_STENCIL_INDEX) {
                 throw new UnsupportedOperationException(
                         "Compute dispatch with a bound stencil-aspect texture is unsupported");
@@ -206,17 +206,17 @@ public final class TextureViews implements AutoCloseable {
     public void prepare(ContextState state) {
         flushSharedClears();
         if (!modes.containsValue(GL_STENCIL_INDEX)) return;
-        var program = BackendInternals.shaders().getProgram(state.boundProgram);
+        var program = Upstream.shaders().getProgram(state.boundProgram);
         if (program == null || !program.linked) return;
         var done = new HashSet<Long>();
         for (boolean fragment : new boolean[] {false, true}) {
             int[] units = SamplerLookup.resolvedUnits(program, fragment);
             for (int slot = 0; slot < units.length; slot++) {
-                int name = BackendInternals.bufferTextures().samplerBinding(state, units[slot], slot, fragment);
+                int name = Subsystems.current().bufferTextures().samplerBinding(state, units[slot], slot, fragment);
                 if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) != GL_STENCIL_INDEX) continue;
-                long handle = BackendInternals.resources().getTextureHandle(name);
+                long handle = Upstream.resources().getTextureHandle(name);
                 if (handle == 0 || !done.add(handle)) continue;
-                var meta = BackendInternals.resources().getTextureMeta(name);
+                var meta = Upstream.resources().getTextureMeta(name);
                 stencil.computeIfAbsent(handle, ignored -> new StencilSampling())
                         .refresh(state, handle, meta);
             }
@@ -224,7 +224,7 @@ public final class TextureViews implements AutoCloseable {
     }
 
     public long samplingHandle(int name) {
-        var resources = BackendInternals.resources();
+        var resources = Upstream.resources();
         long handle = resources.getTextureHandle(name);
         if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) != GL_STENCIL_INDEX) return handle;
         var sampling = stencil.get(handle);
@@ -234,11 +234,11 @@ public final class TextureViews implements AutoCloseable {
 
     @Override
     public void close() {
-        if (!views.isEmpty()) BackendInternals.flushTextureReferences();
+        if (!views.isEmpty()) Upstream.flushTextureReferences();
         for (var sampler : stencil.values()) sampler.close();
         stencil.clear();
         // Upstream shutdown releases one handle per name. Keep one name per physical allocation.
-        if (!views.isEmpty()) BackendInternals.deduplicateTextures();
+        if (!views.isEmpty()) Upstream.deduplicateTextures();
         ranges.clear();
         shared.clear();
         fresh.clear();

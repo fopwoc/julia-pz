@@ -3,7 +3,7 @@ package dev.fopwoc.julia.backend.bridge;
 import static org.lwjgl.sdl.SDLGPU.SDL_CopyGPUTextureToTexture;
 
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
-import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.Upstream;
 import org.lwjgl.sdl.SDL_GPUTextureLocation;
 import org.lwjgl.system.MemoryStack;
 
@@ -27,8 +27,8 @@ public final class TextureCopyBridge {
             int width,
             int height,
             int depth) {
-        var resources = BackendInternals.resources();
-        var frames = BackendInternals.frames();
+        var resources = Upstream.resources();
+        var frames = Upstream.frames();
         var sourceMeta = resources.getTextureMeta(source);
         var destinationMeta = resources.getTextureMeta(destination);
         validate(sourceMeta, sourceTarget, new TextureRegion(sourceLevel, sx, sy, sz, width, height, depth));
@@ -55,8 +55,8 @@ public final class TextureCopyBridge {
         }
         if (frames.getCommandBuffer() == 0) throw new IllegalStateException("Image copy requires an active frame");
 
-        var clears = BackendInternals.clears();
-        var context = BackendInternals.context();
+        var clears = Upstream.clears();
+        var context = Upstream.context();
         clears.materializePendingClearForTexture(context, sourceHandle);
         clears.resolveDestinationForWrite(
                 context, destinationHandle, destinationMeta, destinationLevel, dx, dy, dz, width, height, false);
