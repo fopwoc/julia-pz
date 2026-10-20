@@ -19,6 +19,6 @@ junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 launchwrapper = "net.minecraft:launchwrapper:1.12"
 log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
 log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
-lwjgl3ify = "com.github.GTNewHorizons:lwjgl3ify:3.0.31"
-retrofuturabootstrap = "com.gtnewhorizons.retrofuturabootstrap:RetroFuturaBootstrap:1.1.0"
+lwjgl3ify = "com.github.GTNewHorizons:lwjgl3ify:3.0.39"
+retrofuturabootstrap = "com.gtnewhorizons.retrofuturabootstrap:RetroFuturaBootstrap:1.1.2"
 spotless-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
