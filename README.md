@@ -6,9 +6,10 @@ Julia does one thing: it translates Project Zomboid's OpenGL rendering to the pl
 **Metal** on macOS today, with **Vulkan** on Linux and **Direct3D 12** on Windows planned. Modern APIs carry less driver
 overhead than OpenGL, which can mean higher and steadier FPS.
 
-The game and its Java mods keep calling plain LWJGL OpenGL. Julia rewrites those calls as classes load and draws every
-frame through [Angelica](https://github.com/GTNewHorizons/Angelica)'s GL state manager and its SDL3 GPU backend. No
-OpenGL driver is involved.
+The translation is seamless. Nothing is ported, and no mod needs a Julia-specific version or patch: the game and its
+Java mods ship exactly as they are and keep calling plain OpenGL. Julia redirects those calls in memory as each class
+loads and draws every frame through [Angelica](https://github.com/GTNewHorizons/Angelica)'s GL state manager and its
+SDL3 GPU backend. Files on disk are never changed, and no OpenGL driver is involved.
 
 A side effect on macOS: Apple's OpenGL is deprecated and stops at version 4.1, so mods that need newer GL features
 cannot run there. Because Julia never touches Apple's OpenGL, those mods work on Mac too. [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528), which needs
