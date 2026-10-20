@@ -33,6 +33,15 @@ public final class ResourcePass {
             Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
             Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
             Map.entry(
+                    "org/lwjgl/opengl/GL11.glTexSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL11C.glTexSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    Endpoint.STATE_MANAGER.owner() + ".glTexSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
                     "org/lwjgl/opengl/GL11.glTexSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V",
                     Endpoint.BOUND_TEXTURE_BRIDGE),
             Map.entry(
