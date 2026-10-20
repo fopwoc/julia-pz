@@ -60,7 +60,7 @@ public final class GlsmSession implements AutoCloseable {
     }
 
     private void start(HostedVideo video, long window, Supplier<Size> drawable, String label) {
-        String driver = video.platform().gpuDriver();
+        String driver = video.platform().gpuBackend().driverName();
         if (!device.createDevice()) throw new IllegalStateException("Cannot create the SDL GPU device");
         if (!driver.equalsIgnoreCase(device.getDriverName())) {
             throw new IllegalStateException("Expected " + driver + " device, got " + device.getDriverName());

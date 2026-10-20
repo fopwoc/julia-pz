@@ -3,7 +3,7 @@ package dev.fopwoc.julia.backend.bridge;
 import static org.lwjgl.util.spvc.Spvc.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.shader.cross.CrossCompileCache.Output;
-import dev.fopwoc.julia.backend.platform.Platform;
+import dev.fopwoc.julia.backend.gpu.GpuBackend;
 import dev.fopwoc.julia.backend.shader.SamplerResources;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -52,6 +52,6 @@ public final class SamplerShaderBridge {
     }
 
     public static Output compile(ByteBuffer spirv, int stage) {
-        return Platform.current().compileSamplerShader(spirv, stage);
+        return GpuBackend.current().compileSamplerShader(spirv, stage);
     }
 }

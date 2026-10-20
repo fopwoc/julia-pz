@@ -1,22 +1,20 @@
-package dev.fopwoc.julia.backend.texture.macos;
+package dev.fopwoc.julia.backend.sdl;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextureDriver;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextureFormat;
 import dev.fopwoc.julia.backend.utils.Sdl;
-import org.lwjgl.sdl.SDL;
 import org.lwjgl.sdl.SDLGPU;
 import org.lwjgl.system.JNI;
 
-public final class MetalBufferTextures implements BufferTextureDriver {
-    private static final long LIMIT = symbol("JULIA_SDL_BufferTextureLimit");
-    private static final long ALIGNMENT = symbol("JULIA_SDL_BufferTextureAlignment");
-    private static final long IDENTITY = symbol("JULIA_SDL_BufferStorageIdentity");
-    private static final long CREATE = symbol("JULIA_SDL_CreateBufferTexture");
+public final class SdlBufferTextures implements BufferTextureDriver {
+    private static final long LIMIT = SdlExtension.symbol("JULIA_SDL_BufferTextureLimit");
+    private static final long ALIGNMENT = SdlExtension.symbol("JULIA_SDL_BufferTextureAlignment");
+    private static final long IDENTITY = SdlExtension.symbol("JULIA_SDL_BufferStorageIdentity");
+    private static final long CREATE = SdlExtension.symbol("JULIA_SDL_CreateBufferTexture");
 
-    public MetalBufferTextures() {
-        if (JNI.invokeI(symbol("JULIA_SDL_BufferTextureABI")) != 1)
-            throw new IllegalStateException("Unexpected native buffer-texture ABI");
+    public SdlBufferTextures() {
+        SdlExtension.requireAbi("JULIA_SDL_BufferTextureABI", 1);
     }
 
     private static long device() {
@@ -40,16 +38,10 @@ public final class MetalBufferTextures implements BufferTextureDriver {
     public long create(long buffer, BufferTextureFormat format, int offset, int texels) {
         return Sdl.require(
                 JNI.invokePPP(device(), buffer, format.sdl(), offset, texels, format.bytes(), CREATE),
-                "Create Metal buffer texture");
+                "Create native buffer texture");
     }
 
     public void release(long texture) {
         if (texture != 0) SDLGPU.SDL_ReleaseGPUTexture(device(), texture);
-    }
-
-    private static long symbol(String name) {
-        long address = SDL.getLibrary().getFunctionAddress(name);
-        if (address == 0) throw new IllegalStateException("Missing native buffer-texture extension: " + name);
-        return address;
     }
 }

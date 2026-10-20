@@ -48,8 +48,9 @@ public final class OffscreenProbe {
         var device = new Device();
         try {
             Sdl.require(device.createDevice(), "Angelica Device.createDevice");
-            if (!platform.gpuDriver().equalsIgnoreCase(device.getDriverName())) {
-                throw new IllegalStateException("Expected " + platform.gpuDriver() + ", got " + device.getDriverName());
+            if (!platform.gpuBackend().driverName().equalsIgnoreCase(device.getDriverName())) {
+                throw new IllegalStateException(
+                        "Expected " + platform.gpuBackend().driverName() + ", got " + device.getDriverName());
             }
             byte[] clear = renderAndRead(device, false);
             verify(clear, false);

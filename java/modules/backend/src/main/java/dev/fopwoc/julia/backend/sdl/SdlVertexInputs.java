@@ -1,24 +1,20 @@
-package dev.fopwoc.julia.backend.vertex.macos;
+package dev.fopwoc.julia.backend.sdl;
 
 import static org.lwjgl.sdl.SDLGPU.*;
 import static org.lwjgl.sdl.SDLProperties.*;
 
 import dev.fopwoc.julia.backend.utils.Sdl;
-import org.lwjgl.sdl.SDL;
 import org.lwjgl.sdl.SDL_GPUGraphicsPipelineCreateInfo;
-import org.lwjgl.system.JNI;
 
-/** SDL's reserved step-rate field stays zero; Julia's Metal extension consumes scoped pipeline properties. */
-public final class MetalVertexInputs {
+/** SDL's reserved step-rate field stays zero; Julia's native extension consumes scoped pipeline properties. */
+public final class SdlVertexInputs {
     private static final String PREFIX = "julia.gpu.vertex_divisor.";
 
     static {
-        long abi = SDL.getLibrary().getFunctionAddress("JULIA_SDL_VertexInputABI");
-        if (abi == 0 || JNI.invokeI(abi) != 2)
-            throw new IllegalStateException("Missing native Metal vertex-input extension");
+        SdlExtension.requireAbi("JULIA_SDL_VertexInputABI", 2);
     }
 
-    private MetalVertexInputs() {}
+    private SdlVertexInputs() {}
 
     public static long create(long device, SDL_GPUGraphicsPipelineCreateInfo info, int[] rates) {
         int previous = info.props();
@@ -36,7 +32,7 @@ public final class MetalVertexInputs {
                     // SDL tags defaults as instance-rate inputs; Metal must ignore the native base instance.
                     if (rates[slot] == 0 && description.input_rate() == SDL_GPU_VERTEXINPUTRATE_INSTANCE) {
                         if (!SDL_SetNumberProperty(properties, PREFIX + slot, -1))
-                            throw Sdl.failure("Set constant Metal vertex input");
+                            throw Sdl.failure("Set constant vertex input");
                         continue;
                     }
                     int divisor = rates[slot];
@@ -44,7 +40,7 @@ public final class MetalVertexInputs {
                             divisor == 0 ? SDL_GPU_VERTEXINPUTRATE_VERTEX : SDL_GPU_VERTEXINPUTRATE_INSTANCE);
                     if (divisor != 0
                             && !SDL_SetNumberProperty(properties, PREFIX + slot, Integer.toUnsignedLong(divisor)))
-                        throw Sdl.failure("Set Metal vertex divisor");
+                        throw Sdl.failure("Set vertex divisor");
                 }
             info.props(properties);
             return Sdl.require(SDL_CreateGPUGraphicsPipeline(device, info), "Create vertex-input graphics pipeline");

@@ -13,7 +13,7 @@ import com.gtnewhorizons.angelica.sdlgpu.resource.FboState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.PixelOps;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.platform.Platform;
+import dev.fopwoc.julia.backend.sdl.SdlSparseTargets;
 import java.util.Arrays;
 import java.util.WeakHashMap;
 import org.lwjgl.sdl.SDL_GPUColorTargetInfo;
@@ -166,7 +166,7 @@ public final class Framebuffers {
             }
         }
         if (!any) slots = new int[0];
-        for (int slot : slots) if (slot < 0) Platform.current().requireSparseColorTargets();
+        for (int slot : slots) if (slot < 0) SdlSparseTargets.requireSupported();
         if (Arrays.equals(fbo.drawBuffers, slots)) return;
         if (name == Upstream.context().boundFboId)
             Upstream.frames().endRenderPassIfActive(FrameManager.PASS_END_TARGET);

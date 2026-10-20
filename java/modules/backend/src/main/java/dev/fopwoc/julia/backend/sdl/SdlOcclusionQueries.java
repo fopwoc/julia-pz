@@ -1,27 +1,25 @@
-package dev.fopwoc.julia.backend.query.macos;
+package dev.fopwoc.julia.backend.sdl;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.query.OcclusionDriver;
 import dev.fopwoc.julia.backend.utils.Sdl;
-import org.lwjgl.sdl.SDL;
 import org.lwjgl.system.JNI;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
 /**
- * Narrow binding to the visibility extension compiled inside Julia's SDL Metal backend. Query boundaries end the open
+ * Narrow binding to Julia's native visibility extension (Metal: visibility result buffers). Query boundaries end the open
  * render pass, so every counted draw lands in a pass that starts while the query is active.
  */
-public final class MetalOcclusionQueries implements OcclusionDriver {
-    private static final long BEGIN = symbol("JULIA_SDL_BeginVisibilityQuery");
-    private static final long END = symbol("JULIA_SDL_EndVisibilityQuery");
-    private static final long READ = symbol("JULIA_SDL_ReadVisibilityQuery");
-    private static final long RELEASE = symbol("JULIA_SDL_ReleaseVisibilityQuery");
+public final class SdlOcclusionQueries implements OcclusionDriver {
+    private static final long BEGIN = SdlExtension.symbol("JULIA_SDL_BeginVisibilityQuery");
+    private static final long END = SdlExtension.symbol("JULIA_SDL_EndVisibilityQuery");
+    private static final long READ = SdlExtension.symbol("JULIA_SDL_ReadVisibilityQuery");
+    private static final long RELEASE = SdlExtension.symbol("JULIA_SDL_ReleaseVisibilityQuery");
 
-    public MetalOcclusionQueries() {
-        if (JNI.invokeI(symbol("JULIA_SDL_VisibilityABI")) != 1)
-            throw new IllegalStateException("Unexpected native visibility query ABI");
+    public SdlOcclusionQueries() {
+        SdlExtension.requireAbi("JULIA_SDL_VisibilityABI", 1);
     }
 
     @Override
@@ -71,10 +69,4 @@ public final class MetalOcclusionQueries implements OcclusionDriver {
 
     @Override
     public void close() {}
-
-    private static long symbol(String name) {
-        long address = SDL.getLibrary().getFunctionAddress(name);
-        if (address == 0) throw new IllegalStateException("Missing native visibility extension: " + name);
-        return address;
-    }
 }

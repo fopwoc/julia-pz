@@ -1,14 +1,13 @@
-package dev.fopwoc.julia.backend.shader.macos;
+package dev.fopwoc.julia.backend.shader.metal;
 
 import static org.lwjgl.util.spvc.Spv.*;
 import static org.lwjgl.util.spvc.Spvc.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.shader.cross.CrossCompileCache.Output;
+import dev.fopwoc.julia.backend.sdl.SdlExtension;
 import dev.fopwoc.julia.backend.shader.SamplerResources;
 import java.nio.ByteBuffer;
 import org.lwjgl.opengl.GL20;
-import org.lwjgl.sdl.SDL;
-import org.lwjgl.system.JNI;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.util.spvc.SpvcMslResourceBinding2;
@@ -19,8 +18,7 @@ public final class MetalSamplerShaders {
     private MetalSamplerShaders() {}
 
     public static Output compile(ByteBuffer spirv, int stage) {
-        long abi = SDL.getLibrary().getFunctionAddress("JULIA_SDL_SamplerArgumentsABI");
-        if (abi == 0 || JNI.invokeI(abi) != 2) throw new IllegalStateException("Missing native sampler-argument ABI");
+        SdlExtension.requireAbi("JULIA_SDL_SamplerArgumentsABI", 2);
         try (var stack = MemoryStack.stackPush()) {
             var pointer = stack.pointers(0);
             SamplerResources.check(spvc_context_create(pointer));

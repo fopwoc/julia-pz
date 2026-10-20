@@ -7,7 +7,7 @@ import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineCache;
 import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.platform.Platform;
+import dev.fopwoc.julia.backend.sdl.SdlVertexInputs;
 import java.util.WeakHashMap;
 import org.lwjgl.sdl.SDL_GPUGraphicsPipelineCreateInfo;
 
@@ -93,7 +93,7 @@ public final class VertexInputs {
             if (vao.attribEnabled[attribute] && Upstream.resources().getBufferHandle(vao.bindingBuffer[binding]) != 0)
                 rates[attribute] = vao.bindingDivisor[binding];
         }
-        return Platform.current().createGraphicsPipeline(device, info, rates);
+        return SdlVertexInputs.create(device, info, rates);
     }
 
     /**

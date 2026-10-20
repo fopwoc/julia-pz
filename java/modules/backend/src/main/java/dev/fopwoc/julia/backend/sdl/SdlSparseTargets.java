@@ -1,27 +1,24 @@
-package dev.fopwoc.julia.backend.framebuffer.macos;
+package dev.fopwoc.julia.backend.sdl;
 
 import dev.fopwoc.julia.backend.utils.Sdl;
-import org.lwjgl.sdl.SDL;
 import org.lwjgl.sdl.SDLGPU;
 import org.lwjgl.sdl.SDL_GPUColorTargetInfo;
 import org.lwjgl.sdl.SDL_GPUDepthStencilTargetInfo;
 import org.lwjgl.system.JNI;
 
-/** Verifies that SDL's Metal driver supports true absent color slots without dummy textures. */
-public final class MetalSparseTargets {
+/** Render passes with truly absent color slots, which Julia's SDL build accepts instead of dummy textures. */
+public final class SdlSparseTargets {
     static {
-        long abi = SDL.getLibrary().getFunctionAddress("JULIA_SDL_SparseColorTargetsABI");
-        if (abi == 0 || JNI.invokeI(abi) != 1)
-            throw new IllegalStateException("Missing native sparse Metal color-target extension");
+        SdlExtension.requireAbi("JULIA_SDL_SparseColorTargetsABI", 1);
     }
 
-    private MetalSparseTargets() {}
+    private SdlSparseTargets() {}
 
     public static void requireSupported() {}
 
     public static long begin(long commands, SDL_GPUColorTargetInfo.Buffer colors, SDL_GPUDepthStencilTargetInfo depth) {
         if (commands == 0 || colors == null || colors.remaining() == 0 || colors.remaining() > 8)
-            throw new IllegalArgumentException("Invalid sparse Metal render-pass arguments");
+            throw new IllegalArgumentException("Invalid sparse render-pass arguments");
         for (int i = colors.position(); i < colors.limit(); i++) {
             var color = colors.get(i);
             if (color.texture() != 0) SDL_GPUColorTargetInfo.validate(color.address());
@@ -38,6 +35,6 @@ public final class MetalSparseTargets {
                         colors.remaining(),
                         depth == null ? 0L : depth.address(),
                         SDLGPU.Functions.BeginGPURenderPass),
-                "Begin sparse Metal render pass");
+                "Begin sparse render pass");
     }
 }

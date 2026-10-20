@@ -9,7 +9,7 @@ import com.gtnewhorizons.angelica.sdlgpu.resource.FboState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.platform.Platform;
+import dev.fopwoc.julia.backend.sdl.SdlSparseTargets;
 import org.lwjgl.sdl.SDL_GPUColorTargetInfo;
 import org.lwjgl.sdl.SDL_GPUDepthStencilTargetInfo;
 
@@ -20,8 +20,7 @@ public final class FramebufferHooks {
             long commands, SDL_GPUColorTargetInfo.Buffer colors, SDL_GPUDepthStencilTargetInfo depth) {
         if (colors != null)
             for (int i = colors.position(); i < colors.limit(); i++)
-                if (colors.get(i).texture() == 0)
-                    return Platform.current().beginSparseRenderPass(commands, colors, depth);
+                if (colors.get(i).texture() == 0) return SdlSparseTargets.begin(commands, colors, depth);
         return SDL_BeginGPURenderPass(commands, colors, depth);
     }
 

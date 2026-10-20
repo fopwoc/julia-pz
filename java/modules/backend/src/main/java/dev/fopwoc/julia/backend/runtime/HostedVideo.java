@@ -23,9 +23,13 @@ public final class HostedVideo implements AutoCloseable {
         platform.requireImplemented();
         platform.configureNativeLibraries();
         Configuration.OPENGL_EXPLICIT_INIT.set(true);
-        BackendOptions.latch(true, platform.gpuDriver(), 0);
+        BackendOptions.latch(true, platform.gpuBackend().driverName(), 0);
         Sdl.require(SDLInit.SDL_Init(SDLInit.SDL_INIT_VIDEO), "Initialize SDL video");
-        LOG.log(System.Logger.Level.INFO, "SDL video initialized for {0} ({1})", platform, platform.gpuDriver());
+        LOG.log(
+                System.Logger.Level.INFO,
+                "SDL video initialized for {0} ({1})",
+                platform,
+                platform.gpuBackend().driverName());
         return new HostedVideo(platform);
     }
 

@@ -33,8 +33,9 @@
   backend classes.
 - Every class in `dev.fopwoc.julia.probe.scene` is redirected as it loads and must contain redirected GL calls. Put
   non-GL helpers elsewhere.
-- Platform specifics stay behind `Platform`, `ForeignWindow`, and `BorrowedWindow`, with implementations in
-  per-platform packages such as `window.macos`.
+- OS specifics stay behind `Platform`, `ForeignWindow`, and `BorrowedWindow`, with implementations in per-OS packages
+  such as `window.macos`. GPU-API specifics stay behind `GpuBackend` (Metal, Vulkan, Direct3D 12). Julia's native SDL
+  extensions are bound once in `backend.sdl` and export the same C symbols for every GPU backend that implements them.
 - After changing service registration, loader prefixes, package names, or endpoint strings, run
   `./gradlew :probe:suiteProbe`. Unit tests do not cover the isolated loader path.
 

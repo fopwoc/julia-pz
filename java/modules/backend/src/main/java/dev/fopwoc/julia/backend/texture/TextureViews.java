@@ -12,7 +12,7 @@ import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.sampler.SamplerLookup;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.platform.Platform;
+import dev.fopwoc.julia.backend.sdl.SdlTextureViews;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -66,8 +66,7 @@ public final class TextureViews implements AutoCloseable {
             Upstream.aliasTexture(name, original);
         } else {
             int sdlType = target == GL_TEXTURE_2D ? SDL_GPU_TEXTURETYPE_2D : SDL_GPU_TEXTURETYPE_2D_ARRAY;
-            long handle = Platform.current()
-                    .createTextureView(source, sdlType, minLevel, range.levels(), minLayer, range.layers());
+            long handle = SdlTextureViews.create(source, sdlType, minLevel, range.levels(), minLayer, range.layers());
             boolean registered = false;
             try {
                 var viewMeta = new ResourceManager.TextureMeta(

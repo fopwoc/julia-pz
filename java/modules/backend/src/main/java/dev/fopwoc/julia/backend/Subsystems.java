@@ -2,8 +2,10 @@ package dev.fopwoc.julia.backend;
 
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import dev.fopwoc.julia.backend.framebuffer.Framebuffers;
-import dev.fopwoc.julia.backend.platform.Platform;
 import dev.fopwoc.julia.backend.query.Queries;
+import dev.fopwoc.julia.backend.sdl.SdlBufferTextures;
+import dev.fopwoc.julia.backend.sdl.SdlOcclusionQueries;
+import dev.fopwoc.julia.backend.sdl.SdlTimestamps;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.sync.GpuSyncs;
@@ -27,11 +29,10 @@ public final class Subsystems implements AutoCloseable {
     private final TextureBindings textureBindings = new TextureBindings();
     private final TextureObjects textureObjects = new TextureObjects();
     private final TextureViews textureViews = new TextureViews();
-    private final BufferTextures bufferTextures = new BufferTextures(Platform.current()::createBufferTextureDriver);
+    private final BufferTextures bufferTextures = new BufferTextures(SdlBufferTextures::new);
     private final WeakHashMap<ContextState, VolumeUnpack> volumeUnpack = new WeakHashMap<>();
     private final Set<Integer> bufferObjects = new HashSet<>();
-    private final Queries queries =
-            new Queries(Platform.current()::createTimestampDriver, Platform.current()::createOcclusionDriver);
+    private final Queries queries = new Queries(SdlTimestamps::new, SdlOcclusionQueries::new);
     private final GpuSyncs syncs = new GpuSyncs();
 
     public static Subsystems current() {

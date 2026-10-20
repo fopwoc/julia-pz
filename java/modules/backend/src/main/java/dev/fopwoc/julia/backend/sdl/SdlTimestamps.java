@@ -1,26 +1,24 @@
-package dev.fopwoc.julia.backend.query.macos;
+package dev.fopwoc.julia.backend.sdl;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.query.TimestampDriver;
 import dev.fopwoc.julia.backend.utils.Sdl;
-import org.lwjgl.sdl.SDL;
 import org.lwjgl.system.JNI;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
-/** Narrow binding to the versioned timestamp extension compiled inside Julia's SDL Metal backend. */
-public final class MetalTimestamps implements TimestampDriver {
-    private static final long CREATE = symbol("JULIA_SDL_CreateTimestampClock");
-    private static final long RECORD = symbol("JULIA_SDL_RecordTimestamp");
-    private static final long READ = symbol("JULIA_SDL_ReadTimestamp");
-    private static final long RELEASE = symbol("JULIA_SDL_ReleaseTimestamp");
-    private static final long CLOSE = symbol("JULIA_SDL_ReleaseTimestampClock");
+/** Narrow binding to Julia's native GPU timestamp extension (Metal: counter sample buffers). */
+public final class SdlTimestamps implements TimestampDriver {
+    private static final long CREATE = SdlExtension.symbol("JULIA_SDL_CreateTimestampClock");
+    private static final long RECORD = SdlExtension.symbol("JULIA_SDL_RecordTimestamp");
+    private static final long READ = SdlExtension.symbol("JULIA_SDL_ReadTimestamp");
+    private static final long RELEASE = SdlExtension.symbol("JULIA_SDL_ReleaseTimestamp");
+    private static final long CLOSE = SdlExtension.symbol("JULIA_SDL_ReleaseTimestampClock");
     private long clock;
 
-    public MetalTimestamps() {
-        if (JNI.invokeI(symbol("JULIA_SDL_TimestampABI")) != 1)
-            throw new IllegalStateException("Unexpected native GPU timestamp ABI");
+    public SdlTimestamps() {
+        SdlExtension.requireAbi("JULIA_SDL_TimestampABI", 1);
         clock = Sdl.require(JNI.invokePP(SDLGPUGate.device().getDevice(), CREATE), "Create GPU timestamp clock");
     }
 
@@ -67,11 +65,5 @@ public final class MetalTimestamps implements TimestampDriver {
             JNI.invokePV(clock, CLOSE);
             clock = 0;
         }
-    }
-
-    private static long symbol(String name) {
-        long address = SDL.getLibrary().getFunctionAddress(name);
-        if (address == 0) throw new IllegalStateException("Missing native timestamp extension: " + name);
-        return address;
     }
 }
