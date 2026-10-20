@@ -54,6 +54,8 @@ public final class SamplerLayout {
         var ordinary = new BitSet(TextureBindings.UNIT_COUNT);
         Arrays.fill(unitTargets, 0);
         for (var name : program.allSamplerNames) {
+            // Unreachable helpers can retain declarations without an active uniform location.
+            if (!program.nameToLocation.containsKey(name)) continue;
             int assigned = program.samplerTextureUnits.getInt(name);
             int unit = assigned == -1 ? 0 : assigned;
             if (unit < 0 || unit >= unitTargets.length)
@@ -63,7 +65,8 @@ public final class SamplerLayout {
                 target = targets.getOrDefault(name.substring(0, name.lastIndexOf('[')), 0);
             if (target == 0) throw new UnsupportedOperationException("Sampler target reflection missing: " + name);
             if (unitTargets[unit] != 0 && unitTargets[unit] != target)
-                throw new IllegalStateException("Different sampler targets share a texture unit");
+                throw new IllegalStateException("Different sampler targets share texture unit " + unit + ": " + name
+                        + " uses " + target + ", already " + unitTargets[unit]);
             unitTargets[unit] = target;
             if (names.containsKey(name)) buffers.set(unit);
             else ordinary.set(unit);

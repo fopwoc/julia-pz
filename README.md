@@ -257,3 +257,8 @@ See [THIRD_PARTY.md](THIRD_PARTY.md).
 
 Use `-javaagent:/absolute/path/julia-agent.jar=activate=/absolute/path/new-report-directory` with a separate game
 profile. Unsupported in-process consumers block startup; activation does not automatically fall back to vanilla.
+
+Sampler binding validation excludes inactive uniforms retained only by unreachable shader helpers. Those declarations
+keep their normal `-1` uniform locations and do not request buffer-texture storage or conflict with active samplers
+at default unit zero. Windowless checks cover unused cube, buffer and array samplers in both direct and argument-buffer
+layouts, while conflicting active sampler targets still fail with the unit, sampler name and target details.

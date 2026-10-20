@@ -88,6 +88,18 @@ final class HighTextureUnitChecks {
             glUniform1i(glGetUniformLocation(direct, "image"), 14);
             glUniform1i(glGetUniformLocation(direct, "first"), 78);
             glUniform1i(glGetUniformLocation(direct, "second"), 110);
+            for (String name :
+                    new String[] {"unusedCube", "unusedBuffer", "unusedLayers", "unusedLayers[0]", "unusedLayers[1]"})
+                if (glGetUniformLocation(direct, name) != -1)
+                    throw new IllegalStateException("Unreachable sampler became an active uniform: " + name);
+            glUniform1i(glGetUniformLocation(direct, "first"), 14);
+            try {
+                glDrawArrays(GL_TRIANGLES, 0, 3);
+                throw new AssertionError("Conflicting active sampler targets accepted");
+            } catch (IllegalStateException expected) {
+                if (!expected.getMessage().contains("Different sampler targets share texture unit 14")) throw expected;
+            }
+            glUniform1i(glGetUniformLocation(direct, "first"), 78);
             verify(target, 323); // Units 14, 78 and 110 all alias in a 32-bit unit mask.
             glUseProgram(indirect);
             int images = glGetUniformLocation(indirect, "images");
@@ -128,7 +140,7 @@ final class HighTextureUnitChecks {
                 throw new IllegalStateException("Deletion retained high binding");
             Files.writeString(
                     output.resolve("high-texture-units.txt"),
-                    "PASS\nverified_pixels=12\nchecks=128 logical units,32 graphics samplers,units 14/78/96/110/127,direct/argument bindings,buffer-mask aliasing,array uploads,atomic validation,sampler overrides,samplerless argument arrays,binding/unbinding,deletion\n");
+                    "PASS\nverified_pixels=12\nchecks=unreachable sampler helpers,active target conflicts,128 logical units,32 graphics samplers,units 14/78/96/110/127,direct/argument bindings,buffer-mask aliasing,array uploads,atomic validation,sampler overrides,samplerless argument arrays,binding/unbinding,deletion\n");
         } finally {
             glUseProgram(0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -163,7 +175,7 @@ final class HighTextureUnitChecks {
             glShaderSource(
                     f,
                     "#version 330 core\nuniform sampler2D " + (array ? "images[2]" : "image")
-                            + ";uniform usamplerBuffer first;uniform usamplerBuffer second;layout(location=0)out uint value;void main(){value=texelFetch(first,0).r+texelFetch(second,0).r+"
+                            + ";uniform samplerCube unusedCube;uniform usamplerBuffer unusedBuffer;uniform sampler2DArray unusedLayers[2];uniform usamplerBuffer first;uniform usamplerBuffer second;layout(location=0)out uint value;vec4 unusedSample(){return texture(unusedCube,vec3(1))+vec4(texelFetch(unusedBuffer,0))+texture(unusedLayers[1],vec3(0));}void main(){value=texelFetch(first,0).r+texelFetch(second,0).r+"
                             + (array
                                     ? fetch
                                             ? "uint(round(texelFetch(images[0],ivec2(0),0).r*255.))+uint(round(texelFetch(images[1],ivec2(1,0),0).r*255.))"
