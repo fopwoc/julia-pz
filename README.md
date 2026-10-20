@@ -2,13 +2,22 @@
 
 <img src="common/poster.png" alt="Julia" width="160" align="right">
 
-Julia runs Project Zomboid's OpenGL renderer on native graphics APIs: **Metal** on macOS today, with **Vulkan** on
-Linux and **Direct3D 12** on Windows planned. The game and its Java mods keep calling plain LWJGL OpenGL; Julia
-rewrites those calls as classes load and draws every frame through
-[Angelica](https://github.com/GTNewHorizons/Angelica)'s GL state manager and its SDL3 GPU backend. No OpenGL driver is
-involved.
+Julia does one thing: it translates Project Zomboid's OpenGL rendering to the platform's native graphics API —
+**Metal** on macOS today, with **Vulkan** on Linux and **Direct3D 12** on Windows planned. Modern APIs carry less driver
+overhead than OpenGL, which can mean higher and steadier FPS.
+
+The game and its Java mods keep calling plain LWJGL OpenGL. Julia rewrites those calls as classes load and draws every
+frame through [Angelica](https://github.com/GTNewHorizons/Angelica)'s GL state manager and its SDL3 GPU backend. No
+OpenGL driver is involved.
+
+A side effect on macOS: Apple's OpenGL is deprecated and stops at version 4.1, so mods that need newer GL features
+cannot run there. Because Julia never touches Apple's OpenGL, those mods work on Mac too. ViewPoint, which needs
+GL 4.3, is the first example.
 
 Julia targets **Project Zomboid Build 42** and is **experimental**.
+
+> [!NOTE]
+> This project contains AI-generated code. See [AI_USAGE.md](AI_USAGE.md) for details.
 
 ## Support
 
@@ -223,6 +232,3 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 
 Julia's own code is [WTFNMFPL](LICENSE). Bundled Angelica, LWJGL3ify and RetroFuturaBootstrap are LGPL v3; see
 [THIRD_PARTY.md](THIRD_PARTY.md).
-
-> [!NOTE]
-> This project contains AI-generated code. See [AI_USAGE.md](AI_USAGE.md) for details.
