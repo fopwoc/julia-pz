@@ -1,14 +1,23 @@
-# Development files; the Workshop item is the mod folder only.
+# The Workshop item is the mod folder plus Julia's full source (java/, native/), as ZombieBuddy recommends:
+# players can read exactly what the agent does. Only repository tooling and build output are left out.
 # See https://github.com/zed-0xff/ZBetterWorkshopUpload
 .git
 .github
 .gitignore
 .workshopignore
 .DS_Store
-java
 AGENTS.md
-AI_USAGE.md
-README.md
+
+# Build output and local tooling
+build/
+bin/
+.gradle/
+.kotlin/
+.idea/
+*.iml
+work/
+local-test.sh
+local.properties
 
 # Artwork sources
 *.pxd
