@@ -20,7 +20,7 @@ public final class MetalSamplerShaders {
 
     public static Output compile(ByteBuffer spirv, int stage) {
         long abi = SDL.getLibrary().getFunctionAddress("JULIA_SDL_SamplerArgumentsABI");
-        if (abi == 0 || JNI.invokeI(abi) != 1) throw new IllegalStateException("Missing native sampler-argument ABI");
+        if (abi == 0 || JNI.invokeI(abi) != 2) throw new IllegalStateException("Missing native sampler-argument ABI");
         try (var stack = MemoryStack.stackPush()) {
             var pointer = stack.pointers(0);
             SamplerResources.check(spvc_context_create(pointer));

@@ -8,6 +8,7 @@ import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import dev.fopwoc.julia.backend.BackendInternals;
 import dev.fopwoc.julia.backend.texture.SamplerLayout;
+import dev.fopwoc.julia.backend.texture.TextureBindings;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.WeakHashMap;
@@ -29,7 +30,7 @@ public final class BufferTextures implements AutoCloseable {
     private final HashMap<Integer, View> views = new HashMap<>();
     private final HashSet<Integer> ordinaryTextures = new HashSet<>();
     private final WeakHashMap<ProgramObject, SamplerLayout> layouts = new WeakHashMap<>();
-    private final int[] bound = new int[32];
+    private final int[] bound = new int[TextureBindings.UNIT_COUNT];
     private int boundBuffer;
     private int alignment;
     private long epoch;
@@ -178,7 +179,7 @@ public final class BufferTextures implements AutoCloseable {
         var program = state.boundProgramObj;
         if (program == null || !program.linked)
             return BackendInternals.textureBindings().get(state, unit, GL_TEXTURE_2D);
-        if ((layout(program).bufferUnits(program) & 1 << unit) == 0)
+        if (!layout(program).bufferUnit(program, unit))
             return BackendInternals.textureBindings()
                     .get(state, unit, layout(program).ordinaryTarget(program, unit));
         int name = bound[unit];
@@ -198,12 +199,9 @@ public final class BufferTextures implements AutoCloseable {
     public void prepare(ContextState state) {
         var program = state.boundProgramObj;
         if (program == null || !program.linked) return;
-        int mask = layout(program).bufferUnits(program);
-        while (mask != 0) {
-            int unit = Integer.numberOfTrailingZeros(mask);
+        var layout = layout(program);
+        for (int unit = layout.nextBufferUnit(program, 0); unit >= 0; unit = layout.nextBufferUnit(program, unit + 1))
             samplingHandle(samplerBinding(state, unit));
-            mask &= mask - 1;
-        }
     }
 
     public int levelParameter(int name, int level, int parameter) {

@@ -17,10 +17,15 @@ class SamplerResourcePassTest {
                 "sampler.SamplerBinder",
                 "shader.msl.MslCrossCompile",
                 "resource.FBOClearTracker",
-                "shader.SamplerOverflow"
+                "shader.SamplerOverflow",
+                "compute.VertexWriteReplayer",
+                "compute.VertexWriteReplayer$Replay",
+                "glsm.GLStateManager"
             })
     void pinnedIntegrationPreservesNativeBindingStrides(String suffix) throws Exception {
-        String name = "com.gtnewhorizons.angelica.sdlgpu." + suffix;
+        String name =
+                (suffix.startsWith("glsm.") ? "com.gtnewhorizons.angelica." : "com.gtnewhorizons.angelica.sdlgpu.")
+                        + suffix;
         byte[] bytes;
         try (var input = getClass().getClassLoader().getResourceAsStream(name.replace('.', '/') + ".class")) {
             assertNotNull(input, name);

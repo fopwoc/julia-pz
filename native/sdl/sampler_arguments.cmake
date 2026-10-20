@@ -87,3 +87,46 @@ static void METAL_INTERNAL_BindGraphicsResources(]=])
     string(APPEND source "\n" [=[#include "gpu_sampler_arguments.m"]=] "\n")
     file(WRITE "${backend}" "${source}")
 endif()
+
+# Samplerless sampled images have no sampler member in MSL. Writing absent IDs corrupts the argument buffer.
+file(READ "${backend}" source)
+string(FIND "${source}" "juliaSamplerMask" sampler_layout_patched)
+if(sampler_layout_patched EQUAL -1)
+    julia_sampler_replace([=[    id<MTLArgumentEncoder> juliaArguments;]=] [=[    id<MTLArgumentEncoder> juliaArguments;
+    Uint32 juliaSamplerMask;]=])
+    julia_sampler_replace([=[    id<MTLArgumentEncoder> juliaFragmentArguments;]=] [=[    id<MTLArgumentEncoder> juliaFragmentArguments;
+    Uint32 juliaVertexSamplerMask;
+    Uint32 juliaFragmentSamplerMask;]=])
+    julia_sampler_replace([=[        result->juliaFragmentArguments = fragmentShader->juliaArguments;]=] [=[        result->juliaFragmentArguments = fragmentShader->juliaArguments;
+        result->juliaVertexSamplerMask = vertexShader->juliaSamplerMask;
+        result->juliaFragmentSamplerMask = fragmentShader->juliaSamplerMask;]=])
+    julia_sampler_replace([=[        const char *marker = "// julia sampler arguments v1";]=] [=[        result->juliaSamplerMask = 0;
+        const char *marker = "// julia sampler arguments v1";]=])
+    julia_sampler_replace([=[            result->juliaArguments = [result->function newArgumentEncoderWithBufferIndex:13];]=] [=[            MTLArgument *reflection = nil;
+            result->juliaArguments = [result->function newArgumentEncoderWithBufferIndex:13 reflection:&reflection];
+            if (reflection == nil || reflection.bufferStructType == nil) {
+                METAL_ReleaseShader(driverData, (SDL_GPUShader *)result);
+                SDL_SetError("Julia sampled-resource argument reflection is unavailable");
+                return NULL;
+            }
+            for (MTLStructMember *member in reflection.bufferStructType.members) {
+                NSUInteger length = 1;
+                NSUInteger stride = 1;
+                if (member.dataType == MTLDataTypeArray && member.arrayType.elementType == MTLDataTypeSampler) {
+                    length = member.arrayType.arrayLength;
+                    stride = member.arrayType.argumentIndexStride;
+                } else if (member.dataType != MTLDataTypeSampler) {
+                    continue;
+                }
+                for (NSUInteger i = 0; i < length; i++) {
+                    NSUInteger index = member.argumentIndex + i * stride;
+                    if (index < 32 || index >= 64) {
+                        METAL_ReleaseShader(driverData, (SDL_GPUShader *)result);
+                        SDL_SetError("Julia sampled-resource sampler index is outside its table");
+                        return NULL;
+                    }
+                    result->juliaSamplerMask |= (Uint32)1 << (index - 32);
+                }
+            }]=])
+    file(WRITE "${backend}" "${source}")
+endif()

@@ -3,6 +3,7 @@ package dev.fopwoc.julia.backend.shader;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import dev.fopwoc.julia.backend.BackendInternals;
+import dev.fopwoc.julia.backend.texture.TextureBindings;
 import java.nio.IntBuffer;
 
 /** Validate an entire sampler-array assignment before changing any texture-unit mapping. */
@@ -26,8 +27,9 @@ public final class SamplerUniforms {
             int unit = values.get(values.position() + i);
             if (at < 0 || !program.allSamplerNames.contains(element))
                 throw new IllegalArgumentException("Sampler upload exceeds reflected array: " + name);
-            if (unit < 0 || unit >= SamplerResources.LIMIT)
-                throw new IllegalArgumentException("Sampler texture unit outside 0..31: " + unit);
+            if (unit < 0 || unit >= TextureBindings.UNIT_COUNT)
+                throw new IllegalArgumentException(
+                        "Sampler texture unit outside 0.." + (TextureBindings.UNIT_COUNT - 1) + ": " + unit);
             locations[i] = at;
         }
         var backend = BackendManager.RENDER_BACKEND;

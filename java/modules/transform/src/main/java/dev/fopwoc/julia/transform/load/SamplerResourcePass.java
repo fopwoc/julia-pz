@@ -1,5 +1,9 @@
 package dev.fopwoc.julia.transform.load;
 
+import static dev.fopwoc.julia.backend.texture.TextureBindings.UNIT_COUNT;
+import static org.lwjgl.opengl.GL20.GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+import static org.lwjgl.opengl.GL20.GL_MAX_TEXTURE_IMAGE_UNITS;
+
 import dev.fopwoc.julia.transform.Endpoint;
 import java.util.Set;
 import org.objectweb.asm.*;
@@ -19,17 +23,27 @@ public final class SamplerResourcePass {
     private SamplerResourcePass() {}
 
     public static byte[] adapt(String name, byte[] bytes) {
+        boolean replay = name.equals(ROOT + "compute.VertexWriteReplayer");
+        boolean replayLayout = name.equals(ROOT + "compute.VertexWriteReplayer$Replay");
+        boolean glsm = name.equals("com.gtnewhorizons.angelica.glsm.GLStateManager");
         boolean manager = name.equals(ROOT + "shader.ShaderManager");
         boolean context = name.equals(ROOT + "frame.ContextState");
         boolean binder = name.equals(ROOT + "sampler.SamplerBinder");
         boolean msl = name.equals(ROOT + "shader.msl.MslCrossCompile");
         boolean clears = name.equals(ROOT + "resource.FBOClearTracker");
         boolean overflow = name.equals(ROOT + "shader.SamplerOverflow");
-        if (!manager && !context && !binder && !msl && !clears && !overflow) return bytes;
+        if (!replay && !replayLayout && !glsm && !manager && !context && !binder && !msl && !clears && !overflow)
+            return bytes;
         var node = new ClassNode();
         new ClassReader(bytes).accept(node, 0);
         int edits = 0;
         for (var field : node.fields) {
+            if (replay && field.name.equals("TEXTURE_UNITS")) {
+                if (!Integer.valueOf(32).equals(field.value))
+                    throw new IllegalStateException("Pinned replay unit limit changed");
+                field.value = UNIT_COUNT;
+                edits++;
+            }
             if ((context && field.name.equals("MAX_SAMPLERS")) || (overflow && field.name.equals("SAMPLER_SLOTS"))) {
                 if (!Integer.valueOf(16).equals(field.value))
                     throw new IllegalStateException("Pinned sampler constant changed");
@@ -38,6 +52,33 @@ public final class SamplerResourcePass {
             }
         }
         for (var method : node.methods) {
+            if (replay && method.name.equals("<init>")) {
+                for (var instruction : method.instructions.toArray())
+                    if (instruction instanceof FieldInsnNode field
+                            && field.getOpcode() == Opcodes.PUTFIELD
+                            && Set.of("samplerOverrides", "savedTextures").contains(field.name)) {
+                        var size = field.getPrevious().getPrevious();
+                        if (!(size instanceof IntInsnNode value) || value.operand != 32)
+                            throw new IllegalStateException("Pinned replay unit allocation changed");
+                        method.instructions.set(size, new IntInsnNode(Opcodes.SIPUSH, UNIT_COUNT));
+                        edits++;
+                    }
+            }
+            if (replayLayout && method.name.equals("resolveSamplers")) {
+                for (var instruction : method.instructions.toArray())
+                    if (instruction instanceof IntInsnNode value && value.operand == 31) {
+                        method.instructions.set(value, new IntInsnNode(Opcodes.BIPUSH, UNIT_COUNT - 1));
+                        edits++;
+                    }
+            }
+            if (glsm && method.name.equals("<clinit>")) {
+                for (var instruction : method.instructions.toArray())
+                    if (instruction instanceof LdcInsnNode value
+                            && Integer.valueOf(GL_MAX_TEXTURE_IMAGE_UNITS).equals(value.cst)) {
+                        value.cst = GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+                        edits++;
+                    }
+            }
             if (manager
                     && (method.name.equals("collectResourceIds")
                             || method.name.equals("collectSamplerEntries")
@@ -87,18 +128,20 @@ public final class SamplerResourcePass {
                 }
             if (context && method.name.equals("<init>")) {
                 for (var instruction : method.instructions.toArray()) {
-                    if (!(instruction instanceof FieldInsnNode field)
-                            || field.getOpcode() != Opcodes.PUTFIELD
-                            || !TABLES.contains(field.name)) continue;
+                    if (!(instruction instanceof FieldInsnNode field) || field.getOpcode() != Opcodes.PUTFIELD)
+                        continue;
+                    boolean logical = field.name.equals("boundTextures") || field.name.equals("boundSamplerObjects");
+                    if (!logical && !TABLES.contains(field.name)) continue;
                     var value = field.getPrevious();
                     if (value instanceof IntInsnNode array && array.getOpcode() == Opcodes.NEWARRAY)
                         value = value.getPrevious();
                     else if (value instanceof MethodInsnNode call && call.name.equals("calloc"))
                         value = value.getPrevious();
                     else throw new IllegalStateException("Pinned sampler allocation changed: " + field.name);
-                    if (!(value instanceof IntInsnNode constant) || constant.operand != 16)
+                    if (!(value instanceof IntInsnNode constant) || constant.operand != (logical ? 32 : 16))
                         throw new IllegalStateException("Pinned sampler capacity changed: " + field.name);
-                    constant.operand = 32;
+                    if (logical) method.instructions.set(constant, new IntInsnNode(Opcodes.SIPUSH, UNIT_COUNT));
+                    else constant.operand = 32;
                     edits++;
                 }
             }
@@ -148,7 +191,9 @@ public final class SamplerResourcePass {
                 edits++;
             }
         }
-        int expected = manager ? 8 : context ? 7 : binder ? 4 : clears || overflow ? 2 : 1;
+        int expected = replay
+                ? 3
+                : replayLayout ? 1 : glsm ? 1 : manager ? 8 : context ? 9 : binder ? 4 : clears || overflow ? 2 : 1;
         if (edits != expected)
             throw new IllegalStateException(
                     "Pinned sampler integration changed: " + name + " anchors=" + edits + " expected=" + expected);

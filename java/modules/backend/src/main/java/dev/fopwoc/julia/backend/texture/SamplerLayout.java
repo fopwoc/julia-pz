@@ -15,6 +15,7 @@ import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import org.lwjgl.system.MemoryStack;
@@ -25,9 +26,9 @@ public final class SamplerLayout {
     private final ByteBuffer vertex, fragment, compute;
     private final Map<String, Integer> names = new HashMap<>();
     private final Map<String, Integer> targets = new HashMap<>();
-    private final int[] unitTargets = new int[32];
+    private final int[] unitTargets = new int[TextureBindings.UNIT_COUNT];
     private int generation = Integer.MIN_VALUE;
-    private int bufferMask;
+    private BitSet bufferUnits = new BitSet(TextureBindings.UNIT_COUNT);
 
     public SamplerLayout(ProgramObject program) {
         vertex = program.vertexSpirv;
@@ -46,15 +47,16 @@ public final class SamplerLayout {
         return names.getOrDefault(name, fallback);
     }
 
-    public int bufferUnits(ProgramObject program) {
+    private void refreshUnits(ProgramObject program) {
         SamplerLookup.resolvedUnits(program, false);
-        if (generation == program.samplerUnitsGeneration) return bufferMask;
-        int buffers = 0, ordinary = 0;
+        if (generation == program.samplerUnitsGeneration) return;
+        var buffers = new BitSet(TextureBindings.UNIT_COUNT);
+        var ordinary = new BitSet(TextureBindings.UNIT_COUNT);
         Arrays.fill(unitTargets, 0);
         for (var name : program.allSamplerNames) {
             int assigned = program.samplerTextureUnits.getInt(name);
             int unit = assigned == -1 ? 0 : assigned;
-            if (unit < 0 || unit >= 32)
+            if (unit < 0 || unit >= unitTargets.length)
                 throw new IllegalArgumentException("Sampler texture unit out of range: " + unit);
             int target = targets.getOrDefault(name, 0);
             if (target == 0 && name.endsWith("]"))
@@ -63,17 +65,27 @@ public final class SamplerLayout {
             if (unitTargets[unit] != 0 && unitTargets[unit] != target)
                 throw new IllegalStateException("Different sampler targets share a texture unit");
             unitTargets[unit] = target;
-            if (names.containsKey(name)) buffers |= 1 << unit;
-            else ordinary |= 1 << unit;
+            if (names.containsKey(name)) buffers.set(unit);
+            else ordinary.set(unit);
         }
-        if ((buffers & ordinary) != 0) throw new IllegalStateException("Different sampler types share a texture unit");
-        bufferMask = buffers;
+        if (buffers.intersects(ordinary))
+            throw new IllegalStateException("Different sampler types share a texture unit");
+        bufferUnits = buffers;
         generation = program.samplerUnitsGeneration;
-        return buffers;
+    }
+
+    public boolean bufferUnit(ProgramObject program, int unit) {
+        refreshUnits(program);
+        return bufferUnits.get(unit);
+    }
+
+    public int nextBufferUnit(ProgramObject program, int from) {
+        refreshUnits(program);
+        return bufferUnits.nextSetBit(from);
     }
 
     public int ordinaryTarget(ProgramObject program, int unit) {
-        bufferUnits(program);
+        refreshUnits(program);
         return unitTargets[unit] == 0 ? GL_TEXTURE_2D : unitTargets[unit];
     }
 

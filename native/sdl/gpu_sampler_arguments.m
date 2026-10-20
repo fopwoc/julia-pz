@@ -1,11 +1,12 @@
 /* Julia extension: indirect sampled resources, compiled inside the pinned SDL Metal backend. */
 #ifdef SDL_GPU_METAL
-__attribute__((visibility("default"))) int SDLCALL JULIA_SDL_SamplerArgumentsABI(void) { return 1; }
+__attribute__((visibility("default"))) int SDLCALL JULIA_SDL_SamplerArgumentsABI(void) { return 2; }
 
 static void JULIA_MetalBindSamplerArguments(MetalCommandBuffer *commandBuffer, bool fragment)
 {
     MetalGraphicsPipeline *pipeline = commandBuffer->graphics_pipeline;
     id<MTLArgumentEncoder> encoder = fragment ? pipeline->juliaFragmentArguments : pipeline->juliaVertexArguments;
+    Uint32 samplerMask = fragment ? pipeline->juliaFragmentSamplerMask : pipeline->juliaVertexSamplerMask;
     Uint32 count = fragment ? pipeline->header.num_fragment_samplers : pipeline->header.num_vertex_samplers;
     id<MTLTexture> __strong *textures = fragment ? commandBuffer->fragmentTextures : commandBuffer->vertexTextures;
     id<MTLSamplerState> __strong *samplers = fragment ? commandBuffer->fragmentSamplers : commandBuffer->vertexSamplers;
@@ -19,10 +20,10 @@ static void JULIA_MetalBindSamplerArguments(MetalCommandBuffer *commandBuffer, b
     MTLRenderStages stage = fragment ? MTLRenderStageFragment : MTLRenderStageVertex;
     for (Uint32 i = 0; i < count; i++) {
         [encoder setTexture:textures[i] atIndex:i];
-        [encoder setSamplerState:samplers[i] atIndex:32 + i];
+        if (samplerMask & ((Uint32)1 << i)) [encoder setSamplerState:samplers[i] atIndex:32 + i];
         [commandBuffer->renderEncoder useResource:textures[i] usage:MTLResourceUsageRead stages:stage];
         if (textures[i] != nil) [retained addObject:textures[i]];
-        if (samplers[i] != nil) [retained addObject:samplers[i]];
+        if ((samplerMask & ((Uint32)1 << i)) && samplers[i] != nil) [retained addObject:samplers[i]];
     }
     if (fragment) [commandBuffer->renderEncoder setFragmentBuffer:arguments offset:0 atIndex:13];
     else [commandBuffer->renderEncoder setVertexBuffer:arguments offset:0 atIndex:13];

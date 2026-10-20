@@ -140,6 +140,9 @@ into the game JVM.
 Limits include rejected layered rendering of an entire array/volume, framebuffer-slice readback/blits,
 split depth/stencil images, single-aspect rendering of packed depth/stencil images, and SDL depth slice indices above 255.
 Bound ShortBuffer and FloatBuffer subimage uploads currently support 2D targets and matching transfer/storage formats.
+Logical texture bindings span 128 units, independently of the 32 sampled resources per graphics stage.
+High-unit probes cover buffer textures, sampler arrays, sampler overrides, and atomic array assignments.
+Metal argument-buffer encoding follows reflected sampler members, including samplerless buffer/2D textures.
 Bound IntBuffer subimage uploads support 3D and 2D-array targets with matching transfer/storage formats.
 RGB32I/UI client uploads expand to four physical components with integer alpha one, including mutable volume
 initialization. Windowless checks verify 864 exact channel values across signed/unsigned volumes and arrays,
