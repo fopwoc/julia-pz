@@ -50,6 +50,7 @@ import dev.fopwoc.julia.backend.texture.TextureObjects;
 import dev.fopwoc.julia.backend.texture.TextureViews;
 import dev.fopwoc.julia.backend.texture.VolumeUnpack;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextures;
+import dev.fopwoc.julia.backend.vertex.BaseInstanceDraws;
 import dev.fopwoc.julia.backend.vertex.VertexInputs;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -66,6 +67,14 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     GpuSyncs syncs() {
         return syncs;
+    }
+
+    @Override
+    public void drawArraysInstanced(int mode, int first, int count, int instances) {
+        if (count <= 0 || instances <= 0) return;
+        try (var _ = BaseInstanceDraws.offsets(BackendInternals.context())) {
+            super.drawArraysInstanced(mode, first, count, instances);
+        }
     }
 
     @Override
@@ -640,7 +649,10 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public void drawElementsInstanced(int mode, int count, int type, long indices, int instances) {
-        super.drawElementsInstanced(mode, count, type, indices, instances);
+        if (count <= 0 || instances <= 0) return;
+        try (var _ = BaseInstanceDraws.offsets(BackendInternals.context())) {
+            super.drawElementsInstanced(mode, count, type, indices, instances);
+        }
         ModelDrawTrace.record(count);
     }
 

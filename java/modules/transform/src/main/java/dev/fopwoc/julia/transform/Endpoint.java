@@ -43,6 +43,7 @@ public enum Endpoint {
     COMPAT_SHADER_INPUT("dev/fopwoc/julia/backend/compat/CompatShaderInput", false),
     SHADER_SOURCES("dev/fopwoc/julia/backend/compat/ShaderSources", false),
     VERTEX_BINDING_BRIDGE("dev/fopwoc/julia/backend/bridge/VertexBindingBridge", false),
+    BASE_INSTANCE_DRAWS("dev/fopwoc/julia/backend/vertex/BaseInstanceDraws", false),
     VERTEX_INPUTS("dev/fopwoc/julia/backend/vertex/VertexInputs", false),
     BUFFER_TEXTURE_BRIDGE("dev/fopwoc/julia/backend/bridge/BufferTextureBridge", false),
     BUFFER_TEXTURE_HOOKS("dev/fopwoc/julia/backend/texture/buffer/BufferTextureHooks", false),
