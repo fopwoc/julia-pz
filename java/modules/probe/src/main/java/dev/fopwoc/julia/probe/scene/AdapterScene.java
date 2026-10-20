@@ -100,11 +100,14 @@ public final class AdapterScene {
             Files.deleteIfExists(output.resolve("resource-checks.txt"));
             InitialFrameChecks.run();
             ResourceChecks.run();
+            NamedBufferChecks.run(output);
+
             ArrayApiChecks.run();
             BufferTextureChecks.run(output);
             DivisorChecks.run(output);
             NamedTextureChecks.run(output);
             TextureLevelChecks.run(output);
+            TextureReadbackChecks.run(output);
             TextureBindingChecks.run(output);
             ProgramBinaryChecks.run(output);
             FramebufferChecks.run(output);

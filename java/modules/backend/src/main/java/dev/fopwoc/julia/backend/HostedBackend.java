@@ -17,6 +17,8 @@ import static org.lwjgl.opengl.GL20.GL_MAX_TEXTURE_IMAGE_UNITS;
 import static org.lwjgl.opengl.GL20.GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL30.GL_R8;
+import static org.lwjgl.opengl.GL31.GL_COPY_READ_BUFFER;
+import static org.lwjgl.opengl.GL31.GL_COPY_WRITE_BUFFER;
 import static org.lwjgl.opengl.GL31.GL_MAX_TEXTURE_BUFFER_SIZE;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BINDING_BUFFER;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
@@ -57,6 +59,7 @@ import dev.fopwoc.julia.backend.vertex.VertexInputs;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.HashSet;
 import java.util.WeakHashMap;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -294,6 +297,8 @@ public final class HostedBackend extends SDLGPURenderBackend {
             case GL_NUM_PROGRAM_BINARY_FORMATS -> 0;
             case GL_MAX_TEXTURE_IMAGE_UNITS, GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS -> SamplerResources.LIMIT;
             case GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS -> TextureBindings.UNIT_COUNT;
+            case GL_COPY_READ_BUFFER -> BackendInternals.context().boundCopyReadBuffer;
+            case GL_COPY_WRITE_BUFFER -> BackendInternals.context().boundCopyWriteBuffer;
             case GL_DRAW_INDIRECT_BUFFER_BINDING -> BackendInternals.context().boundIndirectBuffer;
             case GL_UNPACK_IMAGE_HEIGHT -> volumeUnpack().imageHeight;
             case GL_UNPACK_SKIP_IMAGES -> volumeUnpack().skipImages;
@@ -360,6 +365,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
     public void bindBuffer(int target, int name) {
         if (target == GL_TEXTURE_BUFFER) bufferTextures.bindBuffer(name);
         else super.bindBuffer(target, name);
+        if (name != 0 && BackendInternals.context().getBoundBuffer(target) == name) bufferObjects.add(name);
     }
 
     @Override
@@ -369,8 +375,23 @@ public final class HostedBackend extends SDLGPURenderBackend {
         super.bufferSubData(target, offset, data);
     }
 
+    private final HashSet<Integer> bufferObjects = new HashSet<>();
+
+    @Override
+    public int createBuffers() {
+        int name = super.createBuffers();
+        bufferObjects.add(name);
+        return name;
+    }
+
+    @Override
+    public boolean isBuffer(int name) {
+        return bufferObjects.contains(name) || super.isBuffer(name);
+    }
+
     @Override
     public void deleteBuffers(int name) {
+        bufferObjects.remove(name);
         bufferTextures.deletedBuffer(name);
         super.deleteBuffers(name);
     }

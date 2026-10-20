@@ -14,6 +14,7 @@ import dev.fopwoc.julia.transform.load.StencilReferencePass;
 import dev.fopwoc.julia.transform.load.StrictQueryPass;
 import dev.fopwoc.julia.transform.load.TextureBindingPass;
 import dev.fopwoc.julia.transform.load.TextureFormatPass;
+import dev.fopwoc.julia.transform.load.TextureUploadOrderPass;
 import dev.fopwoc.julia.transform.load.TextureViewPass;
 import dev.fopwoc.julia.transform.load.VertexInputPass;
 import dev.fopwoc.julia.transform.load.WindowQueryPass;
@@ -63,6 +64,7 @@ final class RuntimeLoader extends URLClassLoader {
             bytes = StrictQueryPass.adapt(name, bytes);
             bytes = FramebufferPass.adapt(name, bytes);
             bytes = TextureBindingPass.adapt(name, bytes);
+            bytes = TextureUploadOrderPass.adapt(name, bytes);
             bytes = TextureFormatPass.adapt(name, bytes);
             bytes = TextureViewPass.adapt(name, bytes);
             bytes = BufferTexturePass.adapt(name, bytes);

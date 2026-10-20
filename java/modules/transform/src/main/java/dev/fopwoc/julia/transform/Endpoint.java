@@ -35,6 +35,7 @@ public enum Endpoint {
     BOUND_TEXTURE_BRIDGE("dev/fopwoc/julia/backend/bridge/BoundTextureBridge", false),
     NAMED_TEXTURE_BRIDGE("dev/fopwoc/julia/backend/bridge/NamedTextureBridge", false),
     TEXTURE_ALLOCATION_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureAllocationBridge", false),
+    BUFFER_TRANSFER_BRIDGE("dev/fopwoc/julia/backend/bridge/BufferTransferBridge", false),
     BUFFER_STORAGE_BRIDGE("dev/fopwoc/julia/backend/bridge/BufferStorageBridge", false),
     TEXTURE_CLEAR_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureClearBridge", false),
     TEXTURE_VIEW_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureViewBridge", false),
@@ -51,6 +52,7 @@ public enum Endpoint {
     BUFFER_TEXTURE_HOOKS("dev/fopwoc/julia/backend/texture/buffer/BufferTextureHooks", false),
     TEXTURE_BINDING_HOOKS("dev/fopwoc/julia/backend/texture/TextureBindingHooks", false),
     TEXTURE_VIEW_HOOKS("dev/fopwoc/julia/backend/texture/TextureViewHooks", false),
+    TEXTURE_READBACK_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureReadbackBridge", false),
     TEXTURE_COPY_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureCopyBridge", false);
 
     private static final Map<String, Endpoint> BY_OWNER =

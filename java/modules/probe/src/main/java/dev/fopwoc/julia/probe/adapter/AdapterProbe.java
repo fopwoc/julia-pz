@@ -59,6 +59,8 @@ public final class AdapterProbe {
                 verified_texture_binding_pixels=112
                 verified_texture_binding_compute_words=4
                 verified_named_texture_pixels=377
+                verified_named_buffer_bytes=80
+                verified_texture_readback_pixels=34
                 verified_divisor_pixels=1248
                 verified_buffer_texture_pixels=2560
                 buffer_texture_checks=nine 32-bit formats,vertex/fragment/compute reads,range alignment,shared updates,reallocation,deletion,pending draw ordering,separate target bindings,million-texel view,invalid ranges and formats

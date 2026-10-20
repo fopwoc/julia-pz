@@ -282,3 +282,20 @@ additional checked pixels once bindings are valid. Conflicting active targets st
 reports include scalar integer uniforms to expose branch selectors. Explicit zero sampler assignments are retained
 even when the upstream value cache skips a zero-to-zero update; the previous `0 (default)` label alone did not
 prove that an assignment call was absent. These diagnostics change no shader branches or mod state.
+
+The fresh-save light-readback path next reached size-only `glNamedBufferStorage`. Named immutable storage now
+supports allocation without client data, retaining checked flags, size and redefinition rules. Buffer object identity
+survives empty creation and first binding until deletion. Named buffer copies and writable direct-buffer reads
+validate ranges, reject overlapping same-object copies and preserve copy bindings and caller positions. The
+windowless regression verifies 80 exact bytes copied by the GPU into immutable client-storage buffers.
+
+Named 2D RGBA8 texture downloads now support writable direct byte buffers and pixel-pack-buffer offsets through
+the existing SDL readback path. Capacity checks precede writes; unsupported targets/formats fail explicitly. This
+path currently uses the upstream synchronous staging implementation. GPU clears, fenced pack-buffer reads, repeat
+updates, mip views, canaries and binding preservation verify 34 pixel observations. No mod code is patched.
+
+The expanded transfer sequence also exposed an upload-ordering bug: deferred upstream texture uploads could be
+submitted before earlier inline Julia writes. The isolated backend now keeps texture uploads in the render command
+stream; buffer-transfer workers are unchanged. The full offscreen sequence that previously returned stale texture
+contents passes with this policy. This changes texture-upload command encoding and needs performance validation
+in game. Sampler conflict validation and fail-fast behavior remain unchanged.

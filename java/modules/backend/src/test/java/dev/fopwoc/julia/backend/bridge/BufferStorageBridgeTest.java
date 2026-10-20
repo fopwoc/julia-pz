@@ -17,6 +17,17 @@ class BufferStorageBridgeTest {
     }
 
     @Test
+    void validatesSizeOnlyStorageBeforeBackendAccess() {
+        for (long size : new long[] {0, -1, Long.MIN_VALUE})
+            assertThrows(IllegalArgumentException.class, () -> BufferStorageBridge.glNamedBufferStorage(1, size, 0));
+        assertThrows(IllegalArgumentException.class, () -> BufferStorageBridge.glNamedBufferStorage(0, 8L, 0));
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> BufferStorageBridge.glNamedBufferStorage(1, (long) Integer.MAX_VALUE + 1, 0));
+        assertThrows(IllegalArgumentException.class, () -> BufferStorageBridge.glNamedBufferStorage(1, 8L, 4));
+    }
+
+    @Test
     void enforcesPersistentAndCoherentMappingFlagDependencies() {
         for (int flags : new int[] {0, 0x100, 1, 2, 0x41, 0x42, 0xC2, 0x3C3}) {
             assertDoesNotThrow(() -> BufferStorageBridge.validateFlags(flags));

@@ -48,11 +48,19 @@ public final class BufferStorageBridge {
 
     public static void glNamedBufferStorage(int buffer, ByteBuffer data, int flags) {
         Objects.requireNonNull(data);
-        validateFlags(flags);
         if (!data.isDirect()) throw new IllegalArgumentException("Named buffer storage requires direct byte data");
-        if (buffer <= 0 || !data.hasRemaining()) {
-            throw new IllegalArgumentException("Buffer and storage size must be positive");
-        }
+        storage(buffer, data.remaining(), data, flags);
+    }
+
+    public static void glNamedBufferStorage(int buffer, long size, int flags) {
+        storage(buffer, size, null, flags);
+    }
+
+    private static void storage(int buffer, long size, ByteBuffer data, int flags) {
+        validateFlags(flags);
+        if (buffer <= 0 || size <= 0) throw new IllegalArgumentException("Buffer and storage size must be positive");
+        if (size > Integer.MAX_VALUE)
+            throw new UnsupportedOperationException("Named buffer storage exceeds the supported byte range");
         var context = BackendInternals.context();
         boolean known = GLStateManager.glIsBuffer(buffer);
         for (int target : BINDING_TARGETS) known |= context.getBoundBuffer(target) == buffer;
@@ -66,7 +74,11 @@ public final class BufferStorageBridge {
         int previous = context.boundCopyWriteBuffer;
         try {
             GLStateManager.glBindBuffer(GL_COPY_WRITE_BUFFER, buffer);
-            GLStateManager.glBufferStorage(GL_COPY_WRITE_BUFFER, data.duplicate(), flags);
+            if (data == null) GLStateManager.glBufferStorage(GL_COPY_WRITE_BUFFER, size, flags);
+            else GLStateManager.glBufferStorage(GL_COPY_WRITE_BUFFER, data.duplicate(), flags);
+            var resources = BackendInternals.resources();
+            if (resources.getBufferHandle(buffer) == 0 || resources.getBufferSize(buffer) != size)
+                throw new IllegalStateException("Named buffer storage allocation failed");
         } finally {
             GLStateManager.glBindBuffer(GL_COPY_WRITE_BUFFER, previous);
         }

@@ -138,6 +138,19 @@ public final class BackendInternals {
         return (DrawDispatch) DRAW_DISPATCH.get(ownedBackend());
     }
 
+    /** The pinned readback path selects its object from the execution mirror, not the logical target bank. */
+    public static void withReadbackTexture(int texture, Runnable operation) {
+        var state = context();
+        int unit = state.activeTextureUnit;
+        int previous = state.boundTextures[unit];
+        try {
+            state.boundTextures[unit] = texture;
+            operation.run();
+        } finally {
+            state.boundTextures[unit] = previous;
+        }
+    }
+
     public static void lockedDraw(Runnable action) {
         ownedBackend();
         try {
