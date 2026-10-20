@@ -20,6 +20,7 @@ public final class JuliaAgent {
     public static void premain(String arguments, Instrumentation instrumentation) throws Exception {
         LogConfiguration.configure();
         LOG.log(System.Logger.Level.INFO, "Starting Julia agent");
+        MetalHud.enableIfRequested();
         if (arguments == null || arguments.isBlank()) {
             throw new IllegalArgumentException("Supply activate, activate=/path/new-run, or an audit report path");
         }
