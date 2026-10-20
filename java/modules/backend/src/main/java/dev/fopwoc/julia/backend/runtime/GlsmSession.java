@@ -8,6 +8,7 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.device.Device;
 import dev.fopwoc.julia.backend.HostedBackend;
+import dev.fopwoc.julia.backend.sdl.SdlDeveloperHud;
 import dev.fopwoc.julia.runtime.CapabilitySnapshot;
 import java.util.function.Supplier;
 import me.eigenraven.lwjgl3ify.api.GLCapabilitiesOverride;
@@ -66,7 +67,10 @@ public final class GlsmSession implements AutoCloseable {
             throw new IllegalStateException("Expected " + driver + " device, got " + device.getDriverName());
         }
         LOG.log(System.Logger.Level.INFO, "Created {0} device on {1}", device.getDriverName(), device.getDeviceName());
-        if (window != 0) device.claimWindow(window);
+        if (window != 0) {
+            device.claimWindow(window);
+            SdlDeveloperHud.showIfRequested(device.getDevice(), window);
+        }
         backend = BackendManager.RENDER_BACKEND;
         if (!(backend instanceof HostedBackend))
             throw new IllegalStateException("Unexpected backend: " + backend.getName());
