@@ -20,6 +20,7 @@ import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL31.GL_MAX_TEXTURE_BUFFER_SIZE;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BINDING_BUFFER;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
+import static org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER_BINDING;
 import static org.lwjgl.opengl.GL41.GL_NUM_PROGRAM_BINARY_FORMATS;
 import static org.lwjgl.opengl.GL43.GL_DEPTH_STENCIL_TEXTURE_MODE;
 import static org.lwjgl.opengl.GL43.GL_MAX_VERTEX_ATTRIB_BINDINGS;
@@ -292,6 +293,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
             case GL_NUM_PROGRAM_BINARY_FORMATS -> 0;
             case GL_MAX_TEXTURE_IMAGE_UNITS, GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS -> SamplerResources.LIMIT;
             case GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS -> TextureBindings.UNIT_COUNT;
+            case GL_DRAW_INDIRECT_BUFFER_BINDING -> BackendInternals.context().boundIndirectBuffer;
             case GL_UNPACK_IMAGE_HEIGHT -> volumeUnpack().imageHeight;
             case GL_UNPACK_SKIP_IMAGES -> volumeUnpack().skipImages;
             case GL_UNPACK_SWAP_BYTES -> volumeUnpack().swapBytes ? GL_TRUE : GL_FALSE;

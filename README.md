@@ -143,6 +143,10 @@ Bound ShortBuffer and FloatBuffer subimage uploads currently support 2D targets 
 Logical texture bindings span 128 units, independently of the 32 sampled resources per graphics stage.
 High-unit probes cover buffer textures, sampler arrays, sampler overrides, and atomic array assignments.
 Metal argument-buffer encoding follows reflected sampler members, including samplerless buffer/2D textures.
+Indirect array draws consume GPU-resident command buffers through SDL, including padded command strides.
+MSL instance IDs subtract the native base while vertex IDs retain their original meaning; constant attributes
+use Metal constant stepping. GPU-compute-generated commands are checked across 240 offscreen pixels.
+Indirect client pointers, compatibility primitive modes, and vertex-side-effect replay remain unsupported.
 Base-instance array draws offset only instanced attribute bindings after GLSM pointer repair, then restore
 the VAO. Shader instance IDs remain zero-based and divisors apply before the base record offset.
 Windowless checks cover 960 pixels, including shared bindings, legacy pointers, ordinary draws, and quad conversion.

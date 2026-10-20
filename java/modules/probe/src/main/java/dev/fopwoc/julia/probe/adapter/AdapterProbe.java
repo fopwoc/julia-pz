@@ -54,6 +54,7 @@ public final class AdapterProbe {
                 verified_high_texture_unit_pixels=12
                 verified_bound_volume_storage_pixels=76
                 verified_base_instance_pixels=960
+                verified_indirect_draw_pixels=240
                 gl_program_binary_formats=0
                 verified_texture_binding_pixels=112
                 verified_texture_binding_compute_words=4

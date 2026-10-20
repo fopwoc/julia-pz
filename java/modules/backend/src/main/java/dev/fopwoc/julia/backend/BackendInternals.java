@@ -9,6 +9,7 @@ import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FenceTracker;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.AttachmentClear;
+import com.gtnewhorizons.angelica.sdlgpu.pipeline.DrawDispatch;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineApplier;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FBOClearTracker;
 import com.gtnewhorizons.angelica.sdlgpu.resource.PixelOps;
@@ -43,6 +44,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public final class BackendInternals {
     private static final VarHandle PIPELINE_APPLIER;
+    private static final VarHandle DRAW_DISPATCH;
     private static final VarHandle ATTACHMENT_CLEAR;
     private static final VarHandle SHADERS;
     private static final VarHandle RESOURCES;
@@ -77,6 +79,7 @@ public final class BackendInternals {
                             ShaderManager.class,
                             "releaseShaderAttachment",
                             MethodType.methodType(void.class, int.class));
+            DRAW_DISPATCH = lookup.findVarHandle(SDLGPURenderBackend.class, "drawDispatch", DrawDispatch.class);
             PIPELINE_APPLIER =
                     lookup.findVarHandle(SDLGPURenderBackend.class, "pipelineApplier", PipelineApplier.class);
             ATTACHMENT_CLEAR =
@@ -124,6 +127,30 @@ public final class BackendInternals {
             }
         } finally {
             state.boundProgramObj = previous;
+        }
+    }
+
+    public static PipelineApplier pipeline() {
+        return (PipelineApplier) PIPELINE_APPLIER.get(ownedBackend());
+    }
+
+    public static DrawDispatch drawDispatch() {
+        return (DrawDispatch) DRAW_DISPATCH.get(ownedBackend());
+    }
+
+    public static void lockedDraw(Runnable action) {
+        ownedBackend();
+        try {
+            boolean locked = (boolean) DRAW_LOCK.invokeExact();
+            try {
+                action.run();
+            } finally {
+                if (locked) DRAW_UNLOCK.invokeExact();
+            }
+        } catch (RuntimeException | Error failure) {
+            throw failure;
+        } catch (Throwable failure) {
+            throw new IllegalStateException("Cannot acquire graphics draw lock", failure);
         }
     }
 

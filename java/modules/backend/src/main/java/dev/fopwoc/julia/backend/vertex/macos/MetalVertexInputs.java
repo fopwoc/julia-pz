@@ -14,7 +14,7 @@ public final class MetalVertexInputs {
 
     static {
         long abi = SDL.getLibrary().getFunctionAddress("JULIA_SDL_VertexInputABI");
-        if (abi == 0 || JNI.invokeI(abi) != 1)
+        if (abi == 0 || JNI.invokeI(abi) != 2)
             throw new IllegalStateException("Missing native Metal vertex-input extension");
     }
 
@@ -33,8 +33,12 @@ public final class MetalVertexInputs {
                     int slot = description.slot();
                     if (slot < 0 || slot >= rates.length)
                         throw new IllegalArgumentException("Unexpected SDL vertex buffer slot");
-                    // Constants use SDL's instance-rate buffers but have no live GL source binding.
-                    if (rates[slot] == 0 && description.input_rate() == SDL_GPU_VERTEXINPUTRATE_INSTANCE) continue;
+                    // SDL tags defaults as instance-rate inputs; Metal must ignore the native base instance.
+                    if (rates[slot] == 0 && description.input_rate() == SDL_GPU_VERTEXINPUTRATE_INSTANCE) {
+                        if (!SDL_SetNumberProperty(properties, PREFIX + slot, -1))
+                            throw Sdl.failure("Set constant Metal vertex input");
+                        continue;
+                    }
                     int divisor = rates[slot];
                     description.input_rate(
                             divisor == 0 ? SDL_GPU_VERTEXINPUTRATE_VERTEX : SDL_GPU_VERTEXINPUTRATE_INSTANCE);

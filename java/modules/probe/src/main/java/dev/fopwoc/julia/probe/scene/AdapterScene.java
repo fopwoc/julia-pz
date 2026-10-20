@@ -116,6 +116,7 @@ public final class AdapterScene {
             HighTextureUnitChecks.run(output);
             BoundVolumeStorageChecks.run(output);
             BaseInstanceChecks.run(output);
+            IndirectDrawChecks.run(output);
             SyncChecks.run(output);
             TimerQueryChecks.run(output);
             ClientPointerChecks.run();

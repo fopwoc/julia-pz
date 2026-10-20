@@ -122,7 +122,7 @@ public final class SamplerResourcePass {
                             && value.cst instanceof String text
                             && Set.of("sdl-stage", "sdl-prewarm", "sdl-vertex-variant")
                                     .contains(text)) {
-                        value.cst = "julia-samplers-v1-" + text;
+                        value.cst = "julia-samplers-v2-" + text;
                         edits++;
                     }
                 }
@@ -167,6 +167,15 @@ public final class SamplerResourcePass {
             if (msl && method.name.equals("compile") && method.desc.startsWith("(Ljava/nio/ByteBuffer;IZ)")) {
                 var head = new InsnList();
                 var original = new LabelNode();
+                head.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                head.add(new VarInsnNode(Opcodes.ILOAD, 1));
+                head.add(new MethodInsnNode(
+                        Opcodes.INVOKESTATIC,
+                        Endpoint.INSTANCE_INDEX_SPIRV.owner(),
+                        "translate",
+                        "(Ljava/nio/ByteBuffer;I)Ljava/nio/ByteBuffer;",
+                        false));
+                head.add(new VarInsnNode(Opcodes.ASTORE, 0));
                 head.add(new VarInsnNode(Opcodes.ALOAD, 0));
                 head.add(new VarInsnNode(Opcodes.ILOAD, 1));
                 head.add(new MethodInsnNode(
