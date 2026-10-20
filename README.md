@@ -11,7 +11,7 @@ frame through [Angelica](https://github.com/GTNewHorizons/Angelica)'s GL state m
 OpenGL driver is involved.
 
 A side effect on macOS: Apple's OpenGL is deprecated and stops at version 4.1, so mods that need newer GL features
-cannot run there. Because Julia never touches Apple's OpenGL, those mods work on Mac too. ViewPoint, which needs
+cannot run there. Because Julia never touches Apple's OpenGL, those mods work on Mac too. [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528), which needs
 GL 4.3, is the first example.
 
 Julia targets **Project Zomboid Build 42** and is **experimental**.
