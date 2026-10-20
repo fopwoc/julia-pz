@@ -153,6 +153,14 @@ public final class ResourcePass {
             Map.entry(
                     "org/lwjgl/opengl/GL45.glNamedBufferStorage(ILjava/nio/ByteBuffer;I)V",
                     Endpoint.BUFFER_STORAGE_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43C.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL44.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL44C.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45C.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/ARBCopyImage.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
             Map.entry(
                     Endpoint.STATE_MANAGER.owner() + ".glCopyImageSubData(IIIIIIIIIIIIIII)V",
                     Endpoint.TEXTURE_COPY_BRIDGE),

@@ -14,8 +14,7 @@ public final class VanillaAliasPass {
             "org/lwjgl/opengl/GL11.glLightfv(IILjava/nio/FloatBuffer;)V", "glLight",
             "org/lwjgl/opengl/GL11.glMaterialfv(IILjava/nio/FloatBuffer;)V", "glMaterial",
             "org/lwjgl/opengl/GL11.glMultMatrixf(Ljava/nio/FloatBuffer;)V", "glMultMatrix",
-            "org/lwjgl/opengl/GL43.glUniform2fv(ILjava/nio/FloatBuffer;)V", "glUniform2",
-            "org/lwjgl/opengl/GL44.glCopyImageSubData(IIIIIIIIIIIIIII)V", "glCopyImageSubData");
+            "org/lwjgl/opengl/GL43.glUniform2fv(ILjava/nio/FloatBuffer;)V", "glUniform2");
 
     private VanillaAliasPass() {}
 

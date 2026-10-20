@@ -12,6 +12,8 @@ import dev.fopwoc.julia.backend.BackendInternals;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.nio.ByteBuffer;
 import org.lwjgl.opengl.GL12;
+import org.lwjgl.opengl.GL42;
+import org.lwjgl.opengl.GL43;
 import org.lwjgl.sdl.SDLGPU;
 import org.lwjgl.system.MemoryStack;
 
@@ -20,10 +22,10 @@ public final class ResourceChecks {
     private static final int WIDTH = 64;
     private static final int HEIGHT = 260;
     private static final int LAYERS = 2;
-    public static final int VERIFIED_PIXELS = WIDTH * HEIGHT * LAYERS;
+    public static final int VERIFIED_PIXELS = WIDTH * HEIGHT * LAYERS + 6;
     static final String REPORT = "STAGE_PASS\nverified_resource_pixels=" + VERIFIED_PIXELS
             + "\nchecks=immutable buffer bytes,flags,bindings,reallocation rejection,tiled clears,array layers,"
-            + "null clear,array-plane copies\n";
+            + "null clear,array-plane copies,GL43/GL44 copy routes,fresh immutable destination content\n";
 
     private ResourceChecks() {}
 
@@ -80,6 +82,7 @@ public final class ResourceChecks {
     private static void textureLayers() {
         int texture = glGenTextures();
         int plane = glGenTextures();
+        int fresh = glGenTextures();
         try {
             glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
             GL12.glTexImage3D(
@@ -98,7 +101,24 @@ public final class ResourceChecks {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 4, 4, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer) null);
             glClearTexSubImage(plane, 0, 0, 0, 0, 4, 4, 1, GL_RGBA, GL_FLOAT, new float[] {0, 0, 0, 1});
             glCopyImageSubData(texture, GL_TEXTURE_2D_ARRAY, 0, 2, 257, 1, plane, GL_TEXTURE_2D, 0, 0, 0, 0, 3, 2, 1);
-            glCopyImageSubData(plane, GL_TEXTURE_2D, 0, 0, 0, 0, texture, GL_TEXTURE_2D_ARRAY, 0, 10, 10, 0, 3, 2, 1);
+            GL43.glCopyImageSubData(
+                    plane, GL_TEXTURE_2D, 0, 0, 0, 0, texture, GL_TEXTURE_2D_ARRAY, 0, 10, 10, 0, 3, 2, 1);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, fresh);
+            GL42.glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, 4, 4, 2);
+            GL43.glCopyImageSubData(plane, GL_TEXTURE_2D, 0, 0, 0, 0, fresh, GL_TEXTURE_2D_ARRAY, 0, 0, 0, 1, 3, 2, 1);
+            var resources = BackendInternals.resources();
+            if (!resources.isTextureContentDefined(resources.getTextureHandle(fresh)))
+                throw new IllegalStateException("Image copy did not define destination content");
+            var copied = ResourceReadback.layer(fresh, 1);
+            for (int y = 0; y < 2; y++)
+                for (int x = 0; x < 3; x++) {
+                    int at = (y * 4 + x) * 4;
+                    if ((copied[at] & 255) != 51
+                            || (copied[at + 1] & 255) != 102
+                            || (copied[at + 2] & 255) != 153
+                            || (copied[at + 3] & 255) != 255)
+                        throw new IllegalStateException("Core image-copy array slice mismatch");
+                }
             int format = BackendInternals.resources().getTextureMeta(texture).sdlFormat();
             boolean bgra = format == SDLGPU.SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
             // 0.2, 0.4, 0.6, 1.0 as normalized bytes, in storage channel order.
@@ -127,6 +147,7 @@ public final class ResourceChecks {
             glBindTexture(GL_TEXTURE_2D, 0);
             glDeleteTextures(texture);
             glDeleteTextures(plane);
+            glDeleteTextures(fresh);
         }
     }
 }

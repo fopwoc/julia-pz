@@ -146,6 +146,8 @@ Metal argument-buffer encoding follows reflected sampler members, including samp
 Base-instance array draws offset only instanced attribute bindings after GLSM pointer repair, then restore
 the VAO. Shader instance IDs remain zero-based and divisors apply before the base record offset.
 Windowless checks cover 960 pixels, including shared bindings, legacy pointers, ordinary draws, and quad conversion.
+Core GL43 and inherited GL44/GL45 image-copy entry points, plus ARB copy-image, route directly to the
+checked texture-copy implementation. Offscreen checks include copies into a fresh immutable array slice.
 Bound `glTexStorage3D` allocations use the same checked immutable allocator as named textures.
 Windowless sampling verifies 76 pixels across every tested mip and layer of 3D and 2D-array storage.
 Bound IntBuffer subimage uploads support 3D and 2D-array targets with matching transfer/storage formats.
