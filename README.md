@@ -144,19 +144,25 @@ sequenceDiagram
     participant PZ as Game render thread
     participant RD as Julia dispatch
     participant GLSM as Angelica GLSM + Julia
-    participant GPU as SDL3 GPU (Metal / Vulkan / D3D12)
+    participant SDL as SDL3Julia (patched SDL)
+    participant GPU as Metal / Vulkan / D3D12
     PZ->>RD: frame begin (injected before sprite rendering)
     PZ->>RD: glBindTexture, glUniform*, glDrawArrays …
     RD->>GLSM: same calls, bound once per session
-    GLSM->>GPU: tracked state → pipelines, uploads, draw commands
+    GLSM->>SDL: SDL GPU API: pipelines, uploads, draws
+    GLSM->>SDL: Julia extensions: buffer textures, views, queries, sampler tables
+    SDL->>GPU: native command encoding
     PZ->>RD: present (injected before Display.update)
-    RD->>GPU: submit command buffer, present to the window
+    RD->>SDL: submit command buffer, present to the window
     Note over PZ: GLFW keeps the window, events and input
 ```
 
 - **Isolation.** The game ships its own LWJGL. Julia's graphics stack lives in a separate class loader and only JDK
   types cross into it, so no game class ever links against Julia's LWJGL.
 - **Shaders.** Angelica compiles the game's GLSL to SPIR-V and translates it to the native shading language.
+- **Patched SDL.** Julia ships its own SDL 3 build, `SDL3Julia`. Stock SDL GPU lacks some GL features the game and
+  mods use, so Julia adds them as native extensions compiled inside SDL's backend for each GPU API. Java calls them
+  through `backend.sdl`; the patches live in `native/sdl/`.
 - **Window.** The game keeps its GLFW window. Julia wraps the native handle (Cocoa, Win32, X11 or Wayland) in an SDL
   window and restores everything it changed when it detaches.
 - **Failure.** An exception inside a frame aborts the GPU frame first, so a half-recorded frame is never presented.
