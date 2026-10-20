@@ -94,8 +94,20 @@ final class HighTextureUnitChecks {
                         || !message.contains("first=0 (default)")
                         || !message.contains("image=0 (default)")
                         || !message.contains("second=0 (default)")
+                        || !message.contains("readRecords=0 (default)")
                         || message.contains("unused")) throw expected;
             }
+            glUniform1i(glGetUniformLocation(direct, "image"), 0);
+            try {
+                glDrawArrays(GL_TRIANGLES, 0, 3);
+                throw new AssertionError("Explicit-zero sampler conflict accepted");
+            } catch (IllegalStateException expected) {
+                String message = expected.getMessage();
+                if (message.contains("image=0 (default)")
+                        || !message.contains("image=0")
+                        || !message.contains("first=0 (default)")) throw expected;
+            }
+            glUniform1i(glGetUniformLocation(direct, "conditionalRecords"), 78);
             glUniform1i(glGetUniformLocation(direct, "image"), 14);
             glUniform1i(glGetUniformLocation(direct, "first"), 78);
             glUniform1i(glGetUniformLocation(direct, "second"), 110);
@@ -103,6 +115,8 @@ final class HighTextureUnitChecks {
                     new String[] {"unusedCube", "unusedBuffer", "unusedLayers", "unusedLayers[0]", "unusedLayers[1]"})
                 if (glGetUniformLocation(direct, name) != -1)
                     throw new IllegalStateException("Unreachable sampler became an active uniform: " + name);
+            int selector = glGetUniformLocation(direct, "readRecords");
+            glUniform1i(selector, 1);
             glUniform1i(glGetUniformLocation(direct, "first"), 14);
             try {
                 glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -114,11 +128,19 @@ final class HighTextureUnitChecks {
                         || !message.contains("image (GL_TEXTURE_2D)")
                         || !message.contains("first=14")
                         || !message.contains("second=110")
+                        || !message.contains("readRecords=1")
                         || message.contains("unused")) throw expected;
             }
             glUniform1i(glGetUniformLocation(direct, "first"), 78);
+            glUniform1i(selector, 0);
             verify(target, 323); // Units 14, 78 and 110 all alias in a 32-bit unit mask.
+            if (selector < 0 || glGetUniformLocation(direct, "conditionalRecords") < 0)
+                throw new IllegalStateException("Runtime-conditional sampler was mistaken for an unreachable helper");
+            glUniform1i(selector, 1);
+            verify(target, 424);
+            glUniform1i(selector, 0);
             glUseProgram(indirect);
+            glUniform1i(glGetUniformLocation(indirect, "conditionalRecords"), 78);
             int images = glGetUniformLocation(indirect, "images");
             var assignments = stack.ints(-1, 96, 127, -1);
             assignments.position(1).limit(3);
@@ -147,6 +169,7 @@ final class HighTextureUnitChecks {
             if (glGetInteger(GL_TEXTURE_BINDING_2D) != 0) throw new IllegalStateException("High unit did not unbind");
             glBindTexture(GL_TEXTURE_2D, textures[2]);
             glUseProgram(fetch);
+            glUniform1i(glGetUniformLocation(fetch, "conditionalRecords"), 78);
             glUniform1iv(glGetUniformLocation(fetch, "images"), new int[] {96, 127});
             glUniform1i(glGetUniformLocation(fetch, "first"), 78);
             glUniform1i(glGetUniformLocation(fetch, "second"), 110);
@@ -157,7 +180,7 @@ final class HighTextureUnitChecks {
                 throw new IllegalStateException("Deletion retained high binding");
             Files.writeString(
                     output.resolve("high-texture-units.txt"),
-                    "PASS\nverified_pixels=12\nchecks=unreachable sampler helpers,active target conflicts,128 logical units,32 graphics samplers,units 14/78/96/110/127,direct/argument bindings,buffer-mask aliasing,array uploads,atomic validation,sampler overrides,samplerless argument arrays,binding/unbinding,deletion\n");
+                    "PASS\nverified_pixels=14\nchecks=runtime branch selectors,conditional vertex buffer reads,unreachable sampler helpers,active target conflicts,128 logical units,32 graphics samplers,units 14/78/96/110/127,direct/argument bindings,buffer-mask aliasing,array uploads,atomic validation,sampler overrides,samplerless argument arrays,binding/unbinding,deletion\n");
         } finally {
             glUseProgram(0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -188,11 +211,11 @@ final class HighTextureUnitChecks {
         try {
             glShaderSource(
                     v,
-                    "#version 330 core\nvoid main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);gl_Position=vec4(p*2.-1.,0,1);}");
+                    "#version 330 core\nuniform usamplerBuffer conditionalRecords;uniform int readRecords;flat out uint vRecord;void main(){vRecord=readRecords!=0?texelFetch(conditionalRecords,0).r:0u;vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);gl_Position=vec4(p*2.-1.,0,1);}");
             glShaderSource(
                     f,
-                    "#version 330 core\nuniform sampler2D " + (array ? "images[2]" : "image")
-                            + ";uniform samplerCube unusedCube;uniform usamplerBuffer unusedBuffer;uniform sampler2DArray unusedLayers[2];uniform usamplerBuffer first;uniform usamplerBuffer second;layout(location=0)out uint value;vec4 unusedSample(){return texture(unusedCube,vec3(1))+vec4(texelFetch(unusedBuffer,0))+texture(unusedLayers[1],vec3(0));}void main(){value=texelFetch(first,0).r+texelFetch(second,0).r+"
+                    "#version 330 core\nflat in uint vRecord;uniform sampler2D " + (array ? "images[2]" : "image")
+                            + ";uniform samplerCube unusedCube;uniform usamplerBuffer unusedBuffer;uniform sampler2DArray unusedLayers[2];uniform usamplerBuffer first;uniform usamplerBuffer second;layout(location=0)out uint value;vec4 unusedSample(){return texture(unusedCube,vec3(1))+vec4(texelFetch(unusedBuffer,0))+texture(unusedLayers[1],vec3(0));}void main(){value=vRecord+texelFetch(first,0).r+texelFetch(second,0).r+"
                             + (array
                                     ? fetch
                                             ? "uint(round(texelFetch(images[0],ivec2(0),0).r*255.))+uint(round(texelFetch(images[1],ivec2(1,0),0).r*255.))"

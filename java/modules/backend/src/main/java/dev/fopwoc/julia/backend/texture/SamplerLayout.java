@@ -12,6 +12,7 @@ import static org.lwjgl.util.spvc.Spvc.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.sampler.SamplerLookup;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
+import dev.fopwoc.julia.backend.diagnostic.SamplerFailureState;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -70,7 +71,8 @@ public final class SamplerLayout {
             if (unitTargets[unit] != 0 && unitTargets[unit] != target)
                 throw new IllegalStateException("Different sampler targets share texture unit " + unit + ": "
                         + owners[unit] + " (" + targetName(unitTargets[unit]) + ") and " + name + " ("
-                        + targetName(target) + "); active assignments=" + assignments(program));
+                        + targetName(target) + "); active assignments=" + assignments(program)
+                        + SamplerFailureState.describe(program));
             unitTargets[unit] = target;
             owners[unit] = name;
             if (names.containsKey(name)) buffers.set(unit);

@@ -51,7 +51,7 @@ public final class AdapterProbe {
                 verified_short_texture_pixels=24
                 verified_float_texture_pixels=84
                 verified_integer_volume_pixels=864
-                verified_high_texture_unit_pixels=12
+                verified_high_texture_unit_pixels=14
                 verified_bound_volume_storage_pixels=76
                 verified_base_instance_pixels=960
                 verified_indirect_draw_pixels=240

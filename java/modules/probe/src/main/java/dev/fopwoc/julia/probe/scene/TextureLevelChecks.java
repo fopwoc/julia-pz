@@ -9,6 +9,7 @@ import static org.lwjgl.opengl.GL31.*;
 import static org.lwjgl.opengl.GL43.glTextureView;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.lwjgl.opengl.ARBDirectStateAccess;
@@ -33,7 +34,7 @@ final class TextureLevelChecks {
         try (var stack = MemoryStack.stackPush()) {
             glActiveTexture(GL_TEXTURE0 + 110);
             glBindTexture(GL_TEXTURE_2D, textures[5]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 7, 3, 0, GL_RGBA, GL_UNSIGNED_BYTE, (java.nio.ByteBuffer) null);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 7, 3, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer) null);
             check(textures[0], 0, 0, 0, 0);
             GL45.glTextureStorage2D(textures[0], 3, GL_RGBA8, 16, 8);
             GL45.glTextureStorage3D(textures[1], 4, GL_RGBA8, 8, 4, 8);

@@ -275,3 +275,10 @@ scalar, array and buffer destinations support width, height, depth and GL intern
 remain fatal. Windowless checks cover 2D/volume/array mips, view-relative mips and layers, mutable objects, buffer
 texel counts, destination canaries and invalid/deleted names. This fresh-save failure precedes the sampler-conflict
 draw and therefore does not establish whether that conflict depends on the save.
+
+Sampler investigation separates unreachable helpers from reads behind runtime uniform branches. A generic vertex
+buffer-sampler fixture remains active with its branch off, and turning the branch on produces the expected two
+additional checked pixels once bindings are valid. Conflicting active targets still fail before submission. Fatal
+reports include scalar integer uniforms to expose branch selectors. Explicit zero sampler assignments are retained
+even when the upstream value cache skips a zero-to-zero update; the previous `0 (default)` label alone did not
+prove that an assignment call was absent. These diagnostics change no shader branches or mod state.

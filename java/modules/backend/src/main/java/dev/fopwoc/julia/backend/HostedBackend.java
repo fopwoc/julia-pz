@@ -31,6 +31,7 @@ import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
+import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
 import dev.fopwoc.julia.backend.buffer.IndexBufferUploads;
 import dev.fopwoc.julia.backend.diagnostic.ModelDrawTrace;
@@ -561,6 +562,18 @@ public final class HostedBackend extends SDLGPURenderBackend {
             ProgramLinkState.linked(BackendInternals.shaders().getProgram(program), BackendInternals.context());
             shaderPrograms.initializeUniforms(program);
         }
+    }
+
+    @Override
+    public void uniform1i(int location, int value) {
+        super.uniform1i(location, value);
+        if (value != 0 || location < 0) return;
+        var program = BackendInternals.context().boundProgramObj;
+        if (program != null
+                && location < program.locationKind.length
+                && program.locationKind[location] == ProgramObject.LOCATION_KIND_SAMPLER)
+            // The upstream value cache skips zero-to-zero writes, but diagnostics need that explicit assignment.
+            program.samplerTextureUnits.putIfAbsent(program.locationName[location], 0);
     }
 
     @Override
