@@ -119,6 +119,7 @@ public final class AdapterScene {
             MapQuadChecks.run();
             ShaderLinkChecks.run();
             ShaderLimitChecks.run(output);
+            ManySamplerChecks.run(output);
             ShaderCompatibilityChecks.run();
             UniformInitializerChecks.run();
             CullingChecks.run();

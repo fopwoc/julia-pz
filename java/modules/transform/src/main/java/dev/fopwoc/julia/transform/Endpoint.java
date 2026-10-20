@@ -23,6 +23,8 @@ public enum Endpoint {
     PROGRAM_RESOURCE_BRIDGE("dev/fopwoc/julia/backend/bridge/ProgramResourceBridge", false),
     UNIFORM_BRIDGE("dev/fopwoc/julia/backend/bridge/UniformBridge", false),
     RESOURCE_ARRAY_BRIDGE("dev/fopwoc/julia/backend/bridge/ResourceArrayBridge", false),
+    SAMPLER_RESOURCES("dev/fopwoc/julia/backend/shader/SamplerResources", false),
+    SAMPLER_SHADER_BRIDGE("dev/fopwoc/julia/backend/bridge/SamplerShaderBridge", false),
     SYNC_BRIDGE("dev/fopwoc/julia/backend/bridge/SyncBridge", false),
     QUERY_BRIDGE("dev/fopwoc/julia/backend/bridge/QueryBridge", false),
     UNIFORM_QUERY_BRIDGE("dev/fopwoc/julia/backend/bridge/UniformQueryBridge", false),

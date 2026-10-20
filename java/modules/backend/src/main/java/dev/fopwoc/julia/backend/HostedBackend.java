@@ -12,6 +12,8 @@ import static org.lwjgl.opengl.GL20.GL_ACTIVE_UNIFORMS;
 import static org.lwjgl.opengl.GL20.GL_ACTIVE_UNIFORM_MAX_LENGTH;
 import static org.lwjgl.opengl.GL20.GL_ATTACHED_SHADERS;
 import static org.lwjgl.opengl.GL20.GL_LINK_STATUS;
+import static org.lwjgl.opengl.GL20.GL_MAX_TEXTURE_IMAGE_UNITS;
+import static org.lwjgl.opengl.GL20.GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL31.GL_MAX_TEXTURE_BUFFER_SIZE;
@@ -36,6 +38,8 @@ import dev.fopwoc.julia.backend.query.TimerQueries;
 import dev.fopwoc.julia.backend.shader.MatrixUniformUploads;
 import dev.fopwoc.julia.backend.shader.ProgramLinkState;
 import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
+import dev.fopwoc.julia.backend.shader.SamplerResources;
+import dev.fopwoc.julia.backend.shader.SamplerUniforms;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.sync.GpuSyncs;
 import dev.fopwoc.julia.backend.texture.ClientPixels;
@@ -275,6 +279,7 @@ public final class HostedBackend extends SDLGPURenderBackend {
         return switch (parameter) {
             // Julia does not expose OpenGL program binaries; its internal shader cache is separate.
             case GL_NUM_PROGRAM_BINARY_FORMATS -> 0;
+            case GL_MAX_TEXTURE_IMAGE_UNITS, GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS -> SamplerResources.LIMIT;
             case GL_UNPACK_IMAGE_HEIGHT -> volumeUnpack().imageHeight;
             case GL_UNPACK_SKIP_IMAGES -> volumeUnpack().skipImages;
             case GL_UNPACK_SWAP_BYTES -> volumeUnpack().swapBytes ? GL_TRUE : GL_FALSE;
@@ -448,7 +453,10 @@ public final class HostedBackend extends SDLGPURenderBackend {
 
     @Override
     public int getUniformLocation(int program, CharSequence name) {
-        return super.getUniformLocation(program, shaderPrograms.backendUniformName(program, name.toString()));
+        String backendName = shaderPrograms.backendUniformName(program, name.toString());
+        var object = BackendInternals.shaders().getProgram(program);
+        if (object != null && object.allSamplerNames.contains(backendName + "[0]")) backendName += "[0]";
+        return super.getUniformLocation(program, backendName);
     }
 
     @Override
@@ -539,6 +547,11 @@ public final class HostedBackend extends SDLGPURenderBackend {
             ProgramLinkState.linked(BackendInternals.shaders().getProgram(program), BackendInternals.context());
             shaderPrograms.initializeUniforms(program);
         }
+    }
+
+    @Override
+    public void uniform1iv(int location, IntBuffer values) {
+        if (!SamplerUniforms.upload(location, values)) super.uniform1iv(location, values);
     }
 
     @Override

@@ -40,7 +40,7 @@ class FatalGraphicsTest {
         String report = Files.readString(output.resolve("fatal-error.txt"));
         assertTrue(report.contains("brokenShader"), report);
         assertTrue(report.contains("UnsupportedOperationException"), report);
-        assertTrue(report.contains("Too many fragment shader texture samplers (17, maximum 16)"), report);
+        assertTrue(report.contains("Too many fragment shader texture samplers (33, maximum 32)"), report);
     }
 
     @Test

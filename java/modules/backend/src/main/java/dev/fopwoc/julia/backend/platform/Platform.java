@@ -1,11 +1,14 @@
 package dev.fopwoc.julia.backend.platform;
 
+import com.gtnewhorizons.angelica.sdlgpu.shader.cross.CrossCompileCache.Output;
 import dev.fopwoc.julia.backend.query.TimestampDriver;
 import dev.fopwoc.julia.backend.query.macos.MetalTimestamps;
+import dev.fopwoc.julia.backend.shader.macos.MetalSamplerShaders;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextureDriver;
 import dev.fopwoc.julia.backend.texture.macos.MetalBufferTextures;
 import dev.fopwoc.julia.backend.texture.macos.MetalTextureViews;
 import dev.fopwoc.julia.backend.vertex.macos.MetalVertexInputs;
+import java.nio.ByteBuffer;
 import java.util.Locale;
 import org.lwjgl.sdl.SDL_GPUGraphicsPipelineCreateInfo;
 import org.lwjgl.system.Configuration;
@@ -15,6 +18,11 @@ import org.lwjgl.system.macosx.LibSystem;
 /** Host operating system facts the graphics runtime depends on: GPU driver and video-thread rules. */
 public enum Platform {
     MACOS("metal") {
+        @Override
+        public Output compileSamplerShader(ByteBuffer spirv, int stage) {
+            return MetalSamplerShaders.compile(spirv, stage);
+        }
+
         @Override
         public long createGraphicsPipeline(long device, SDL_GPUGraphicsPipelineCreateInfo info, int[] divisors) {
             return MetalVertexInputs.create(device, info, divisors);
@@ -93,6 +101,10 @@ public enum Platform {
 
     public TimestampDriver createTimestampDriver() {
         throw new UnsupportedOperationException("Native GPU timestamps are not implemented on " + this);
+    }
+
+    public Output compileSamplerShader(ByteBuffer spirv, int stage) {
+        throw new UnsupportedOperationException("Indirect samplers not implemented on " + this);
     }
 
     public void requireImplemented() {

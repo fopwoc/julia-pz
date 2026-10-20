@@ -76,7 +76,8 @@ for shared 2D/array views, nested mip/layer ranges, uploads, clears, depth-teste
 Program-interface checks add 64 pixels using a reflected uniform location, plus active array sizes, stage usage,
 compute image/bool types, output-buffer bounds and relink invalidation. Short-buffer upload checks add 24 exact
 16-bit values recovered through shader sampling, covering mutable R16 storage, padded stripes, client-memory bounds
-and reuse, independent target bindings, and byte swapping. Fence checks add 64 pixels downloaded after real GPU
+and reuse, independent target bindings, and byte swapping. Graphics-sampler checks add 162 pixels for indirect
+resource binding, arrays, filtering, updates and lifetimes. Fence checks add 64 pixels downloaded after real GPU
 completion without a device-idle wait, plus finite/unsigned waits, nonblocking polling, deletion before frame swap,
 independent live fences, invalid arguments, and flush/finish submission. These checks do not replace in-game validation.
 
@@ -102,15 +103,28 @@ submission fences. Each public fence submits preceding work immediately without 
 boundary and avoids pending-token resurrection on deletion. Polling does not submit later work. Flush/finish now
 submit queued uploads, clears and draws before their completion semantics apply. These changes await an in-game retry.
 SDL documents [the platform-dependent D24/D32 support requirement](https://wiki.libsdl.org/SDL3/SDL_GPUTextureFormat).
-The same retry also logged a separate sampler-array translation failure: an array of 16 samplers plus two other samplers
-exceeds Metal's direct sampler slots. Array-element reflection/binding and a larger native resource-binding path remain
-unimplemented; the storage/view/query fixes do not resolve that shader failure. The first-person retry confirms
-17–20-sampler link failures followed by ViewPoint's own renderer-crash handling. Native translation failures after
-successful desktop GLSL validation now throw through Julia's fatal graphics boundary instead of returning a failed
-link status that mods can recover from. This applies to backend stage translation, native program linking, linked-stage
-regeneration and uniform-initializer translation. Invalid source GLSL still exposes its normal compiler/linker diagnostics.
-A windowless 17-sampler probe verifies rejection and retained diagnostics; a disposable-process test verifies exit 70
-and the durable report even when a mod catches all exceptions. This policy fix does not expand the native sampler limit.
+ViewPoint subsequently exposed 17–20 sampled resources per shader stage, including a 16-element sampler array
+beside scalar samplers. Julia now supports up to 32 sampled resources in each graphics stage. Larger layouts and
+sampler arrays use Metal tier-2 argument buffers; scalar layouts within the direct 16-slot budget keep the existing
+path. Array widths reserve distinct bindings, each element has its own GL uniform location, and integer-array/buffer
+uploads preserve caller positions and validate the full assignment before changing it. The native tables, sampler
+budget, pending-clear traversal and published graphics limits all use the same 32-slot capacity. Argument tables are
+immutable snapshots retained with their sampled textures and sampler objects until GPU completion. Shader cache
+names include the new layout identity. The extension is built through CMake; it does not require Python.
+
+Windowless GPU checks verify 162 new pixels across 17/20/32 scalar samplers, mixed filtering, a 16-element sampler
+array alongside scalar resources, bulk and partial uploads, queued state changes, sampler overrides, deletion lifetimes,
+pending clears above slot 16, and simultaneous 32-vertex/17-fragment sampler stages. The CMake patch is also checked
+against pristine SHA-verified SDL 3.4.12 sources and an idempotent second configure. In-game first-person rendering
+still needs validation. Compute sampled resources retain their direct 16-slot limit; compute sampler arrays are rejected
+explicitly. Graphics layouts exceeding 32 resources are rejected without dropping resources or changing shaders.
+
+Native translation failures after successful desktop GLSL validation throw through Julia's fatal graphics boundary
+instead of returning a failed link status that mods can recover from. This covers backend stage translation, native
+program linking, linked-stage regeneration and uniform-initializer translation. Invalid source GLSL retains its normal
+compiler/linker diagnostics. Windowless probes verify rejection and retained diagnostics for 33 graphics samplers and
+unsupported compute sampler arrays; a disposable-process test verifies exit 70 and a durable report even inside a mod's
+catch-all exception handler.
 ZombieBuddy's standalone native-GL approval executable is outside game preparation and remains rejected if loaded
 into the game JVM.
 

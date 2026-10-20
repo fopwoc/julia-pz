@@ -72,7 +72,7 @@ public final class FatalGraphicsProcess {
 
     public static void brokenShader() {
         throw new UnsupportedOperationException(
-                "SDL shader program translation failed: Too many fragment shader texture samplers (17, maximum 16)");
+                "SDL shader program translation failed: Too many fragment shader texture samplers (33, maximum 32)");
     }
 
     public static void brokenVoid() {
