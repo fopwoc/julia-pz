@@ -151,12 +151,17 @@ public final class ShaderPrograms implements AutoCloseable {
             compiled.add(part);
         }
         if (frontend == null) return fail(id, "No compiled shader objects attached");
-        var linked = frontend.link(compiled);
+        ShaderFrontend.Linked linked;
+        try {
+            linked = frontend.link(compiled);
+        } catch (UnsupportedOperationException failure) {
+            throw translationFailure(id, failure.getMessage(), failure);
+        }
         if (!linked.valid()) return fail(id, linked.log());
         try {
             program.initializers = frontend.initializers(compiled);
         } catch (IllegalStateException failure) {
-            return fail(id, failure.getMessage());
+            throw translationFailure(id, failure.getMessage(), failure);
         }
         var stages = new ArrayList<Integer>();
         try {
@@ -166,7 +171,8 @@ public final class ShaderPrograms implements AutoCloseable {
                 manager.shaderSource(shader, stage.getValue());
                 manager.compileShader(shader);
                 if (!manager.isCompiled(shader))
-                    return fail(id, "Backend stage translation: " + manager.getShaderInfoLog(shader));
+                    throw translationFailure(
+                            id, "Backend stage translation: " + manager.getShaderInfoLog(shader), null);
             }
             for (int old : program.stages) BackendInternals.detachShader(id, old);
             for (int shader : stages) manager.attachShader(id, shader);
@@ -184,6 +190,13 @@ public final class ShaderPrograms implements AutoCloseable {
 
     public void initializeUniforms(int id) {
         BackendInternals.initializeUniforms(id, programs.get(id).initializers);
+    }
+
+    private static UnsupportedOperationException translationFailure(int id, String log, Throwable cause) {
+        var object = BackendInternals.shaders().getProgram(id);
+        object.linked = false;
+        object.infoLog = log;
+        return new UnsupportedOperationException("Shader translation failed for program " + id + ": " + log, cause);
     }
 
     private static boolean fail(int id, String log) {

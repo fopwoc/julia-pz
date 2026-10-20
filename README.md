@@ -104,7 +104,13 @@ submit queued uploads, clears and draws before their completion semantics apply.
 SDL documents [the platform-dependent D24/D32 support requirement](https://wiki.libsdl.org/SDL3/SDL_GPUTextureFormat).
 The same retry also logged a separate sampler-array translation failure: an array of 16 samplers plus two other samplers
 exceeds Metal's direct sampler slots. Array-element reflection/binding and a larger native resource-binding path remain
-unimplemented; the storage/view/query fixes do not resolve that shader failure.
+unimplemented; the storage/view/query fixes do not resolve that shader failure. The first-person retry confirms
+17–20-sampler link failures followed by ViewPoint's own renderer-crash handling. Native translation failures after
+successful desktop GLSL validation now throw through Julia's fatal graphics boundary instead of returning a failed
+link status that mods can recover from. This applies to backend stage translation, native program linking, linked-stage
+regeneration and uniform-initializer translation. Invalid source GLSL still exposes its normal compiler/linker diagnostics.
+A windowless 17-sampler probe verifies rejection and retained diagnostics; a disposable-process test verifies exit 70
+and the durable report even when a mod catches all exceptions. This policy fix does not expand the native sampler limit.
 ZombieBuddy's standalone native-GL approval executable is outside game preparation and remains rejected if loaded
 into the game JVM.
 

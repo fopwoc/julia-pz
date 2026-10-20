@@ -172,10 +172,16 @@ final class ShaderLinkChecks {
                     """);
             glAttachShader(program, library);
             glAttachShader(program, fragment);
-            glLinkProgram(program);
-            if (glGetProgrami(program, GL_LINK_STATUS) != GL_FALSE
-                    || !glGetProgramInfoLog(program).contains("resource names must be preserved"))
-                throw new IllegalStateException("Regenerated storage-block identities were silently changed");
+            try {
+                glLinkProgram(program);
+                throw new IllegalStateException(
+                        "Storage-block translation failure was returned as a recoverable link error");
+            } catch (UnsupportedOperationException expected) {
+                if (!expected.getMessage().contains("resource names must be preserved")
+                        || glGetProgrami(program, GL_LINK_STATUS) != GL_FALSE
+                        || !glGetProgramInfoLog(program).contains("resource names must be preserved"))
+                    throw new IllegalStateException("Storage-block failure lost its diagnostic", expected);
+            }
         } finally {
             glDeleteProgram(program);
             glDeleteShader(library);

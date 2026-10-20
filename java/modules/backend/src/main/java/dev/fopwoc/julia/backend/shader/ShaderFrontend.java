@@ -168,19 +168,21 @@ public final class ShaderFrontend implements AutoCloseable {
             for (var shader : shaders) {
                 var converted = parse(shader.type(), shader.source(), true);
                 translated.add(converted);
-                if (!converted.valid()) return new Linked(Map.of(), "OpenGL SPIR-V translation: " + converted.log());
+                if (!converted.valid())
+                    throw new UnsupportedOperationException("OpenGL SPIR-V translation: " + converted.log());
                 glslang_program_add_shader(program, converted.handle());
             }
             if (!glslang_program_link(program, GLSLANG_MSG_DEFAULT_BIT) || !glslang_program_map_io(program))
-                return new Linked(Map.of(), "OpenGL SPIR-V link: " + glslang_program_get_info_log(program));
+                throw new UnsupportedOperationException("OpenGL SPIR-V link: " + glslang_program_get_info_log(program));
             glslang_program_SPIRV_generate(program, stage(type));
             var words = glslang_program_SPIRV_get_ptr(program);
             if (words == null || !words.hasRemaining())
-                return new Linked(Map.of(), "No linked SPIR-V: " + glslang_program_SPIRV_get_messages(program));
+                throw new UnsupportedOperationException(
+                        "No linked SPIR-V: " + glslang_program_SPIRV_get_messages(program));
             try {
                 return new Linked(Map.of(type, LinkedShaderSource.generate(words)), "");
             } catch (IllegalStateException failure) {
-                return new Linked(Map.of(), failure.getMessage());
+                throw new UnsupportedOperationException(failure.getMessage(), failure);
             }
         } finally {
             // glslang programs must die before the shader intermediates they reference.

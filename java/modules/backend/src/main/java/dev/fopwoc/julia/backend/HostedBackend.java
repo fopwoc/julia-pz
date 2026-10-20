@@ -533,10 +533,11 @@ public final class HostedBackend extends SDLGPURenderBackend {
         if (shaderPrograms.link(program)) {
             ProgramLinkState.reset(BackendInternals.shaders().getProgram(program));
             super.linkProgram(program);
-            if (super.getProgrami(program, GL_LINK_STATUS) != 0) {
-                ProgramLinkState.linked(BackendInternals.shaders().getProgram(program), BackendInternals.context());
-                shaderPrograms.initializeUniforms(program);
-            }
+            if (super.getProgrami(program, GL_LINK_STATUS) == 0)
+                throw new UnsupportedOperationException("SDL shader program translation failed for program " + program
+                        + ": " + super.getProgramInfoLog(program));
+            ProgramLinkState.linked(BackendInternals.shaders().getProgram(program), BackendInternals.context());
+            shaderPrograms.initializeUniforms(program);
         }
     }
 

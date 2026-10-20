@@ -46,6 +46,10 @@ public final class FatalGraphicsProcess {
                 var type = MethodType.methodType(long.class, int.class, long.class);
                 var site = RenderDispatch.bootstrap(MethodHandles.lookup(), "brokenDraw", type, "fixture/Backend");
                 long ignored = (long) site.dynamicInvoker().invokeExact(1, 2L);
+            } else if (mode.equals("shader")) {
+                var site = RenderDispatch.bootstrap(
+                        MethodHandles.lookup(), "brokenShader", MethodType.methodType(void.class), "fixture/Backend");
+                site.dynamicInvoker().invokeExact();
             } else if (mode.equals("backend-void")) {
                 var site = RenderDispatch.bootstrap(
                         MethodHandles.lookup(), "brokenVoid", MethodType.methodType(void.class), "fixture/Backend");
@@ -64,6 +68,11 @@ public final class FatalGraphicsProcess {
 
     public static long brokenDraw(int first, long second) {
         throw new IllegalStateException("fixture backend exploded");
+    }
+
+    public static void brokenShader() {
+        throw new UnsupportedOperationException(
+                "SDL shader program translation failed: Too many fragment shader texture samplers (17, maximum 16)");
     }
 
     public static void brokenVoid() {
