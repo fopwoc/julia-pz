@@ -30,6 +30,7 @@ public enum Endpoint {
     UNIFORM_QUERY_BRIDGE("dev/fopwoc/julia/backend/bridge/UniformQueryBridge", false),
     UNIFORM_UPLOAD_BRIDGE("dev/fopwoc/julia/backend/bridge/UniformUploadBridge", false),
     CAPABILITY_BRIDGE("dev/fopwoc/julia/runtime/CapabilitySnapshot", false),
+    FRAMEBUFFER_CLEAR_BRIDGE("dev/fopwoc/julia/backend/bridge/FramebufferClearBridge", false),
     FRAMEBUFFER_BRIDGE("dev/fopwoc/julia/backend/bridge/FramebufferBridge", false),
     FRAMEBUFFER_HOOKS("dev/fopwoc/julia/backend/framebuffer/FramebufferHooks", false),
     BOUND_TEXTURE_BRIDGE("dev/fopwoc/julia/backend/bridge/BoundTextureBridge", false),

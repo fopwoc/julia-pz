@@ -31,6 +31,30 @@ class ResourcePassTest {
         assertEquals(Endpoint.PROGRAM_RESOURCE_BRIDGE.owner(), nativeBuffer.owner);
     }
 
+    @Test
+    void routesFloatingPointFramebufferClearsWithoutClaimingIntegerOverloads() {
+        var node = new ClassNode();
+        var method = new MethodNode();
+        node.methods.add(method);
+        var array =
+                new MethodInsnNode(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/GL30", "glClearBufferfv", "(II[F)V", false);
+        var buffer = new MethodInsnNode(
+                Opcodes.INVOKESTATIC,
+                "org/lwjgl/opengl/GL30C",
+                "glClearBufferfv",
+                "(IILjava/nio/FloatBuffer;)V",
+                false);
+        var integer =
+                new MethodInsnNode(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/GL30", "glClearBufferiv", "(II[I)V", false);
+        method.instructions.add(array);
+        method.instructions.add(buffer);
+        method.instructions.add(integer);
+        ResourcePass.adapt(node);
+        assertEquals(Endpoint.FRAMEBUFFER_CLEAR_BRIDGE.owner(), array.owner);
+        assertEquals(Endpoint.FRAMEBUFFER_CLEAR_BRIDGE.owner(), buffer.owner);
+        assertEquals("org/lwjgl/opengl/GL30", integer.owner);
+    }
+
     private static MethodInsnNode call(String name, String descriptor) {
         return new MethodInsnNode(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/GL43", name, descriptor, false);
     }

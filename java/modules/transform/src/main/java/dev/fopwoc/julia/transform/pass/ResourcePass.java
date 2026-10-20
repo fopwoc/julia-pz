@@ -13,6 +13,30 @@ import org.objectweb.asm.tree.MethodInsnNode;
 /** Only the exact observed resource overloads enter the bounded bridge implementations. */
 public final class ResourcePass {
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
+            Map.entry("org/lwjgl/opengl/GL30.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL30.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
+                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL30C.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL30C.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
+                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL43.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
+                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43C.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL43C.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
+                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
+                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45C.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry(
+                    "org/lwjgl/opengl/GL45C.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
+                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL43.glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
             Map.entry("org/lwjgl/opengl/GL43C.glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
             Map.entry("org/lwjgl/opengl/GL44.glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),

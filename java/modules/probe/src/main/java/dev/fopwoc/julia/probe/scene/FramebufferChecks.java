@@ -94,6 +94,7 @@ final class FramebufferChecks {
             glDrawArrays(GL_TRIANGLES, 0, 3);
             verify(ResourceReadback.layer(first, 0), 204, 51, 102);
             verify(ResourceReadback.layer(second, 0), 51, 102, 153);
+            clearBuffers(fbos[2], first, second);
             glBindFramebuffer(GL_READ_FRAMEBUFFER, fbos[2]);
             bytes.clear();
             glReadPixels(0, 0, 4, 4, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
@@ -169,18 +170,28 @@ final class FramebufferChecks {
             complete(fbos[0]);
             complete(peer);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[0]);
-            glClearDepth(0.25);
-            glClear(GL_DEPTH_BUFFER_BIT);
+            glClearDepth(0.75);
+            glClearBufferfv(GL_DEPTH, 0, new float[] {0.25f});
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, peer);
-            glClearDepth(0.5);
-            glClear(GL_DEPTH_BUFFER_BIT);
+            glClearDepth(0.9);
+            glClearBufferfv(GL_DEPTH, 0, new float[] {0.5f});
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[0]);
             glClearDepth(0.75);
             glClear(GL_DEPTH_BUFFER_BIT);
             GL45.glNamedFramebufferTextureLayer(peer, GL_DEPTH_ATTACHMENT, depth, 0, 2);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, peer);
             glClearDepth(1);
-            glClear(GL_DEPTH_BUFFER_BIT);
+            try (var stack = MemoryStack.stackPush()) {
+                var value = stack.floats(-1, 0.2f, -1);
+                value.position(1).limit(2);
+                glClearBufferfv(GL_DEPTH, 0, value);
+                if (value.position() != 1 || value.limit() != 2)
+                    throw new IllegalStateException("Depth clear consumed buffer");
+            }
+            glClear(GL_DEPTH_BUFFER_BIT); // Restores this slice to 1, rather than the per-buffer value 0.2.
+            glDepthMask(false);
+            glClearBufferfv(GL_DEPTH, 0, new float[] {0});
+            glDepthMask(true);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[0]);
             glEnable(GL_DEPTH_TEST);
             glDepthFunc(GL_LESS);
@@ -218,7 +229,7 @@ final class FramebufferChecks {
             Files.writeString(
                     output.resolve("framebuffers.txt"),
                     "PASS\nverified_pixels=" + verified
-                            + "\nchecks=named creation,bindings,MRT routing,read routing,completeness,array slices,scissor/masks,mips,depth-only clears,D24/D32 storage,slice switching,read-target attachment,invalid state\n");
+                            + "\nchecks=per-buffer float clears,array/buffer bounds,MRT isolation,clear state preservation,named creation,bindings,MRT routing,read routing,completeness,array slices,scissor/masks,mips,depth-only clears,D24/D32 storage,slice switching,read-target attachment,invalid state\n");
         } finally {
             glUseProgram(0);
             glClearDepth(1);
@@ -234,6 +245,75 @@ final class FramebufferChecks {
             glDeleteProgram(depthPaint);
             MemoryUtil.memFree(bytes);
         }
+    }
+
+    private static byte[] clearReadback(int texture) {
+        try (var stack = MemoryStack.stackPush()) {
+            var bytes = stack.malloc(4 * 4 * 4);
+            GL45.glGetTextureImage(texture, 0, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+            byte[] result = new byte[bytes.remaining()];
+            bytes.get(result);
+            return result;
+        }
+    }
+
+    private static void clearBuffers(int fbo, int first, int second) {
+        int reader = glGetInteger(GL_READ_FRAMEBUFFER_BINDING);
+        glClearColor(0.6f, 0.4f, 0.2f, 1);
+        float[] red = {1, 0, 0, 1, 42};
+        glClearBufferfv(GL_COLOR, 0, red);
+        if (red[4] != 42) throw new IllegalStateException("Clear changed its input array");
+        verify(clearReadback(first), 204, 51, 102);
+        verify(clearReadback(second), 255, 0, 0);
+        try (var stack = MemoryStack.stackPush()) {
+            var green = stack.floats(-1, 0, 1, 0, 1, -1);
+            green.position(1).limit(5);
+            glClearBufferfv(GL_COLOR, 1, green);
+            if (green.position() != 1 || green.limit() != 5 || green.get(0) != -1)
+                throw new IllegalStateException("Clear changed buffer bounds or canary");
+        }
+        verify(clearReadback(first), 0, 255, 0);
+        verify(clearReadback(second), 255, 0, 0);
+        unchanged(fbo, reader);
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(1, 1, 2, 2);
+        glColorMask(false, false, true, false);
+        glClearBufferfv(GL_COLOR, 0, new float[] {0, 0, 1, 0});
+        glColorMask(true, true, true, true);
+        glDisable(GL_SCISSOR_TEST);
+        byte[] result = clearReadback(second);
+        for (int y = 0; y < 4; y++)
+            for (int x = 0; x < 4; x++)
+                pixel(result, (y * 4 + x) * 4, 255, 0, x >= 1 && x < 3 && y >= 1 && y < 3 ? 255 : 0);
+        verify(clearReadback(first), 0, 255, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        verify(clearReadback(first), 153, 102, 51);
+        verify(clearReadback(second), 153, 102, 51);
+        GL45.glNamedFramebufferDrawBuffers(fbo, new int[] {GL_NONE, GL_COLOR_ATTACHMENT1});
+        glClearBufferfv(GL_COLOR, 0, new float[] {0, 0, 0, 0});
+        glClearBufferfv(GL_COLOR, 7, new float[] {0, 0, 0, 0});
+        GL45.glNamedFramebufferDrawBuffers(fbo, new int[] {GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT0});
+        try {
+            glClearBufferfv(GL_COLOR, 0, new float[] {1});
+            throw new AssertionError("Short color clear accepted");
+        } catch (IllegalArgumentException expected) {
+        }
+        try {
+            glClearBufferfv(GL_DEPTH, 1, new float[] {0});
+            throw new AssertionError("Invalid depth draw-buffer index accepted");
+        } catch (IllegalArgumentException expected) {
+        }
+        try {
+            glClearBufferfv(GL_STENCIL, 0, new float[] {0});
+            throw new AssertionError("Floating-point stencil clear accepted");
+        } catch (IllegalArgumentException expected) {
+        }
+        verify(clearReadback(first), 153, 102, 51);
+        verify(clearReadback(second), 153, 102, 51);
+        unchanged(fbo, reader);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        verify(ResourceReadback.layer(first, 0), 204, 51, 102);
+        verify(ResourceReadback.layer(second, 0), 51, 102, 153);
     }
 
     private static void complete(int name) {
