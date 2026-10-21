@@ -18,6 +18,7 @@ public final class MetalSamplerShaders {
     private MetalSamplerShaders() {}
 
     public static Output compile(ByteBuffer spirv, int stage) {
+        if (stage == GL20.GL_FRAGMENT_SHADER) spirv = DiscardSpirv.translate(spirv);
         SdlExtension.requireAbi("JULIA_SDL_SamplerArgumentsABI", 2);
         try (var stack = MemoryStack.stackPush()) {
             var pointer = stack.pointers(0);

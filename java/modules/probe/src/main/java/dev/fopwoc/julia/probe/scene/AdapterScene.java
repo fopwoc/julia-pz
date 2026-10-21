@@ -135,6 +135,7 @@ public final class AdapterScene {
             ShaderLinkChecks.run();
             ShaderLimitChecks.run(output);
             ManySamplerChecks.run(output);
+            FragmentDiscardChecks.run(output);
             ShaderCompatibilityChecks.run();
             UniformInitializerChecks.run();
             CullingChecks.run();
