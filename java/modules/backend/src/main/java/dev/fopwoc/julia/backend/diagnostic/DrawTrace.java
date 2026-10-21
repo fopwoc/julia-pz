@@ -20,20 +20,50 @@ import java.util.Arrays;
 
 /** Opt-in CPU-side graphics snapshots. Never reads back GPU resources or changes render state. */
 public final class DrawTrace implements AutoCloseable {
-    private final boolean enabled = Boolean.getBoolean("julia.drawTrace");
-    private final TraceBudget budget = new TraceBudget(2048, 64, 16 * 1024 * 1024);
+    // Frame index and two bounded content-addressed source paths accompany each snapshot.
+    private static final int SOURCE_HEADER_BYTES = 256;
+    private final boolean enabled;
+    private TraceBudget budget;
+    private TraceShaders shaders;
+    private Path output;
+    private long frame;
     private BufferedWriter writer;
+
+    public DrawTrace() {
+        this(Boolean.getBoolean("julia.drawTrace"));
+    }
+
+    DrawTrace(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     public void open(Path output) {
         if (!enabled) return;
         if (writer != null) throw new IllegalStateException("Draw trace is already open");
+        this.output = output;
+        budget = new TraceBudget(2048, 64, 16 * 1024 * 1024);
+        shaders = new TraceShaders(output.resolve("draw-shaders"));
         try {
             writer = Files.newBufferedWriter(output.resolve("draw-trace.txt"), StandardCharsets.UTF_8);
             writer.write("Julia draw trace: CPU snapshots; max 2048 states,64 per program,16 MiB records\n");
+            writer.write("captureFrame=" + frame + "\n");
             writer.flush();
         } catch (IOException failure) {
             throw new IllegalStateException("Cannot open draw trace", failure);
         }
+    }
+
+    /** A request file restarts capture on the render thread after the scene has reached the state under investigation. */
+    public void frameBoundary() {
+        frame++;
+        if (output == null) return;
+        try {
+            if (!Files.deleteIfExists(output.resolve("draw-trace.request"))) return;
+        } catch (IOException failure) {
+            throw new IllegalStateException("Cannot consume draw-trace request", failure);
+        }
+        close();
+        open(output);
     }
 
     public static void beforeDraw(ContextState state) {
@@ -96,9 +126,13 @@ public final class DrawTrace implements AutoCloseable {
         samplers(snapshot, program, state, true);
         snapshot.append('\n');
         String text = snapshot.toString();
-        if (!budget.reserve(state.boundProgram, controls.toString(), text.getBytes(StandardCharsets.UTF_8).length))
-            return;
+        if (!budget.reserve(
+                state.boundProgram,
+                controls.toString(),
+                text.getBytes(StandardCharsets.UTF_8).length + SOURCE_HEADER_BYTES)) return;
         try {
+            writer.write("drawFrame=" + frame + " vertexSource=" + shaders.write(program.vertexSource)
+                    + " fragmentSource=" + shaders.write(program.fragmentSource) + "\n");
             writer.write(text);
             writer.flush();
         } catch (IOException failure) {

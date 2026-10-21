@@ -82,6 +82,7 @@ public final class GameRuntime {
 
     public static void present() {
         var runtime = require();
+        Subsystems.current().drawTrace().frameBoundary();
         runtime.session.backend().onFrameEnd();
         runtime.frames++;
         if (runtime.frames <= 3 || runtime.frames % 60 == 0) runtime.status("RENDERING");

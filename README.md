@@ -242,11 +242,15 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `-javaagent:julia-agent.jar=activate` | Launch options | Render through Julia; reports go to a fresh `~/Zomboid/julia/run-*/` |
 | `-javaagent:julia-agent.jar=activate=<dir>` | Launch options | Same, with reports in `<dir>` |
 | `-javaagent:julia-agent.jar=<report.tsv>` | Launch options | Audit only: record which classes make graphics calls into a new file; rendering is unchanged |
-| `-Djulia.drawTrace=true` | Launch options or probe JVM | Bounded CPU draw-state snapshots in `draw-trace.txt` beside renderer/probe reports; no GPU readbacks |
+| `-Djulia.drawTrace=true` | Launch options or probe JVM | Bounded CPU draw-state snapshots and compiler inputs beside renderer/probe reports; no GPU readbacks |
 | `-Djulia.metalHud=true` | Launch options, macOS | Show Apple's Metal Performance HUD over the game |
 | `LOG_LEVEL=debug\|info\|warn\|error` | Environment | Julia's log detail on stderr; default `error` |
 | `-PjuliaNatives=<dir>` | Gradle | Pack other hosts' SDL builds (`<os>/<arch>/<library>`) into the agent jar |
 | `-Djulia.probe.width=<px>`, `-Djulia.probe.height=<px>` | Probe JVM | Offscreen size of the adapter probe; default 32 × 32 |
+
+With draw tracing enabled, create `draw-trace.request` inside the current run directory to restart capture at the next
+frame boundary. This replaces `draw-trace.txt` and resets its snapshot quota, so a stable in-game defect can be captured
+after startup. Matching vertex and fragment compiler inputs are stored in `draw-shaders/` (at most 8 MiB per capture).
 
 ## License
 
