@@ -98,8 +98,9 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    With ZombieBuddy, add its agent **after** Julia's, for example
    `-XstartOnFirstThread -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --`. Keep the final `--`.
 
-4. Optional: enable the **Julia** Lua mod from the Workshop or `Julia.zip`. It only shows `Julia active | Metal`, `Julia active | Vulkan` or
-   `Julia inactive` in the corner of the main menu; it does not turn Julia on or off.
+4. Optional: enable the **Julia** Lua mod from the Workshop or `Julia.zip`. It shows the agent's version and state in the
+   corner of the main menu, such as `Julia 1.2.3 active | Metal` or `Julia 1.2.3 inactive`, and warns when the agent is
+   not loaded. It does not turn Julia on or off.
 
 For Linux or Windows testing, use the JAR produced by `./tools/build-universal.sh`. Check the menu first, then a
 test save, resizing, and fullscreen/windowed switching. The menu status should identify Vulkan. If the process exits,

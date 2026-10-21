@@ -54,6 +54,7 @@ class LuaStatusPassTest implements Opcodes {
             System.setProperty("julia.renderer.backend", "metal");
             assertTrue(JuliaStatus.isActive());
             assertEquals("metal", JuliaStatus.getBackend());
+            assertEquals("Julia dev active | Metal", JuliaStatus.label(), "Classes outside the agent jar report dev");
         } finally {
             if (previous == null) System.clearProperty("julia.renderer.backend");
             else System.setProperty("julia.renderer.backend", previous);

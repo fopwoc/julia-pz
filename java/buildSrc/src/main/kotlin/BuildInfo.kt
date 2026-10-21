@@ -4,12 +4,11 @@ import org.gradle.api.Project
 /**
  * Build identity derived from Git, resolved once per build so every module and artifact reports the same values.
  *
- * A commit tagged `1.2.3` builds as version `1.2.3`; any other commit builds as `<commit date>-<short hash>`,
- * e.g. `20261018-5e098e5a`. The build number is the commit count at that revision.
+ * A commit tagged `1.2.3` builds as release version `1.2.3-<short hash>`, e.g. `1.2.3-5e098e5a`; any other commit
+ * builds as `<commit date>-<short hash>`, e.g. `20261018-5e098e5a`. Uncommitted changes, including untracked files that
+ * aren't ignored, append `-dirty`. The build number is the commit count at that revision.
  */
-data class BuildInfo(val version: String, val buildNumber: Int, val commitHash: String) {
-    val isRelease: Boolean = RELEASE.matches(version)
-
+data class BuildInfo(val version: String, val isRelease: Boolean, val buildNumber: Int, val commitHash: String) {
     companion object {
         private val RELEASE = Regex("""\d+\.\d+\.\d+""")
         private const val KEY = "julia.buildInfo"
@@ -29,8 +28,9 @@ data class BuildInfo(val version: String, val buildNumber: Int, val commitHash: 
             val tag = git(repository, "tag", "--points-at", "HEAD", "--sort=-version:refname")
                 .lineSequence()
                 .firstOrNull(RELEASE::matches)
-            val version = tag ?: "${git(repository, "show", "-s", "--format=%cs", "HEAD").replace("-", "")}-$hash"
-            return BuildInfo(version, git(repository, "rev-list", "--count", "HEAD").toInt(), hash)
+            val prefix = tag ?: git(repository, "show", "-s", "--format=%cs", "HEAD").replace("-", "")
+            val dirty = if (git(repository, "status", "--porcelain").isEmpty()) "" else "-dirty"
+            return BuildInfo("$prefix-$hash$dirty", tag != null, git(repository, "rev-list", "--count", "HEAD").toInt(), hash)
         }
 
         private fun Project.git(repository: File, vararg arguments: String): String =

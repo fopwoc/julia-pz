@@ -12,14 +12,21 @@ public final class JuliaStatus {
         return System.getProperty("julia.renderer.backend", "");
     }
 
+    /** The agent jar's Git-derived build version; {@code dev} when running from classes outside the jar. */
+    public static String getVersion() {
+        var version = JuliaStatus.class.getPackage().getImplementationVersion();
+        return version == null ? "dev" : version;
+    }
+
     /** The one-line status shown in PZ's main menu and in ZombieBuddy's mod approval window. */
     public static String label() {
-        return switch (getBackend()) {
-            case "" -> "Julia inactive";
-            case "metal" -> "Julia active | Metal";
-            case "vulkan" -> "Julia active | Vulkan";
-            case "direct3d12" -> "Julia active | Direct3D 12";
-            case String other -> "Julia active | " + other;
+        var state = switch (getBackend()) {
+            case "" -> "inactive";
+            case "metal" -> "active | Metal";
+            case "vulkan" -> "active | Vulkan";
+            case "direct3d12" -> "active | Direct3D 12";
+            case String other -> "active | " + other;
         };
+        return "Julia " + getVersion() + " " + state;
     }
 }

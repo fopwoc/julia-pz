@@ -2,4 +2,4 @@ name=Julia
 id=Julia
 poster=poster.png
 icon=icon.png
-description=Shows Julia renderer status in the main menu. Requires the separately installed Julia startup agent. ZombieBuddy is optional.
+description=Shows the Julia agent version and renderer status in the main menu, and warns when the agent is missing. Requires the separately installed Julia startup agent. ZombieBuddy is optional.
