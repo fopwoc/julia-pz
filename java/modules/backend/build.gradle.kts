@@ -44,8 +44,16 @@ dependencies {
         exclude(group = "org.lwjgl")
         // A Forge coremod that deploys a duplicate fastutil and other libraries into Minecraft; never activated here.
         exclude(group = "com.github.GTNewHorizons", module = "GTNHExtLib")
-        // jcpp needs Ant only for its unused build task.
+        // jcpp needs Ant, slf4j and semver only for its build task and command line; findbugs only for annotations.
+        // jopt-simple stays: RetroFuturaBootstrap and launchwrapper load it.
         exclude(group = "org.apache.ant")
+        exclude(group = "org.slf4j")
+        exclude(group = "com.github.zafarkhaja")
+        exclude(group = "com.google.code.findbugs")
+        // GTNHLib's mixin loader; GLSM only uses its plain buffer and vertex helpers.
+        exclude(group = "io.github.legacymoddingmc", module = "unimixins")
+        // Leaked from GLSM's own tests at compile scope.
+        exclude(group = "org.junit.jupiter")
     }
     for (module in listOf("lwjgl", "lwjgl-sdl", "lwjgl-shaderc", "lwjgl-spvc", "lwjgl-opengl")) {
         val coordinates = "org.lwjgl:$module:${libs.versions.lwjgl.get()}"

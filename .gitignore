@@ -10,3 +10,6 @@ local.properties
 
 # Machine-local build and Steam deployment helper.
 /local-test.sh
+
+# Staged by :workshop:stageAgent for Workshop uploads.
+/julia-agent.jar

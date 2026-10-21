@@ -29,5 +29,5 @@ for target in arm64 x64; do
     cp "$directory/lib/libSDL3Julia.0.dylib" "$natives/macos/$target/libSDL3Julia.dylib"
 done
 
-"$root/java/gradlew" -p "$root/java" check :agent:universalJar "-PjuliaNatives=$natives"
-echo "Universal agent: $root/java/modules/agent/build/libs/julia-agent.jar"
+"$root/java/gradlew" -p "$root/java" check :agent:universalJar :workshop:stageAgent "-PjuliaNatives=$natives"
+echo "Universal agent: $root/java/modules/agent/build/libs/julia-agent.jar (staged as $root/julia-agent.jar)"
