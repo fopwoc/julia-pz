@@ -40,7 +40,7 @@ public enum Platform {
 
     /** The GPU backend requested from Angelica and expected from the created device. */
     public GpuBackend gpuBackend() {
-        return gpuBackend;
+        return GpuBackend.of(System.getProperty("julia.gpu", gpuBackend.driverName()));
     }
 
     /** Fails fast where the platform restricts which thread may initialize SDL video. */
@@ -53,6 +53,6 @@ public enum Platform {
 
     public void requireImplemented() {
         if (this != MACOS) throw new UnsupportedOperationException("The graphics runtime is not yet ported to " + this);
-        gpuBackend.requireImplemented();
+        gpuBackend().requireImplemented();
     }
 }

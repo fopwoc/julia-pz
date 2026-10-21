@@ -2,6 +2,7 @@ package dev.fopwoc.julia.probe.device;
 
 import static org.lwjgl.sdl.SDLGPU.*;
 
+import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import com.gtnewhorizons.angelica.sdlgpu.device.Device;
 import dev.fopwoc.julia.backend.platform.Platform;
 import dev.fopwoc.julia.backend.utils.Sdl;
@@ -36,13 +37,13 @@ public final class OffscreenProbe {
         Path output = destination.toAbsolutePath();
         Files.createDirectories(output);
         Files.deleteIfExists(output.resolve("result.txt"));
-        Files.deleteIfExists(output.resolve("metal-clear.png"));
-        Files.deleteIfExists(output.resolve("metal-texture.png"));
+        Files.deleteIfExists(output.resolve("clear.png"));
+        Files.deleteIfExists(output.resolve("texture.png"));
         Configuration.SHARED_LIBRARY_EXTRACT_PATH.set(output.resolve("natives").toString());
         var platform = Platform.current();
-        platform.requireImplemented();
         platform.configureNativeLibraries();
         platform.requireVideoThread();
+        BackendOptions.latch(true, platform.gpuBackend().driverName(), 0);
         SDLHints.SDL_SetHint(SDLHints.SDL_HINT_MAC_BACKGROUND_APP, "1");
         Sdl.require(SDLInit.SDL_Init(SDLInit.SDL_INIT_VIDEO), "SDL_Init");
         var device = new Device();
@@ -52,12 +53,13 @@ public final class OffscreenProbe {
                 throw new IllegalStateException(
                         "Expected " + platform.gpuBackend().driverName() + ", got " + device.getDriverName());
             }
+            ExtensionReport.write(device.getDevice(), output);
             byte[] clear = renderAndRead(device, false);
             verify(clear, false);
-            writeImage(output.resolve("metal-clear.png"), clear);
+            writeImage(output.resolve("clear.png"), clear);
             byte[] rgba = renderAndRead(device, true);
             verify(rgba, true);
-            writeImage(output.resolve("metal-texture.png"), rgba);
+            writeImage(output.resolve("texture.png"), rgba);
             String result = "PASS\nbackend=" + device.getDriverName() + "\ngpu=" + device.getDeviceName()
                     + "\nprocess_id=" + ProcessHandle.current().pid() + "\nsdl=" + SDLVersion.SDL_GetVersion()
                     + "\nsize=" + SIZE + "x" + SIZE
@@ -134,7 +136,7 @@ public final class OffscreenProbe {
             Sdl.require(fence, "Submit command buffer");
             long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
             while (!(SDL_QueryGPUFence(device, fence) ^ owner.isFenceQueryInverted())) {
-                if (System.nanoTime() >= deadline) throw new IllegalStateException("Metal readback fence timed out");
+                if (System.nanoTime() >= deadline) throw new IllegalStateException("GPU readback fence timed out");
                 LockSupport.parkNanos(1_000_000);
             }
             ByteBuffer mapped = SDL_MapGPUTransferBuffer(device, download, false, BYTE_COUNT);
