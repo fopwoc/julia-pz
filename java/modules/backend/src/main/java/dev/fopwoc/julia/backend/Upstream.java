@@ -1,6 +1,7 @@
 package dev.fopwoc.julia.backend;
 
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL12.GL_TEXTURE_MAX_LEVEL;
 
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
@@ -301,6 +302,13 @@ public final class Upstream {
         } catch (Throwable failure) {
             throw new IllegalStateException("Cannot submit pending SDL commands", failure);
         }
+    }
+
+    /** Named and floating-point setters must also update GLSM's integer cache and allocation hint. */
+    public static void textureMipParameter(int name, int parameter, int value) {
+        int target = Subsystems.current().textureObjects().target(name);
+        GLStateManager.updateTexParameteriCache(target, name, parameter, value);
+        if (parameter == GL_TEXTURE_MAX_LEVEL) resources().getOrCreateTexSamplerState(name).maxLevel = value;
     }
 
     public static void flushTextureReferences() {

@@ -123,12 +123,8 @@ public final class TextureObjects {
         if (parameter == GL_TEXTURE_MAX_LEVEL && value < 0)
             throw new IllegalArgumentException("Negative texture maximum level");
         switch (parameter) {
-            case GL_TEXTURE_BASE_LEVEL -> {
-                if (value != 0)
-                    throw new UnsupportedOperationException("Nonzero named texture base level is not implemented");
-                return;
-            }
-            case GL_TEXTURE_MIN_FILTER,
+            case GL_TEXTURE_BASE_LEVEL,
+                    GL_TEXTURE_MIN_FILTER,
                     GL_TEXTURE_MAG_FILTER,
                     GL_TEXTURE_WRAP_S,
                     GL_TEXTURE_WRAP_T,

@@ -20,6 +20,7 @@ import java.util.Set;
 
 /** Same-format 2D/array views share physical storage while retaining independent texture state. */
 public final class TextureViews implements AutoCloseable {
+    private final TextureMipSampling mips = new TextureMipSampling();
     private final Set<Integer> fresh = new HashSet<>();
     private final Set<Integer> immutable = new HashSet<>();
     private final Map<Integer, Integer> modes = new HashMap<>();
@@ -131,9 +132,11 @@ public final class TextureViews implements AutoCloseable {
 
     public void beforeAllocation(int name) {
         if (immutable.contains(name)) throw new IllegalStateException("Cannot redefine immutable texture storage");
+        mips.release(Upstream.resources().getTextureHandle(name));
     }
 
     public boolean parameter(int name, int parameter, int value) {
+        if (mips.parameter(name, parameter, value)) return true;
         if (parameter != GL_DEPTH_STENCIL_TEXTURE_MODE) return false;
         if (value != GL_DEPTH_COMPONENT && value != GL_STENCIL_INDEX) {
             throw new IllegalArgumentException("Invalid depth/stencil texture mode");
@@ -153,6 +156,8 @@ public final class TextureViews implements AutoCloseable {
     }
 
     public Integer parameter(int name, int parameter) {
+        var mip = mips.parameter(name, parameter);
+        if (mip != null) return mip;
         var meta = Upstream.resources().getTextureMeta(name);
         var range = meta == null || !immutable.contains(name)
                 ? null
@@ -179,11 +184,13 @@ public final class TextureViews implements AutoCloseable {
 
     public void deleted(int name, long handle) {
         if (handle != 0 && !Upstream.textureReferenced(Upstream.resources(), handle)) {
+            mips.release(handle);
             var sampling = stencil.remove(handle);
             if (sampling != null) sampling.close();
             var family = shared.remove(handle);
             if (family != null) family.remove(handle);
         }
+        mips.deleted(name);
         ranges.remove(name);
         fresh.remove(name);
         immutable.remove(name);
@@ -225,7 +232,8 @@ public final class TextureViews implements AutoCloseable {
     public long samplingHandle(int name) {
         var resources = Upstream.resources();
         long handle = resources.getTextureHandle(name);
-        if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) != GL_STENCIL_INDEX) return handle;
+        if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) != GL_STENCIL_INDEX)
+            return mips.handle(name, handle, resources.getTextureMeta(name), immutable.contains(name));
         var sampling = stencil.get(handle);
         if (sampling == null) throw new IllegalStateException("Stencil view was not prepared before sampling");
         return sampling.texture();
@@ -233,7 +241,8 @@ public final class TextureViews implements AutoCloseable {
 
     @Override
     public void close() {
-        if (!views.isEmpty()) Upstream.flushTextureReferences();
+        if (!views.isEmpty() || mips.hasViews()) Upstream.flushTextureReferences();
+        mips.close();
         for (var sampler : stencil.values()) sampler.close();
         stencil.clear();
         // Upstream shutdown releases one handle per name. Keep one name per physical allocation.

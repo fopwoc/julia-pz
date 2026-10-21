@@ -212,7 +212,10 @@ public abstract class TextureLayer extends FramebufferLayer {
         var context = Upstream.context();
         if (!subsystems()
                 .textureViews()
-                .parameter(context.boundTextures[context.activeTextureUnit], parameter, value)) {
+                .parameter(
+                        subsystems().textureBindings().get(context, context.activeTextureUnit, target),
+                        parameter,
+                        value)) {
             super.texParameteri(target, parameter, value);
         }
     }
@@ -226,26 +229,38 @@ public abstract class TextureLayer extends FramebufferLayer {
     @Override
     public int getTexParameteri(int target, int parameter) {
         var context = Upstream.context();
-        var value = subsystems().textureViews().parameter(context.boundTextures[context.activeTextureUnit], parameter);
+        var value = subsystems()
+                .textureViews()
+                .parameter(subsystems().textureBindings().get(context, context.activeTextureUnit, target), parameter);
         return value != null ? value : super.getTexParameteri(target, parameter);
     }
 
     @Override
     public void texParameterf(int target, int parameter, float value) {
-        if (parameter == GL_DEPTH_STENCIL_TEXTURE_MODE) texParameteri(target, parameter, (int) value);
-        else super.texParameterf(target, parameter, value);
+        if (parameter == GL_DEPTH_STENCIL_TEXTURE_MODE
+                || parameter == GL_TEXTURE_BASE_LEVEL
+                || parameter == GL_TEXTURE_MAX_LEVEL) {
+            if (!Float.isFinite(value)) throw new IllegalArgumentException("Non-finite texture parameter");
+            texParameteri(target, parameter, Math.round(value));
+        } else super.texParameterf(target, parameter, value);
     }
 
     @Override
     public void textureParameterf(int name, int target, int parameter, float value) {
-        if (parameter == GL_DEPTH_STENCIL_TEXTURE_MODE) textureParameteri(name, target, parameter, (int) value);
-        else super.textureParameterf(name, target, parameter, value);
+        if (parameter == GL_DEPTH_STENCIL_TEXTURE_MODE
+                || parameter == GL_TEXTURE_BASE_LEVEL
+                || parameter == GL_TEXTURE_MAX_LEVEL) {
+            if (!Float.isFinite(value)) throw new IllegalArgumentException("Non-finite texture parameter");
+            textureParameteri(name, target, parameter, Math.round(value));
+        } else super.textureParameterf(name, target, parameter, value);
     }
 
     @Override
     public float getTexParameterf(int target, int parameter) {
         var context = Upstream.context();
-        var value = subsystems().textureViews().parameter(context.boundTextures[context.activeTextureUnit], parameter);
+        var value = subsystems()
+                .textureViews()
+                .parameter(subsystems().textureBindings().get(context, context.activeTextureUnit, target), parameter);
         return value != null ? value.floatValue() : super.getTexParameterf(target, parameter);
     }
 
