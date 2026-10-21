@@ -20,8 +20,8 @@ public enum Platform {
             }
         }
     },
-    // Planned ports; their window bindings and native builds are not implemented or verified yet.
-    WINDOWS(GpuBackend.DIRECT3D12),
+    // Planned ports; their game window bindings are not implemented yet.
+    WINDOWS(GpuBackend.VULKAN),
     LINUX(GpuBackend.VULKAN);
 
     private final GpuBackend gpuBackend;

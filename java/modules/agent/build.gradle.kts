@@ -26,3 +26,10 @@ tasks.test {
     inputs.file(agentJar).withPropertyName("agentJar")
     doFirst { systemProperty("agent.jar", agentJar.get().asFile.absolutePath) }
 }
+
+// Uses the ordinary agent layout; completeness is an additional distribution requirement.
+tasks.register("universalJar") {
+    group = "build"
+    description = "Build the single agent JAR with every supported platform's native library."
+    dependsOn(":backend:verifyUniversalNatives", tasks.jar)
+}

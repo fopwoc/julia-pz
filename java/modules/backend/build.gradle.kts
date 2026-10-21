@@ -119,3 +119,19 @@ tasks.processResources {
     }
     from(rootProject.file("../licenses/SDL.txt")) { into("META-INF/licenses") }
 }
+
+// Validate generated resources, so a partial build cannot masquerade as a universal distribution.
+tasks.register("verifyUniversalNatives") {
+    dependsOn(tasks.processResources)
+    val resources = tasks.processResources.map { it.destinationDir }
+    inputs.dir(resources)
+    doLast {
+        val missing = nativeTargets.filter { target ->
+            !resources.get().resolve("${target.directory}/org/lwjgl/sdl/${target.sdlLibrary}").isFile
+        }
+        if (missing.isNotEmpty()) throw GradleException(
+            "Missing universal SDL natives: ${missing.joinToString { it.directory }}. " +
+                "Run tools/build-universal.sh or supply -PjuliaNatives=<directory>."
+        )
+    }
+}

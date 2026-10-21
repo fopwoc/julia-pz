@@ -43,7 +43,7 @@ if(NOT patched_identity STREQUAL patch_identity)
     include("${CMAKE_CURRENT_SOURCE_DIR}/common/exports.cmake")
     include("${CMAKE_CURRENT_SOURCE_DIR}/common/sampler_capacity.cmake")
     include("${CMAKE_CURRENT_SOURCE_DIR}/common/sparse_targets.cmake")
-    # Each GPU backend folder patches only its own SDL driver; Vulkan and Direct3D 12 are not ported yet.
+    # Each GPU backend folder patches only its own SDL driver.
     if(APPLE)
         set(backend "${sdl_patched}/src/gpu/metal/SDL_gpu_metal.m")
         include("${CMAKE_CURRENT_SOURCE_DIR}/metal/backend.cmake")

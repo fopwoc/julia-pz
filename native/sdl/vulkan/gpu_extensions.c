@@ -1,3 +1,4 @@
+#ifdef SDL_GPU_VULKAN
 /* Backend-local table; unknown features remain unavailable instead of borrowing Metal implementations. */
 SDL_FunctionPointer JULIA_VulkanGetExtension(const char *name)
 {
@@ -6,3 +7,4 @@ SDL_FunctionPointer JULIA_VulkanGetExtension(const char *name)
     SDL_SetError("Julia extension %s is not implemented for the vulkan backend", name);
     return NULL;
 }
+#endif

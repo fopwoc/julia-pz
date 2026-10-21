@@ -31,7 +31,7 @@ Status legend: ✅ works · 🧪 built but untested · 🚧 planned · ➖ not a
 | macOS | Apple silicon (arm64) | Metal | ✅ |
 | macOS | Intel (x64) | Metal | 🧪 |
 | Linux | x64 | Vulkan | 🚧 |
-| Windows | x64 | Direct3D 12 | 🚧 |
+| Windows | x64 | Vulkan | 🚧 |
 
 One `julia-agent.jar` carries the natives for every platform above and picks the right ones at startup. On a planned
 platform it stops with a clear "not ported" error instead of rendering.
@@ -198,6 +198,15 @@ cd java
 The agent jar bundles LWJGL natives for every platform in the support table and Julia's SDL build for the host. To
 include SDL builds made on other hosts, pass `-PjuliaNatives=<dir>`, where `<dir>` holds `<os>/<arch>/<library>`,
 for example `linux/x64/libSDL3Julia.so` or `windows/x64/SDL3Julia.dll`.
+
+For a complete distribution, run `./tools/build-universal.sh` from the repository root on macOS with Docker
+running. It builds Mac ARM64 and x64 libraries with the Apple SDK, then Linux x64 and Windows x64 libraries in a
+staged container, runs the JVM checks, and packages the same `java/modules/agent/build/libs/julia-agent.jar`.
+Container outputs and incremental build caches remain under `native/sdl/build/`. This packages platform libraries;
+it does not imply that every platform's graphics backend is ready for gameplay.
+
+When supplying prebuilt libraries yourself, use `:agent:universalJar` with `-PjuliaNatives=<dir>` to reject an
+incomplete distribution. Ordinary `:agent:jar` remains available for host-only development builds.
 
 ### GPU probes
 

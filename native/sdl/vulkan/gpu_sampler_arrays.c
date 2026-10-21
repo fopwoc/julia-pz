@@ -1,3 +1,4 @@
+#ifdef SDL_GPU_VULKAN
 /* Reflected GL sampler arrays retain their contiguous logical slots, but share one Vulkan descriptor binding. */
 static int SDLCALL JULIA_VulkanSamplerArgumentsABI(void) { return 2; }
 
@@ -33,3 +34,4 @@ static Uint32 JULIA_VulkanSamplerBinding(const DescriptorSetLayout *layout, Uint
     *element = slot - binding;
     return binding;
 }
+#endif

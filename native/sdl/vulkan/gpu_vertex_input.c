@@ -1,3 +1,4 @@
+#ifdef SDL_GPU_VULKAN
 /* Compiled inside SDL_gpu_vulkan.c; public callers use the device-selected extension table. */
 static int SDLCALL JULIA_VulkanVertexInputABI(void) { return 2; }
 
@@ -96,3 +97,4 @@ static void JULIA_VulkanApplyVertexInput(const SDL_GPUGraphicsPipelineCreateInfo
         state->pNext = divisorState;
     }
 }
+#endif

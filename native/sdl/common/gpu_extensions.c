@@ -11,7 +11,13 @@ extern SDL_FunctionPointer JULIA_MetalGetExtension(const char *name);
 extern SDL_FunctionPointer JULIA_VulkanGetExtension(const char *name);
 #endif
 
-__attribute__((visibility("default"))) SDL_FunctionPointer SDLCALL JULIA_SDL_GetExtension(SDL_GPUDevice *device, const char *name)
+#ifdef _WIN32
+#define JULIA_EXPORT __declspec(dllexport)
+#else
+#define JULIA_EXPORT __attribute__((visibility("default")))
+#endif
+
+JULIA_EXPORT SDL_FunctionPointer SDLCALL JULIA_SDL_GetExtension(SDL_GPUDevice *device, const char *name)
 {
     if (!device || !name) {
         SDL_SetError("Julia extension lookup requires a GPU device and name");
