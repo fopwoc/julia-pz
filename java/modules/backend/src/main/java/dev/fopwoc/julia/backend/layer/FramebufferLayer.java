@@ -5,6 +5,7 @@ import static org.lwjgl.opengl.GL12.*;
 import static org.lwjgl.opengl.GL30.*;
 
 import dev.fopwoc.julia.backend.Upstream;
+import dev.fopwoc.julia.backend.bridge.BlendBridge;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -12,6 +13,13 @@ import org.lwjgl.system.MemoryUtil;
 
 /** Framebuffer attachments with layer slices, draw/read buffer selection, clears, and readback guards. */
 public abstract class FramebufferLayer extends BufferLayer {
+    @Override
+    public int getIntegerIndexed(int parameter, int index) {
+        return parameter == GL_BLEND || parameter == GL_SCISSOR_TEST
+                ? (BlendBridge.glIsEnabledi(parameter, index) ? GL_TRUE : GL_FALSE)
+                : super.getIntegerIndexed(parameter, index);
+    }
+
     @Override
     public void colorMask(boolean red, boolean green, boolean blue, boolean alpha) {
         subsystems().colorMasks().global(red, green, blue, alpha);

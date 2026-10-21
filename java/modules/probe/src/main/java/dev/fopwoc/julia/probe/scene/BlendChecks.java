@@ -4,10 +4,12 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL14.GL_CONSTANT_ALPHA;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL40.glBlendFuncSeparatei;
 import static org.lwjgl.opengl.GL40.glBlendFunci;
 
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.lwjgl.opengl.GL45;
@@ -61,11 +63,48 @@ final class BlendChecks {
             glDrawArrays(GL_TRIANGLES, 0, 3);
             verify(first, 102, 51, 26, 64);
             verify(second, 51, 102, 153, 128);
+            glDisable(GL_BLEND);
+            glClearBufferfv(GL_COLOR, 0, new float[] {.1f, .2f, .3f, .4f});
+            glClearBufferfv(GL_COLOR, 1, new float[] {.1f, .2f, .3f, .4f});
+            glColorMaski(1, false, false, false, false);
+            org.lwjgl.opengl.GL30.glEnablei(GL_BLEND, 0);
+            glBlendFuncSeparatei(0, GL_ONE, GL_ONE, GL_ZERO, GL_ONE);
+            if (!org.lwjgl.opengl.GL30.glIsEnabledi(GL_BLEND, 0) || org.lwjgl.opengl.GL30.glIsEnabledi(GL_BLEND, 1))
+                throw new IllegalStateException("Indexed blend enables are not independent");
+            var enabled = ByteBuffer.allocateDirect(1);
+            org.lwjgl.opengl.GL30.glGetBooleani_v(GL_BLEND, 0, enabled);
+            if (enabled.get(0) != GL_TRUE) throw new IllegalStateException("Indexed boolean enable query differs");
+            org.lwjgl.opengl.GL30.glGetBooleani_v(GL_BLEND, 1, enabled);
+            if (enabled.get(0) != GL_FALSE) throw new IllegalStateException("Indexed boolean disable query differs");
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+            verify(first, 26, 51, 77, 102);
+            verify(second, 77, 153, 230, 102);
+            org.lwjgl.opengl.GL30.glDisablei(GL_BLEND, 0);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+            verify(first, 26, 51, 77, 102);
+            verify(second, 51, 102, 153, 128);
+            glColorMask(true, true, true, true);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_ONE, GL_ONE);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+            verify(first, 128, 102, 102, 166);
+            verify(second, 102, 204, 255, 255);
+            try {
+                org.lwjgl.opengl.GL30.glEnablei(GL_BLEND, 8);
+                throw new AssertionError("Out-of-range blend enable accepted");
+            } catch (IllegalArgumentException expected) {
+            }
+            try {
+                org.lwjgl.opengl.GL30.glDisablei(GL_DEPTH_TEST, 0);
+                throw new AssertionError("Non-indexed capability silently changed global state");
+            } catch (UnsupportedOperationException expected) {
+            }
             Files.writeString(
                     output.resolve("indexed-blend.txt"),
-                    "PASS\nverified_pixels=24\nchecks=indexed factors,MRT routing,RGB and alpha,isolated updates,global cache invalidation,atomic invalid arguments\n");
+                    "PASS\nverified_pixels=48\nchecks=indexed factors,MRT routing,RGB and alpha,isolated updates,global cache invalidation,atomic invalid arguments,indexed enable/disable/query,separate RGB/alpha factors,color masks,global enable restoration\n");
         } finally {
             glUseProgram(0);
+            glColorMask(true, true, true, true);
             glBlendFunc(GL_ONE, GL_ZERO);
             glDisable(GL_BLEND);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
