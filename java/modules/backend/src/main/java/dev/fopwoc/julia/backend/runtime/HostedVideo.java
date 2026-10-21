@@ -2,6 +2,7 @@ package dev.fopwoc.julia.backend.runtime;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import dev.fopwoc.julia.backend.platform.Platform;
+import dev.fopwoc.julia.backend.sdl.SdlDeveloperHud;
 import dev.fopwoc.julia.backend.utils.Sdl;
 import org.lwjgl.sdl.SDLInit;
 import org.lwjgl.system.Configuration;
@@ -22,6 +23,7 @@ public final class HostedVideo implements AutoCloseable {
         var platform = Platform.current();
         platform.requireImplemented();
         platform.configureNativeLibraries();
+        SdlDeveloperHud.prepareIfRequested();
         Configuration.OPENGL_EXPLICIT_INIT.set(true);
         BackendOptions.latch(true, platform.gpuBackend().driverName(), 0);
         Sdl.require(SDLInit.SDL_Init(SDLInit.SDL_INIT_VIDEO), "Initialize SDL video");
