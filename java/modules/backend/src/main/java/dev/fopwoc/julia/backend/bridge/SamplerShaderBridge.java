@@ -8,6 +8,8 @@ import dev.fopwoc.julia.backend.shader.SamplerResources;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.lwjgl.opengl.GL20;
+import org.lwjgl.sdl.SDLGPU;
+import org.lwjgl.sdl.SDL_GPUShaderCreateInfo;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.spvc.SpvcReflectedResource;
 
@@ -49,6 +51,10 @@ public final class SamplerShaderBridge {
         if (needsArguments(spirv, GL20.GL_FRAGMENT_SHADER))
             throw new UnsupportedOperationException(
                     "Compute sampled resources require scalar bindings within the direct 16-slot limit");
+    }
+
+    public static long createShader(long device, SDL_GPUShaderCreateInfo info) {
+        return GpuBackend.of(SDLGPU.SDL_GetGPUDeviceDriver(device)).createShader(device, info);
     }
 
     public static Output compile(ByteBuffer spirv, int stage) {

@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import org.lwjgl.opengl.GL20;
 
-/** Metal includes base instance in instance_id; subtract it without changing OpenGL's vertex ID. */
+/** Native instance IDs include base instance; subtract it without changing OpenGL's vertex ID. */
 public final class InstanceIndexSpirv {
     private InstanceIndexSpirv() {}
 

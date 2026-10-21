@@ -3,7 +3,10 @@ package dev.fopwoc.julia.backend.gpu;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.shader.cross.CrossCompileCache.Output;
 import dev.fopwoc.julia.backend.shader.metal.MetalSamplerShaders;
+import dev.fopwoc.julia.backend.shader.vulkan.VulkanSamplers;
 import java.nio.ByteBuffer;
+import org.lwjgl.sdl.SDLGPU;
+import org.lwjgl.sdl.SDL_GPUShaderCreateInfo;
 
 /**
  * The SDL GPU driver a device runs on. Julia's native extensions export the same C symbols for every backend that
@@ -17,7 +20,12 @@ public enum GpuBackend {
         }
     },
     // Planned ports; their native extensions are not implemented or verified yet.
-    VULKAN("vulkan"),
+    VULKAN("vulkan") {
+        @Override
+        public long createShader(long device, SDL_GPUShaderCreateInfo info) {
+            return VulkanSamplers.create(device, info);
+        }
+    },
     DIRECT3D12("direct3d12");
 
     private final String driverName;
@@ -44,6 +52,10 @@ public enum GpuBackend {
     /** Shaders whose sampled images exceed SDL's per-stage table, bound through one indirect argument table. */
     public Output compileSamplerShader(ByteBuffer spirv, int stage) {
         throw new UnsupportedOperationException("Indirect sampler tables are not implemented on " + driverName);
+    }
+
+    public long createShader(long device, SDL_GPUShaderCreateInfo info) {
+        return SDLGPU.SDL_CreateGPUShader(device, info);
     }
 
     public void requireImplemented() {

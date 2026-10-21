@@ -27,6 +27,7 @@ public final class VertexProbe {
         DebugMessages.verifyShutdown();
         Files.writeString(
                 output.resolve("result.txt"),
-                "PASS\nbackend=" + backend + "\nchecks=array APIs,vertex divisors,base instance\n");
+                "PASS\nbackend=" + backend
+                        + "\nchecks=array APIs,vertex divisors,base instance,GPU-generated indirect draws\n");
     }
 }

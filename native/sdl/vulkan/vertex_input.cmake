@@ -29,4 +29,4 @@ julia_replace([=[    VulkanGraphicsPipeline *graphicsPipeline = (VulkanGraphicsP
     VulkanGraphicsPipeline *graphicsPipeline = (VulkanGraphicsPipeline *)SDL_malloc(sizeof(VulkanGraphicsPipeline));]=] 1)
 julia_replace([=[    vertexInputStateCreateInfo.pVertexAttributeDescriptions = vertexInputAttributeDescriptions;]=] [=[    vertexInputStateCreateInfo.pVertexAttributeDescriptions = vertexInputAttributeDescriptions;
     JULIA_VulkanApplyVertexInput(createinfo, &vertexInputStateCreateInfo, vertexInputBindingDescriptions, &juliaDivisorState, juliaDivisors);]=] 1)
-file(WRITE "${backend}" "${source}\n#include \"gpu_vertex_input.c\"\n#include \"gpu_extensions.c\"\n")
+file(WRITE "${backend}" "${source}\n#include \"gpu_vertex_input.c\"\n")

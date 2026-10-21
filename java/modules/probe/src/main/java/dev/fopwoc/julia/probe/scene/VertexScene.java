@@ -18,6 +18,7 @@ public final class VertexScene {
             ArrayApiChecks.run();
             DivisorChecks.run(output);
             BaseInstanceChecks.run(output);
+            IndirectDrawChecks.run(output);
             int error = glGetError();
             if (error != GL_NO_ERROR) throw new IllegalStateException("Vertex probe GL error: " + error);
         } finally {
