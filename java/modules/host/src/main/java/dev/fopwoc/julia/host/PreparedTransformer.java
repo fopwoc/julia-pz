@@ -4,6 +4,7 @@ import dev.fopwoc.julia.audit.scan.GraphicsArchiveScanner;
 import dev.fopwoc.julia.audit.scan.GraphicsClassScanner;
 import dev.fopwoc.julia.runtime.FatalGraphics;
 import dev.fopwoc.julia.runtime.StartupHooks;
+import dev.fopwoc.julia.transform.pass.SwapBuffersPass;
 import dev.fopwoc.julia.transform.prepare.ArchivePlan;
 import dev.fopwoc.julia.transform.prepare.RuntimePreparation;
 import dev.fopwoc.julia.utils.io.Sha256;
@@ -37,7 +38,16 @@ public final class PreparedTransformer implements ClassFileTransformer {
     @Override
     public byte[] transform(
             ClassLoader loader, String name, Class<?> redefined, ProtectionDomain domain, byte[] bytes) {
-        if (name == null || loader != consumerLoader || GraphicsArchiveScanner.isBindingClass(name)) return null;
+        if (name == null || loader != consumerLoader) return null;
+        if (name.equals(SwapBuffersPass.DISPLAY)) {
+            try {
+                return SwapBuffersPass.stripSwaps(bytes);
+            } catch (Throwable failure) {
+                FatalGraphics.failure("Cannot remove GL buffer swaps from " + name, failure);
+                return new byte[] {0};
+            }
+        }
+        if (GraphicsArchiveScanner.isBindingClass(name)) return null;
         if (name.startsWith("dev/fopwoc/julia/runtime/")
                 && domain != null
                 && runtimeSource != null
