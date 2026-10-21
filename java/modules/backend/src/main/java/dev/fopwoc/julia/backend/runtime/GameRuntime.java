@@ -28,6 +28,7 @@ public final class GameRuntime {
     private HostWindow binding;
     private GlsmSession session;
     private Path output;
+    private FrameWatchdog watchdog;
     private long frames;
 
     private GameRuntime() {}
@@ -55,6 +56,7 @@ public final class GameRuntime {
             beforeCall();
             System.setProperty("julia.renderer.backend", SDLGPUGate.device().getDriverName());
             runtime.status("READY");
+            runtime.watchdog = new FrameWatchdog(output);
             LOG.log(
                     System.Logger.Level.INFO,
                     "Live renderer ready on {0}",
@@ -87,6 +89,7 @@ public final class GameRuntime {
         Subsystems.current().drawTrace().frameBoundary();
         runtime.session.backend().onFrameEnd();
         runtime.frames++;
+        runtime.watchdog.presented(runtime.frames);
         if (runtime.frames <= 3 || runtime.frames % 60 == 0) runtime.status("RENDERING");
     }
 
@@ -119,7 +122,8 @@ public final class GameRuntime {
             failure = error;
         }
         for (AutoCloseable resource :
-                new AutoCloseable[] {runtime.session, runtime.binding, runtime.window, runtime.video}) {
+                new AutoCloseable[] {runtime.watchdog, runtime.session, runtime.binding, runtime.window, runtime.video
+                }) {
             if (resource == null) continue;
             try {
                 resource.close();
