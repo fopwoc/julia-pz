@@ -38,13 +38,14 @@ public final class GameStartup {
                 if (candidates.contains(loaded.getName()))
                     throw new IllegalStateException("Graphics consumer already loaded: " + loaded.getName());
             var transformer = new PreparedTransformer(plan, host);
+            var prepared = LiveRuntime.prepareDeveloperHud();
             StartupHooks.install(() -> {
                 try {
                     LOG.log(
                             System.Logger.Level.INFO,
                             "Opening live graphics runtime on {0}",
                             Thread.currentThread().getName());
-                    return LiveRuntime.open(host, output);
+                    return LiveRuntime.open(host, output, prepared);
                 } catch (Exception | Error failure) {
                     LOG.log(System.Logger.Level.ERROR, "Live graphics startup failed", failure);
                     var text = new StringWriter();
