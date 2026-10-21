@@ -3,13 +3,11 @@ package dev.fopwoc.julia.agent;
 import dev.fopwoc.julia.agent.audit.RuntimeAudit;
 import dev.fopwoc.julia.utils.io.NestedLibraries;
 import dev.fopwoc.julia.utils.logging.LogConfiguration;
-import java.io.File;
 import java.lang.instrument.Instrumentation;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.regex.Pattern;
 
 /** Installs live graphics redirection before game loading, or inventories consumers in audit mode. */
 public final class JuliaAgent {
@@ -40,11 +38,11 @@ public final class JuliaAgent {
                     .getLocation()
                     .toURI());
             var loader = NestedLibraries.open(archive, output.resolve("runtime"), JuliaAgent.class.getClassLoader());
-            Path[] inputs = Arrays.stream(
-                            System.getProperty("java.class.path").split(Pattern.quote(File.pathSeparator)))
-                    .map(Path::of)
-                    .filter(path -> Files.isRegularFile(path) && path.toString().endsWith(".jar"))
-                    .filter(path -> !path.toAbsolutePath().equals(archive.toAbsolutePath()))
+            Path[] inputs = StartupArchives.collect(
+                            System.getProperty("java.class.path"),
+                            ManagementFactory.getRuntimeMXBean().getInputArguments(),
+                            archive,
+                            Path.of(System.getProperty("user.dir")))
                     .toArray(Path[]::new);
             try {
                 Class.forName("dev.fopwoc.julia.host.GameStartup", true, loader)
