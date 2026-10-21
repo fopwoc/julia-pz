@@ -44,6 +44,16 @@ public final class ProbeLauncher {
         runtime().invoke("dev.fopwoc.julia.probe.adapter.VertexProbe", "run", OUTPUT, output);
     }
 
+    /** Shared-storage texture views on the explicitly selected GPU backend. */
+    public static void runTextures(Path output) throws Exception {
+        runtime().invoke("dev.fopwoc.julia.probe.adapter.TextureProbe", "run", OUTPUT, output);
+    }
+
+    /** Real GPU timestamps and visibility on the explicitly selected backend. */
+    public static void runQueries(Path output) throws Exception {
+        runtime().invoke("dev.fopwoc.julia.probe.adapter.QueryProbe", "run", OUTPUT, output);
+    }
+
     /** Prepared ImGui renderer and JNI from a supplied archive, with no window or game entry point. */
     public static void runImGui(Path output, Path archive, Path natives) throws Exception {
         runtime()

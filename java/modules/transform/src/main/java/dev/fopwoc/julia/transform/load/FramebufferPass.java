@@ -13,7 +13,8 @@ public final class FramebufferPass implements UpstreamPatch {
             ROOT + "resource.FboState",
             ROOT + "resource.FBOClearTracker",
             ROOT + "pipeline.PipelineApplier",
-            ROOT + "frame.FrameManager");
+            ROOT + "frame.FrameManager",
+            ROOT + "pipeline.PipelineCache");
     private static final String FBO = ROOT.replace('.', '/') + "resource/FboState";
     private static final String FRAMES = ROOT.replace('.', '/') + "frame/FrameManager";
     private static final String RESOURCE = ROOT.replace('.', '/') + "resource/ResourceManager";
@@ -30,8 +31,26 @@ public final class FramebufferPass implements UpstreamPatch {
                 clears = name.equals(ROOT + "resource.FBOClearTracker"),
                 pipeline = name.equals(ROOT + "pipeline.PipelineApplier");
         boolean frames = name.equals(ROOT + "frame.FrameManager");
+        boolean cache = name.equals(ROOT + "pipeline.PipelineCache");
         int edits = 0;
         for (var method : node.methods) {
+            if (cache && method.name.equals("setColorTargetFormats") && method.desc.equals("([I)V")) {
+                Anchors.require(
+                        "pipeline color format field",
+                        (int) node.fields.stream()
+                                .filter(field -> field.name.equals("colorTargetFormats") && field.desc.equals("[I"))
+                                .count(),
+                        1);
+                // null selects the swapchain; an empty array is a real depth-only framebuffer.
+                method.instructions.clear();
+                method.tryCatchBlocks.clear();
+                if (method.localVariables != null) method.localVariables.clear();
+                method.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                method.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1));
+                method.instructions.add(new FieldInsnNode(Opcodes.PUTFIELD, node.name, "colorTargetFormats", "[I"));
+                method.instructions.add(new InsnNode(Opcodes.RETURN));
+                edits++;
+            }
             if (frames && method.name.equals("beginRenderPass")) {
                 for (var instruction : method.instructions.toArray())
                     if (instruction instanceof MethodInsnNode invoke

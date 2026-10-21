@@ -145,6 +145,7 @@ final class LayerViewChecks {
             glDeleteTextures(depth);
             glUseProgram(flatProgram);
             glBindTexture(GL_TEXTURE_2D, depthViews[1]);
+            glUniform1i(glGetUniformLocation(flatProgram, "gray"), 1);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             verify(target, 128, 128, 128);
             Files.writeString(
@@ -189,7 +190,7 @@ final class LayerViewChecks {
                 fragment,
                 array
                         ? "#version 330 core\nuniform sampler2DArray source;uniform int layer;uniform int mip;uniform int gray;out vec4 color;void main(){vec4 c=texelFetch(source,ivec3(0,0,layer),mip);color=gray!=0?vec4(vec3(c.r),1):c;}"
-                        : "#version 330 core\nuniform sampler2D source;out vec4 color;void main(){color=texelFetch(source,ivec2(0),0);}");
+                        : "#version 330 core\nuniform sampler2D source;uniform int gray;out vec4 color;void main(){vec4 c=texelFetch(source,ivec2(0),0);color=gray!=0?vec4(vec3(c.r),1):c;}");
         try {
             for (int shader : new int[] {vertex, fragment}) {
                 glCompileShader(shader);

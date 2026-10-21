@@ -20,7 +20,7 @@ public enum Platform {
             }
         }
     },
-    // Planned ports; their game window bindings are not implemented yet.
+    // Both platforms use Vulkan and preserve the game-owned native window.
     WINDOWS(GpuBackend.VULKAN),
     LINUX(GpuBackend.VULKAN);
 
@@ -49,9 +49,5 @@ public enum Platform {
     /** Every platform loads Julia's patched SDL build, never LWJGL's stock library. */
     public void configureNativeLibraries() {
         Configuration.SDL_LIBRARY_NAME.set("SDL3Julia");
-    }
-
-    public void requireImplemented() {
-        if (this != MACOS) throw new UnsupportedOperationException("The graphics runtime is not yet ported to " + this);
     }
 }

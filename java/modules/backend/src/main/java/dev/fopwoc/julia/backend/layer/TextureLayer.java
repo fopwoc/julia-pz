@@ -171,6 +171,13 @@ public abstract class TextureLayer extends FramebufferLayer {
             int pixelFormat,
             int type,
             ByteBuffer data) {
+        if (target == GL_TEXTURE_2D_ARRAY && data != null) {
+            super.texImage3D(target, level, format, width, height, depth, border, pixelFormat, type, (ByteBuffer) null);
+            var state = Upstream.context();
+            int name = subsystems().textureBindings().get(state, state.activeTextureUnit, target);
+            NamedTextureUploads.upload(name, level, 0, 0, 0, width, height, depth, pixelFormat, type, data, true);
+            return;
+        }
         if (format != GL_RGB32I && format != GL_RGB32UI) {
             super.texImage3D(target, level, format, width, height, depth, border, pixelFormat, type, data);
             return;

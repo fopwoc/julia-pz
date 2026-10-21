@@ -3,7 +3,7 @@
 <img src="common/poster.png" alt="Julia" width="160" align="right">
 
 Julia does one thing: it translates Project Zomboid's OpenGL rendering to the platform's native graphics API —
-**Metal** on macOS today, with **Vulkan** on Linux and **Direct3D 12** on Windows planned. Modern APIs carry less driver
+**Metal** on macOS and **Vulkan** on Linux and Windows. The Linux and Windows game-window ports are experimental. Modern APIs carry less driver
 overhead than OpenGL, which can mean higher and steadier FPS.
 
 The translation is seamless. Nothing is ported, and no mod needs a Julia-specific version or patch: the game and its
@@ -22,7 +22,7 @@ Julia targets **Project Zomboid Build 42** and is **experimental**.
 
 ## Support
 
-Status legend: ✅ works · 🧪 built but untested · 🚧 planned · ➖ not applicable
+Status legend: ✅ works · 🧪 experimental, gameplay testing pending · 🚧 planned · ➖ not applicable
 
 ### Platforms
 
@@ -30,11 +30,12 @@ Status legend: ✅ works · 🧪 built but untested · 🚧 planned · ➖ not a
 | --- | --- | --- | --- |
 | macOS | Apple silicon (arm64) | Metal | ✅ |
 | macOS | Intel (x64) | Metal | 🧪 |
-| Linux | x64 | Vulkan | 🚧 |
-| Windows | x64 | Vulkan | 🚧 |
+| Linux | x64 | Vulkan | 🧪 |
+| Windows | x64 | Vulkan | 🧪 |
 
-One `julia-agent.jar` carries the natives for every platform above and picks the right ones at startup. On a planned
-platform it stops with a clear "not ported" error instead of rendering.
+The universal `julia-agent.jar` carries the natives for every platform above and picks the right ones at startup.
+Linux detects the game's actual GLFW backend, supporting X11 (including XWayland) and native Wayland.
+Windowless Vulkan checks cover the renderer; live input, resizing and presentation still need platform testing.
 
 ### GL features by GPU API
 
@@ -43,23 +44,25 @@ extensions, implemented per API.
 
 | Feature | Metal | Vulkan | Direct3D 12 |
 | --- | --- | --- | --- |
-| Core rendering: state, shaders, textures, framebuffers, draws | ✅ | 🚧 | 🚧 |
-| Buffer textures (`samplerBuffer`), including empty stores | ✅ | 🚧 | 🚧 |
-| Texture views (`glTextureView`, 2D and array) | ✅ | 🚧 | 🚧 |
-| Up to 32 sampled resources per graphics stage | ✅ | 🚧 | 🚧 |
-| Sparse draw buffers (`GL_NONE` color slots) | ✅ | 🚧 | 🚧 |
-| Full-width instance divisors and base instances | ✅ | 🚧 | 🚧 |
-| Timer queries (`GL_TIME_ELAPSED`, `GL_TIMESTAMP`) | ✅ | 🚧 | 🚧 |
-| Occlusion queries (`GL_SAMPLES_PASSED`, `GL_ANY_SAMPLES_PASSED`) | ✅ | 🚧 | 🚧 |
-| Fences (`glFenceSync`, `glClientWaitSync`) | ✅ | 🚧 | 🚧 |
+| Core rendering: state, shaders, textures, framebuffers, draws | ✅ | 🧪 | 🚧 |
+| Buffer textures (`samplerBuffer`), including empty stores | ✅ | 🧪 | 🚧 |
+| Texture views (`glTextureView`, 2D and array) | ✅ | 🧪 | 🚧 |
+| Up to 32 sampled resources per graphics stage | ✅ | 🧪 | 🚧 |
+| Sparse draw buffers (`GL_NONE` color slots) | ✅ | 🧪 | 🚧 |
+| Full-width instance divisors and base instances | ✅ | 🧪 | 🚧 |
+| Timer queries (`GL_TIME_ELAPSED`, `GL_TIMESTAMP`) | ✅ | 🧪 | 🚧 |
+| Occlusion queries (`GL_SAMPLES_PASSED`, `GL_ANY_SAMPLES_PASSED`) | ✅ | 🧪 | 🚧 |
+| Fences (`glFenceSync`, `glClientWaitSync`) | ✅ | 🧪 | 🚧 |
 
 ### Game and mods
+
+These gameplay results are from macOS with Metal; Linux and Windows gameplay results are pending.
 
 | | Status | Notes |
 | --- | --- | --- |
 | Vanilla Build 42 | ✅ | Menu, loading, world, map, character previews |
 | [ZombieBuddy](https://github.com/zed-0xff/ZombieBuddy) | ✅ | Optional; Julia translates the Java mods it approves |
-| [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528) | ✅ | All presets run; high and extreme still show visual bugs |
+| [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528) | ✅ | All presets run, including high and extreme |
 
 ### Known limits
 
@@ -82,21 +85,26 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    | OS | Directory |
    | --- | --- |
    | macOS | `Project Zomboid.app/Contents/Java` |
-   | Linux | the game directory that contains `projectzomboid.jar` (🚧) |
-   | Windows | the game directory that contains `projectzomboid.jar` (🚧) |
+   | Linux | the game directory that contains `projectzomboid.jar` (experimental) |
+   | Windows | the game directory that contains `projectzomboid.jar` (experimental) |
 
 3. Add Steam launch options:
 
    | OS | Launch options |
    | --- | --- |
    | macOS | `-XstartOnFirstThread -javaagent:julia-agent.jar=activate --` |
-   | Linux / Windows | `-javaagent:julia-agent.jar=activate --` (🚧) |
+   | Linux / Windows | `-javaagent:julia-agent.jar=activate --` (experimental) |
 
    With ZombieBuddy, add its agent **after** Julia's, for example
    `-XstartOnFirstThread -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --`. Keep the final `--`.
 
-4. Optional: enable the **Julia** Lua mod from the Workshop or `Julia.zip`. It only shows `Julia active | Metal` or
+4. Optional: enable the **Julia** Lua mod from the Workshop or `Julia.zip`. It only shows `Julia active | Metal`, `Julia active | Vulkan` or
    `Julia inactive` in the corner of the main menu; it does not turn Julia on or off.
+
+For Linux or Windows testing, use the JAR produced by `./tools/build-universal.sh`. Check the menu first, then a
+test save, resizing, and fullscreen/windowed switching. The menu status should identify Vulkan. If the process exits,
+include the newest `fatal-error.txt` and `renderer.txt` from the report directory below. Keep Julia's agent before
+ZombieBuddy's agent on every platform; `-XstartOnFirstThread` is macOS-only.
 
 Remove the `-javaagent:julia-agent.jar=activate` option to return to vanilla rendering. Disabling the Lua mod does not
 disable the agent.
@@ -242,7 +250,7 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `java/modules/render-runtime` | JDK-only types shared across the isolation boundary |
 | `java/modules/probe` | GPU probes and offline audit CLI |
 | `java/modules/workshop` | Packages the Lua companion mod |
-| `native/sdl` | SDL patches: `common/` for every API, one folder per GPU API (`metal/` today) |
+| `native/sdl` | SDL patches: `common/` for every API, one folder per GPU API (`metal/` and `vulkan/`) |
 
 ### Flags
 

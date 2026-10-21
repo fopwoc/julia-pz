@@ -6,6 +6,7 @@ import dev.fopwoc.julia.backend.shader.metal.MetalSamplerShaders;
 import dev.fopwoc.julia.backend.shader.vulkan.VulkanSamplers;
 import java.nio.ByteBuffer;
 import org.lwjgl.sdl.SDLGPU;
+import org.lwjgl.sdl.SDL_GPUComputePipelineCreateInfo;
 import org.lwjgl.sdl.SDL_GPUShaderCreateInfo;
 
 /**
@@ -19,11 +20,16 @@ public enum GpuBackend {
             return MetalSamplerShaders.compile(spirv, stage);
         }
     },
-    // Planned ports; their native extensions are not implemented or verified yet.
+    // Vulkan extensions share the SDL ABI; shader descriptors retain SPIR-V resource types.
     VULKAN("vulkan") {
         @Override
         public long createShader(long device, SDL_GPUShaderCreateInfo info) {
             return VulkanSamplers.create(device, info);
+        }
+
+        @Override
+        public long createComputePipeline(long device, SDL_GPUComputePipelineCreateInfo info) {
+            return VulkanSamplers.createCompute(device, info);
         }
     },
     DIRECT3D12("direct3d12");
@@ -58,8 +64,12 @@ public enum GpuBackend {
         return SDLGPU.SDL_CreateGPUShader(device, info);
     }
 
+    public long createComputePipeline(long device, SDL_GPUComputePipelineCreateInfo info) {
+        return SDLGPU.SDL_CreateGPUComputePipeline(device, info);
+    }
+
     public void requireImplemented() {
-        if (this != METAL)
+        if (this == DIRECT3D12)
             throw new UnsupportedOperationException("Julia's native GPU extensions are not ported to " + driverName);
     }
 }

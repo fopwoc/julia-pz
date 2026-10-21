@@ -73,4 +73,4 @@ julia_replace([=[    result = result * hashFactor + hashTableKey->vertexSamplerC
     result = result * hashFactor + hashTableKey->vertexSamplerCount;]=] 1)
 julia_replace([=[    result = result * hashFactor + hashTableKey->shaderStage;]=] [=[    for (Uint32 i = 0; i < MAX_TEXTURE_SAMPLERS_PER_STAGE; i++) result = result * hashFactor + hashTableKey->juliaSamplerWidths[i];
     result = result * hashFactor + hashTableKey->shaderStage;]=] 1)
-file(WRITE "${backend}" "${source}\n#include \"gpu_sampler_arrays.c\"\n#include \"gpu_extensions.c\"\n")
+file(WRITE "${backend}" "${source}\n#include \"gpu_sampler_arrays.c\"\n")

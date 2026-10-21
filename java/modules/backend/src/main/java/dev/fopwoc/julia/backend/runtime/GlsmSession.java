@@ -8,10 +8,13 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.device.Device;
 import dev.fopwoc.julia.backend.HostedBackend;
+import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.sdl.SdlDeveloperHud;
+import dev.fopwoc.julia.backend.utils.Sdl;
 import dev.fopwoc.julia.runtime.CapabilitySnapshot;
 import java.util.function.Supplier;
 import me.eigenraven.lwjgl3ify.api.GLCapabilitiesOverride;
+import org.lwjgl.sdl.SDLGPU;
 
 /** GLSM running on Julia's hosted SDL backend, from device creation to backend shutdown. */
 public final class GlsmSession implements AutoCloseable {
@@ -108,10 +111,38 @@ public final class GlsmSession implements AutoCloseable {
     public void close() {
         // Once the backend exists it owns the device and its shutdown destroys both.
         try {
-            if (backend != null) BackendManager.shutdown();
-            else device.destroyDevice();
+            if (backend != null) {
+                cancelPendingCommands();
+                BackendManager.shutdown();
+            } else device.destroyDevice();
         } finally {
             if (capabilities != null) capabilities.close();
         }
+    }
+
+    /**
+     * Angelica's shutdown only submits the active frame, but work outside a frame lands on separate upload and arena
+     * command buffers. An unsubmitted buffer keeps its descriptor-set cache, which Vulkan reports as leaked at device
+     * destruction.
+     */
+    private static void cancelPendingCommands() {
+        var frames = Upstream.frames();
+        var frame = frames.frame();
+        Upstream.renderBackend().endComputeDispatchBatch();
+        frames.endRenderPassIfActive(frame);
+        frames.endCopyPassIfActive();
+        if (frame.arenaCopyPass != 0) {
+            SDLGPU.SDL_EndGPUCopyPass(frame.arenaCopyPass);
+            frame.arenaCopyPass = 0;
+        }
+        frame.commandBuffer = cancel(frame.commandBuffer, "frame");
+        frame.pendingUploadCommandBuffer = cancel(frame.pendingUploadCommandBuffer, "pending upload");
+        frame.arenaCommandBuffer = cancel(frame.arenaCommandBuffer, "upload arena");
+        frame.frameActive = false;
+    }
+
+    private static long cancel(long commands, String role) {
+        if (commands != 0) Sdl.require(SDLGPU.SDL_CancelGPUCommandBuffer(commands), "Cancel " + role + " commands");
+        return 0;
     }
 }

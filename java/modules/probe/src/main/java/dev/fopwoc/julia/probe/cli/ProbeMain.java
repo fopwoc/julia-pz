@@ -18,6 +18,8 @@ public final class ProbeMain {
             "  " + RedirectAudit.USAGE,
             "  " + PreparationAudit.USAGE,
             "  --render <dir>                      raw-device clear and translated draw (main thread)",
+            "  --queries <dir>                     GPU timing and visibility queries",
+            "  --textures <dir>                    shared texture-view and subresource checks",
             "  --vertices <dir>                    translated vertex-input and instancing checks",
             "  --adapter <dir>                     full GLSM adapter in an isolated runtime",
             "  --imgui-adapter <dir> <archive> <native-dir>  windowless archived ImGui renderer",
@@ -43,6 +45,8 @@ public final class ProbeMain {
             case "--audit-redirects" -> RedirectAudit.run(rest, System.out);
             case "--prepare-runtime" -> PreparationAudit.run(rest, System.out);
             case "--render" -> OffscreenProbe.run(directory(rest));
+            case "--queries" -> ProbeLauncher.runQueries(directory(rest));
+            case "--textures" -> ProbeLauncher.runTextures(directory(rest));
             case "--vertices" -> ProbeLauncher.runVertices(directory(rest));
             case "--adapter" -> ProbeLauncher.runAdapter(directory(rest));
             case "--imgui-adapter" -> {

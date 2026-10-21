@@ -39,7 +39,7 @@ class SamplerResourcePassTest {
         var node = new ClassNode();
         new ClassReader(adapted).accept(node, 0);
         if (suffix.equals("shader.ShaderManager")) {
-            int hooks = 0;
+            int hooks = 0, computeHooks = 0;
             for (var method : node.methods)
                 for (var instruction : method.instructions)
                     if (instruction instanceof MethodInsnNode call) {
@@ -50,8 +50,14 @@ class SamplerResourcePassTest {
                             assertEquals("(JLorg/lwjgl/sdl/SDL_GPUShaderCreateInfo;)J", call.desc);
                             hooks++;
                         }
+                        if (call.owner.equals(Endpoint.SAMPLER_SHADER_BRIDGE.owner())
+                                && call.name.equals("createComputePipeline")) {
+                            assertEquals("(JLorg/lwjgl/sdl/SDL_GPUComputePipelineCreateInfo;)J", call.desc);
+                            computeHooks++;
+                        }
                     }
             assertEquals(1, hooks);
+            assertEquals(1, computeHooks);
         }
         if (suffix.equals("compute.VertexWriteReplayer$Replay")) {
             int upperBounds = 0;

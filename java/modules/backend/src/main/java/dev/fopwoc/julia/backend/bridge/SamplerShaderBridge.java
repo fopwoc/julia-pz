@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.sdl.SDLGPU;
+import org.lwjgl.sdl.SDL_GPUComputePipelineCreateInfo;
 import org.lwjgl.sdl.SDL_GPUShaderCreateInfo;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.spvc.SpvcReflectedResource;
@@ -55,6 +56,10 @@ public final class SamplerShaderBridge {
 
     public static long createShader(long device, SDL_GPUShaderCreateInfo info) {
         return GpuBackend.of(SDLGPU.SDL_GetGPUDeviceDriver(device)).createShader(device, info);
+    }
+
+    public static long createComputePipeline(long device, SDL_GPUComputePipelineCreateInfo info) {
+        return GpuBackend.of(SDLGPU.SDL_GetGPUDeviceDriver(device)).createComputePipeline(device, info);
     }
 
     public static Output compile(ByteBuffer spirv, int stage) {

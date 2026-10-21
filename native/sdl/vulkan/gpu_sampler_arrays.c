@@ -7,9 +7,6 @@ static bool JULIA_VulkanReadSamplerWidths(VulkanRenderer *renderer, const SDL_GP
     if (SDL_GetBooleanProperty(info->props, "julia.gpu.requires_draw_parameters", false) && !renderer->supports.KHR_shader_draw_parameters)
         return SDL_SetError("Vulkan instance-index translation requires VK_KHR_shader_draw_parameters");
     SDL_memset(widths, 0, sizeof(Uint32) * MAX_TEXTURE_SAMPLERS_PER_STAGE);
-    Uint32 limit = renderer->physicalDeviceProperties.properties.limits.maxPerStageDescriptorSamplers;
-    if (info->num_samplers > limit)
-        return SDL_SetError("Vulkan shader needs %u samplers, device supports %u", info->num_samplers, limit);
     for (Uint32 i = 0; i < info->num_samplers; ) {
         char key[64];
         SDL_snprintf(key, sizeof(key), "julia.gpu.sampler_width.%u", i);

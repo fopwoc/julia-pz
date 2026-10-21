@@ -73,6 +73,13 @@ public final class SamplerResourcePass implements UpstreamPatch {
                         call.owner = Endpoint.SAMPLER_SHADER_BRIDGE.owner();
                         call.name = "createShader";
                         edits++;
+                    } else if (instruction instanceof MethodInsnNode call
+                            && call.owner.equals("org/lwjgl/sdl/SDLGPU")
+                            && call.name.equals("SDL_CreateGPUComputePipeline")
+                            && call.desc.equals("(JLorg/lwjgl/sdl/SDL_GPUComputePipelineCreateInfo;)J")) {
+                        call.owner = Endpoint.SAMPLER_SHADER_BRIDGE.owner();
+                        call.name = "createComputePipeline";
+                        edits++;
                     }
             }
 
@@ -226,7 +233,7 @@ public final class SamplerResourcePass implements UpstreamPatch {
         }
         int expected = replay
                 ? 3
-                : replayLayout ? 1 : glsm ? 1 : manager ? 9 : context ? 9 : binder ? 4 : clears || overflow ? 2 : 1;
+                : replayLayout ? 1 : glsm ? 1 : manager ? 10 : context ? 9 : binder ? 4 : clears || overflow ? 2 : 1;
         Anchors.require("sampler integration in " + name, edits, expected);
         return true;
     }
