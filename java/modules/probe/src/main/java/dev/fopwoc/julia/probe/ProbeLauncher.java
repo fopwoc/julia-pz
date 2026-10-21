@@ -39,6 +39,11 @@ public final class ProbeLauncher {
         runtime().invoke("dev.fopwoc.julia.probe.adapter.AdapterProbe", "run", OUTPUT, output);
     }
 
+    /** Focused vertex-input checks on the explicitly selected GPU backend. */
+    public static void runVertices(Path output) throws Exception {
+        runtime().invoke("dev.fopwoc.julia.probe.adapter.VertexProbe", "run", OUTPUT, output);
+    }
+
     /** Prepared ImGui renderer and JNI from a supplied archive, with no window or game entry point. */
     public static void runImGui(Path output, Path archive, Path natives) throws Exception {
         runtime()

@@ -53,6 +53,5 @@ public enum Platform {
 
     public void requireImplemented() {
         if (this != MACOS) throw new UnsupportedOperationException("The graphics runtime is not yet ported to " + this);
-        gpuBackend().requireImplemented();
     }
 }

@@ -7,6 +7,10 @@
 extern SDL_FunctionPointer JULIA_MetalGetExtension(const char *name);
 #endif
 
+#ifdef SDL_GPU_VULKAN
+extern SDL_FunctionPointer JULIA_VulkanGetExtension(const char *name);
+#endif
+
 __attribute__((visibility("default"))) SDL_FunctionPointer SDLCALL JULIA_SDL_GetExtension(SDL_GPUDevice *device, const char *name)
 {
     if (!device || !name) {
@@ -16,6 +20,9 @@ __attribute__((visibility("default"))) SDL_FunctionPointer SDLCALL JULIA_SDL_Get
     const char *driver = SDL_GetGPUDeviceDriver(device);
 #ifdef SDL_GPU_METAL
     if (SDL_strcmp(driver, "metal") == 0) return JULIA_MetalGetExtension(name);
+#endif
+#ifdef SDL_GPU_VULKAN
+    if (SDL_strcmp(driver, "vulkan") == 0) return JULIA_VulkanGetExtension(name);
 #endif
     SDL_SetError("Julia extension %s is not implemented for the %s backend", name, driver);
     return NULL;

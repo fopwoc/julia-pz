@@ -18,6 +18,7 @@ public final class ProbeMain {
             "  " + RedirectAudit.USAGE,
             "  " + PreparationAudit.USAGE,
             "  --render <dir>                      raw-device clear and translated draw (main thread)",
+            "  --vertices <dir>                    translated vertex-input and instancing checks",
             "  --adapter <dir>                     full GLSM adapter in an isolated runtime",
             "  --imgui-adapter <dir> <archive> <native-dir>  windowless archived ImGui renderer",
             "  --suite <dir>                       --render then --adapter, as the game mod runs them");
@@ -42,6 +43,7 @@ public final class ProbeMain {
             case "--audit-redirects" -> RedirectAudit.run(rest, System.out);
             case "--prepare-runtime" -> PreparationAudit.run(rest, System.out);
             case "--render" -> OffscreenProbe.run(directory(rest));
+            case "--vertices" -> ProbeLauncher.runVertices(directory(rest));
             case "--adapter" -> ProbeLauncher.runAdapter(directory(rest));
             case "--imgui-adapter" -> {
                 if (rest.length != 3)

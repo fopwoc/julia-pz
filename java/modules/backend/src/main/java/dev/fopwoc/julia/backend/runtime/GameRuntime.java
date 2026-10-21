@@ -10,6 +10,7 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
+import dev.fopwoc.julia.backend.platform.Platform;
 import dev.fopwoc.julia.backend.utils.Sdl;
 import dev.fopwoc.julia.backend.window.BorrowedWindow;
 import dev.fopwoc.julia.backend.window.HostWindow;
@@ -33,6 +34,7 @@ public final class GameRuntime {
 
     public static void open(ForeignWindow foreign, Path output) {
         if (current != null) throw new IllegalStateException("Game runtime is already open");
+        Platform.current().gpuBackend().requireImplemented();
         var runtime = new GameRuntime();
         current = runtime;
         runtime.output = output;
