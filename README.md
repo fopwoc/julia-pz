@@ -201,7 +201,8 @@ SHA-256-pinned SDL 3.4.12 archive, patches a copy, and builds `SDL3Julia` for th
 cd java
 ./gradlew check            # unit tests; never launches the game or opens a window
 ./gradlew :agent:jar       # → modules/agent/build/libs/julia-agent.jar
-./gradlew :workshop:modZip # → modules/workshop/build/distributions/Julia.zip (Lua companion)
+./gradlew :workshop:modZip # → modules/workshop/build/distributions/Julia.zip (Lua companion and agent jar)
+./gradlew :workshop:stageAgent # → julia-agent.jar in the repository root, for a Workshop upload (Git ignores it)
 ```
 
 The agent jar bundles LWJGL natives for every platform in the support table and Julia's SDL build for the host. To
@@ -210,7 +211,8 @@ for example `linux/x64/libSDL3Julia.so` or `windows/x64/SDL3Julia.dll`.
 
 For a complete distribution, run `./tools/build-universal.sh` from the repository root on macOS with Docker
 running. It builds Mac ARM64 and x64 libraries with the Apple SDK, then Linux x64 and Windows x64 libraries in a
-staged container, runs the JVM checks, and packages the same `java/modules/agent/build/libs/julia-agent.jar`.
+staged container, runs the JVM checks, packages the same `java/modules/agent/build/libs/julia-agent.jar`, and stages
+a copy in the repository root for a Workshop upload.
 Container outputs and incremental build caches remain under `native/sdl/build/`. This packages platform libraries;
 it does not imply that every platform's graphics backend is ready for gameplay.
 
@@ -261,6 +263,7 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `-javaagent:julia-agent.jar=activate=<dir>` | Launch options | Same, with reports in `<dir>` |
 | `-javaagent:julia-agent.jar=<report.tsv>` | Launch options | Audit only: record which classes make graphics calls into a new file; rendering is unchanged |
 | `-Djulia.drawTrace=true` | Launch options or probe JVM | Bounded CPU draw-state snapshots and compiler inputs beside renderer/probe reports; no GPU readbacks |
+| `-Djulia.gpu=metal\|vulkan` | Launch options or probe JVM | Override the platform's default SDL GPU driver |
 | `-Djulia.metalHud=true` | Launch options, macOS | Show Apple's Metal Performance HUD over the game (current process only; restart required) |
 | `LOG_LEVEL=debug\|info\|warn\|error` | Environment | Julia's log detail on stderr; default `error` |
 | `-PjuliaNatives=<dir>` | Gradle | Pack other hosts' SDL builds (`<os>/<arch>/<library>`) into the agent jar |

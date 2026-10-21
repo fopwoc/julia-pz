@@ -21,7 +21,10 @@
 - GL overrides live in `backend.layer`, one abstract layer per domain; `HostedBackend` keeps only cross-domain calls.
   Reach Angelica's private state only through `Upstream`, and Julia's own state through `Subsystems`.
 - Upstream bytecode rewrites implement `UpstreamPatch` and are listed in `UpstreamPatches`; match anchors with
-  `Anchors`, which skips ASM's label and frame nodes.
+  `Anchors`, which skips ASM's label and frame nodes. `UpstreamPatchesTest` fails when a patch stops changing the
+  published Angelica, so check it first after an Angelica bump.
+- `backend.bridge` holds static entry points that rewritten game code calls; `backend.layer` changes how GL work runs
+  on SDL GPU. Keep the two apart.
 - Use comments for non-obvious reasoning only. Javadoc a class when its role or invariant isn't evident from its name.
 - Tests cover behavior that can regress silently. Don't test trivial mappings.
 

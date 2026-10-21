@@ -1,3 +1,4 @@
+# GL timer and occlusion queries: each command buffer records timestamp and visibility points resolved after it completes.
 set(backend "${sdl_patched}/src/gpu/vulkan/SDL_gpu_vulkan.c")
 file(READ "${backend}" source)
 julia_replace([=[    CommandBufferCommonHeader common;]=] [=[    CommandBufferCommonHeader common;

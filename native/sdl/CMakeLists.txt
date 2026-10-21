@@ -62,7 +62,7 @@ if(NOT patched_identity STREQUAL patch_identity)
     include("${CMAKE_CURRENT_SOURCE_DIR}/vulkan/buffer_textures.cmake")
     include("${CMAKE_CURRENT_SOURCE_DIR}/vulkan/image_layouts.cmake")
     include("${CMAKE_CURRENT_SOURCE_DIR}/vulkan/integer_samplers.cmake")
-    file(APPEND "${backend}" "\n#include \"gpu_extensions.c\"\n")
+    file(APPEND "${sdl_patched}/src/gpu/vulkan/SDL_gpu_vulkan.c" "\n#include \"gpu_extensions.c\"\n")
     file(WRITE "${patch_stamp}" "${patch_identity}")
 endif()
 

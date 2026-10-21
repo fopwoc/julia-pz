@@ -1,3 +1,4 @@
+# GL buffer textures become typed texel-buffer descriptors in the sampler slots SDL otherwise fills with images.
 set(backend "${sdl_patched}/src/gpu/vulkan/SDL_gpu_vulkan.c")
 file(READ "${backend}" source)
 foreach(type VulkanShader DescriptorSetLayoutHashTableKey DescriptorSetLayout)

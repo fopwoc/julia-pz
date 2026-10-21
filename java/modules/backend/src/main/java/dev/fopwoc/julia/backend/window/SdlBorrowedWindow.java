@@ -3,6 +3,8 @@ package dev.fopwoc.julia.backend.window;
 import static org.lwjgl.sdl.SDLProperties.*;
 import static org.lwjgl.sdl.SDLVideo.*;
 
+import dev.fopwoc.julia.backend.gpu.GpuBackend;
+import dev.fopwoc.julia.backend.platform.Platform;
 import dev.fopwoc.julia.backend.utils.Sdl;
 import java.util.function.IntConsumer;
 
@@ -18,9 +20,10 @@ public final class SdlBorrowedWindow implements BorrowedWindow {
         int properties = SDL_CreateProperties();
         if (properties == 0) throw Sdl.failure("Create foreign window properties");
         try {
-            Sdl.require(
-                    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_VULKAN_BOOLEAN, true),
-                    "Set Vulkan window property");
+            String surface = Platform.current().gpuBackend() == GpuBackend.METAL
+                    ? SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN
+                    : SDL_PROP_WINDOW_CREATE_VULKAN_BOOLEAN;
+            Sdl.require(SDL_SetBooleanProperty(properties, surface, true), "Set GPU window property");
             configure.accept(properties);
             return new SdlBorrowedWindow(Sdl.require(SDL_CreateWindowWithProperties(properties), label));
         } finally {
