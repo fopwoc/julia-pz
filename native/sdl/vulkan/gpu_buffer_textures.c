@@ -108,7 +108,8 @@ static bool JULIA_VulkanReadSamplerKinds(VulkanRenderer *renderer, const SDL_GPU
     }
     const VkPhysicalDeviceLimits *limits = &renderer->physicalDeviceProperties.properties.limits;
     if (images > limits->maxPerStageDescriptorSamplers || info->num_samplers > limits->maxPerStageDescriptorSampledImages)
-        return SDL_SetError("Vulkan sampled-resource layout exceeds physical device limits");
+        return SDL_SetError("Vulkan stage needs %u samplers and %u sampled resources; device allows %u and %u",
+            images, info->num_samplers, limits->maxPerStageDescriptorSamplers, limits->maxPerStageDescriptorSampledImages);
     return true;
 }
 #endif

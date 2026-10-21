@@ -5,6 +5,8 @@ import static org.lwjgl.util.spvc.Spvc.*;
 import com.gtnewhorizons.angelica.sdlgpu.shader.cross.CrossCompileCache.Output;
 import dev.fopwoc.julia.backend.gpu.GpuBackend;
 import dev.fopwoc.julia.backend.shader.SamplerResources;
+import dev.fopwoc.julia.backend.utils.Sdl;
+import dev.fopwoc.julia.runtime.FatalGraphics;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.lwjgl.opengl.GL20;
@@ -54,12 +56,22 @@ public final class SamplerShaderBridge {
                     "Compute sampled resources require scalar bindings within the direct 16-slot limit");
     }
 
+    // Angelica treats a missing shader as "skip the draw", which would silently drop geometry. A shader GL already
+    // linked must exist natively, so a failure here is fatal even when it happens on an async compile thread.
     public static long createShader(long device, SDL_GPUShaderCreateInfo info) {
-        return GpuBackend.of(SDLGPU.SDL_GetGPUDeviceDriver(device)).createShader(device, info);
+        return requireCreated(
+                GpuBackend.of(SDLGPU.SDL_GetGPUDeviceDriver(device)).createShader(device, info), "Create GPU shader");
     }
 
     public static long createComputePipeline(long device, SDL_GPUComputePipelineCreateInfo info) {
-        return GpuBackend.of(SDLGPU.SDL_GetGPUDeviceDriver(device)).createComputePipeline(device, info);
+        return requireCreated(
+                GpuBackend.of(SDLGPU.SDL_GetGPUDeviceDriver(device)).createComputePipeline(device, info),
+                "Create GPU compute pipeline");
+    }
+
+    private static long requireCreated(long handle, String operation) {
+        if (handle == 0) throw FatalGraphics.failure("Linked GL program has no native shader", Sdl.failure(operation));
+        return handle;
     }
 
     public static Output compile(ByteBuffer spirv, int stage) {
