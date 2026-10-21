@@ -13,6 +13,25 @@ import org.objectweb.asm.tree.MethodInsnNode;
 /** Only the exact observed resource overloads enter the bounded bridge implementations. */
 public final class ResourcePass {
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
+            Map.entry(
+                    Endpoint.STATE_MANAGER.owner() + ".glGetBooleani_v(IILjava/nio/ByteBuffer;)V",
+                    Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL30.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL30.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL30C.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL30C.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL40.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL40.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL40C.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL40C.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43C.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL43C.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45C.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry("org/lwjgl/opengl/GL45C.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL40.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL40C.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
             Map.entry("org/lwjgl/opengl/GL43.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),

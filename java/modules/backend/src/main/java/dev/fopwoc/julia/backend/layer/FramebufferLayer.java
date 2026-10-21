@@ -13,6 +13,12 @@ import org.lwjgl.system.MemoryUtil;
 /** Framebuffer attachments with layer slices, draw/read buffer selection, clears, and readback guards. */
 public abstract class FramebufferLayer extends BufferLayer {
     @Override
+    public void colorMask(boolean red, boolean green, boolean blue, boolean alpha) {
+        subsystems().colorMasks().global(red, green, blue, alpha);
+        super.colorMask(red, green, blue, alpha);
+    }
+
+    @Override
     public void bindFramebuffer(int target, int name) {
         super.bindFramebuffer(target, name);
         if (target != GL_READ_FRAMEBUFFER) subsystems().framebuffers().bound(Upstream.context().boundFboId);
@@ -97,6 +103,7 @@ public abstract class FramebufferLayer extends BufferLayer {
         subsystems().textureViews().flushSharedClears();
         var state = Upstream.context();
         subsystems().framebuffers().validateDraw(state);
+        if (subsystems().colorMasks().clear(mask)) return;
         var fbo = Upstream.resources().getFbo(state.boundFboId);
         if (fbo != null && subsystems().framebuffers().sliced(fbo)) {
             subsystems().framebuffers().clearSlice(mask);

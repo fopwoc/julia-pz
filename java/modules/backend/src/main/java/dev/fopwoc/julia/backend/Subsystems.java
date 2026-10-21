@@ -1,6 +1,7 @@
 package dev.fopwoc.julia.backend;
 
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
+import dev.fopwoc.julia.backend.framebuffer.ColorMasks;
 import dev.fopwoc.julia.backend.framebuffer.Framebuffers;
 import dev.fopwoc.julia.backend.query.Queries;
 import dev.fopwoc.julia.backend.sdl.SdlBufferTextures;
@@ -26,6 +27,7 @@ public final class Subsystems implements AutoCloseable {
     private final ShaderPrograms shaderPrograms = new ShaderPrograms();
     private final ProgramResourceCache programResources = new ProgramResourceCache();
     private final Framebuffers framebuffers = new Framebuffers();
+    private final ColorMasks colorMasks = new ColorMasks();
     private final TextureBindings textureBindings = new TextureBindings();
     private final TextureObjects textureObjects = new TextureObjects();
     private final TextureViews textureViews = new TextureViews();
@@ -45,6 +47,10 @@ public final class Subsystems implements AutoCloseable {
 
     public ProgramResourceCache programResources() {
         return programResources;
+    }
+
+    public ColorMasks colorMasks() {
+        return colorMasks;
     }
 
     public Framebuffers framebuffers() {

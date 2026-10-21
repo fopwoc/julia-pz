@@ -113,6 +113,7 @@ public final class AdapterScene {
             ProgramBinaryChecks.run(output);
             FramebufferChecks.run(output);
             BlendChecks.run(output);
+            ColorMaskChecks.run(output);
             SparseFramebufferChecks.run(output);
             LayerViewChecks.run(output);
             ProgramInterfaceChecks.run(output);
