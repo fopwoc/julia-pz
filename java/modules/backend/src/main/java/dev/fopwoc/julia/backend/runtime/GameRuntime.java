@@ -8,6 +8,7 @@ import static org.lwjgl.sdl.SDLVideo.SDL_GetWindowSizeInPixels;
 import com.gtnewhorizons.angelica.glsm.profiling.DebugCounters;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
+import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.utils.Sdl;
 import dev.fopwoc.julia.backend.window.BorrowedWindow;
@@ -46,6 +47,7 @@ public final class GameRuntime {
                     runtime.binding.handle(),
                     () -> size(runtime.window.handle(), false),
                     "Julia live renderer");
+            Subsystems.current().drawTrace().open(output);
             beforeCall();
             InitialFrame.present(runtime.session.backend());
             beforeCall();

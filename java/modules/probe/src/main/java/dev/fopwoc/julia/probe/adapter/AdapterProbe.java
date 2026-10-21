@@ -1,5 +1,6 @@
 package dev.fopwoc.julia.probe.adapter;
 
+import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.runtime.GlsmSession;
 import dev.fopwoc.julia.backend.runtime.HostedVideo;
 import dev.fopwoc.julia.probe.scene.AdapterScene;
@@ -29,6 +30,7 @@ public final class AdapterProbe {
         try (var video = HostedVideo.start();
                 var session = GlsmSession.open(video, 0, () -> size, "Julia adapter probe")) {
             backend = session.backend().getName();
+            Subsystems.current().drawTrace().open(output);
             AdapterScene.offscreen(output, size.width(), size.height());
             DebugMessages.armShutdownCheck();
         }
