@@ -39,7 +39,7 @@ public final class GameRuntime {
         current = runtime;
         runtime.output = output;
         try {
-            runtime.video = HostedVideo.start();
+            runtime.video = HostedVideo.start(foreign);
             runtime.window = BorrowedWindow.borrow(foreign);
             var logical = size(runtime.window.handle(), false);
             runtime.binding = HostWindow.bind(runtime.window.handle(), logical.width(), logical.height());

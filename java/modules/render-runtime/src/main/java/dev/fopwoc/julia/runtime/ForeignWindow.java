@@ -1,5 +1,8 @@
 package dev.fopwoc.julia.runtime;
 
+import java.util.Objects;
+import java.util.function.LongSupplier;
+
 /**
  * A native window owned by the game, described with JDK types only so it can cross class-loader boundaries.
  *
@@ -29,10 +32,11 @@ public sealed interface ForeignWindow {
     }
 
     /** Wayland {@code wl_display*} and {@code wl_surface*}. */
-    record Wayland(long display, long surface) implements ForeignWindow {
+    record Wayland(long display, long surface, LongSupplier pixels) implements ForeignWindow {
         public Wayland {
             requireHandle(display, "Wayland display");
             requireHandle(surface, "Wayland surface");
+            Objects.requireNonNull(pixels, "Wayland drawable dimensions");
         }
     }
 

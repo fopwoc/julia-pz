@@ -2,6 +2,9 @@ package dev.fopwoc.julia.host;
 
 import dev.fopwoc.julia.runtime.ForeignWindow;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 
 /** Uses the game's GLFW binding and republishes its native GL dispatch after isolated initialization/teardown. */
 final class GameDisplay {
@@ -50,9 +53,21 @@ final class GameDisplay {
     }
 
     private ForeignWindow waylandWindow(long glfw) throws ReflectiveOperationException {
+        var binding = Class.forName("org.lwjgl.glfw.GLFW", true, host);
+        var query = binding.getMethod("glfwGetFramebufferSize", long.class, IntBuffer.class, IntBuffer.class);
+        var width = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder()).asIntBuffer();
+        var height = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder()).asIntBuffer();
         return new ForeignWindow.Wayland(
                 handle("GLFWNativeWayland", "glfwGetWaylandDisplay"),
-                handle("GLFWNativeWayland", "glfwGetWaylandWindow", glfw));
+                handle("GLFWNativeWayland", "glfwGetWaylandWindow", glfw),
+                () -> {
+                    try {
+                        query.invoke(null, glfw, width, height);
+                        return ((long) width.get(0) << 32) | (height.get(0) & 0xffffffffL);
+                    } catch (ReflectiveOperationException failure) {
+                        throw new IllegalStateException("Cannot query GLFW Wayland drawable size", failure);
+                    }
+                });
     }
 
     private long handle(String binding, String query) throws ReflectiveOperationException {

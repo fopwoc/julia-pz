@@ -9,7 +9,10 @@ import static org.lwjgl.sdl.SDLVideo.SDL_DestroyWindow;
 import static org.lwjgl.sdl.SDLVideo.SDL_PROP_WINDOW_CREATE_COCOA_WINDOW_POINTER;
 import static org.lwjgl.sdl.SDLVideo.SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN;
 import static org.lwjgl.sdl.SDLVideo.SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN;
+import static org.lwjgl.sdl.SDLVideo.SDL_PROP_WINDOW_CREATE_VULKAN_BOOLEAN;
 
+import dev.fopwoc.julia.backend.gpu.GpuBackend;
+import dev.fopwoc.julia.backend.platform.Platform;
 import dev.fopwoc.julia.backend.utils.Sdl;
 import dev.fopwoc.julia.backend.window.BorrowedWindow;
 
@@ -25,7 +28,12 @@ public final class CocoaBorrowedWindow implements BorrowedWindow {
         try {
             Sdl.require(
                     SDL_SetPointerProperty(properties, SDL_PROP_WINDOW_CREATE_COCOA_WINDOW_POINTER, cocoaWindow)
-                            && SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN, true)
+                            && SDL_SetBooleanProperty(
+                                    properties,
+                                    Platform.current().gpuBackend() == GpuBackend.METAL
+                                            ? SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN
+                                            : SDL_PROP_WINDOW_CREATE_VULKAN_BOOLEAN,
+                                    true)
                             && SDL_SetBooleanProperty(
                                     properties, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, true),
                     "Set foreign window properties");
