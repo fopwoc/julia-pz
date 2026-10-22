@@ -15,9 +15,11 @@ public final class SamplingScene {
         var backend = BackendManager.RENDER_BACKEND;
         backend.onFrameBegin();
         try {
+            FloatTextureChecks.run(output);
             TextureMipChecks.run(output);
             BakedMipChecks.run(output);
             PerFragmentSamplerChecks.run(output);
+            ManySamplerChecks.run(output);
             FragmentDiscardChecks.run(output);
             TextureCaptureChecks.run(output);
             int error = glGetError();

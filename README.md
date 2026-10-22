@@ -294,9 +294,10 @@ frame boundary. This replaces `draw-trace.txt` and resets its snapshot quota, so
 after startup. Matching vertex and fragment compiler inputs are stored in `draw-shaders/` (at most 8 MiB per capture).
 
 With tracing enabled, an explicit `texture-capture.request` file requests raw texture downloads on the render thread.
-Each line contains a GL texture name and mip level, for example `7290 0`. Only allocated 2D RGBA8 images are supported;
+Each line contains a GL texture name and mip level, for example `7290 0`. Allocated 2D RGBA8, RGBA16F and RGBA32F images are supported;
 a request is limited to 32 images and 64 MiB. Files land in `textures-<frame>/` as
-`<texture>-mip<level>-<width>x<height>.rgba`, with four unsigned bytes per pixel in native texture row order. This
+`<texture>-mip<level>-<width>x<height>.rgba`, with four unsigned bytes per pixel in native texture row order.
+Floating-point files use `.rgba16f` or `.rgba32f` and retain native-endian half/full-float channels. This
 separate operation synchronizes the GPU and may briefly stall; ordinary draw tracing performs no GPU readbacks.
 
 ## License

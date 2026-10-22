@@ -123,8 +123,11 @@ public final class DrawTrace implements AutoCloseable {
             if (member != null && member.columns() == 1 && member.arrayLen() == 1 && member.vectorSize() != 3)
                 controls.append(name).append('=').append(values(values, member)).append('\n');
         }
+        int samplerStart = snapshot.length();
         samplers(snapshot, program, state, false);
         samplers(snapshot, program, state, true);
+        // One program can draw several atlas batches with identical uniforms but different texture bindings.
+        controls.append(snapshot.substring(samplerStart));
         snapshot.append('\n');
         String text = snapshot.toString();
         if (!budget.reserve(

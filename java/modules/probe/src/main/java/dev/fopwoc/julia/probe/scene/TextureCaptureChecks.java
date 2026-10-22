@@ -4,11 +4,13 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL21.*;
-import static org.lwjgl.opengl.GL30.glGenerateMipmap;
+import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL42.glTexStorage2D;
 
 import dev.fopwoc.julia.backend.diagnostic.TextureCapture;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.lwjgl.system.MemoryStack;
@@ -46,6 +48,7 @@ final class TextureCaptureChecks {
             if (mip.length != 4) throw new IllegalStateException("Capture mip size differs");
             for (byte value : mip)
                 if (Math.abs((value & 255) - 128) > 1) throw new IllegalStateException("Capture lost mip average");
+            floating(capture, sentinel);
             if (glGetInteger(GL_ACTIVE_TEXTURE) != GL_TEXTURE0 + 37
                     || glGetInteger(GL_TEXTURE_BINDING_2D) != sentinel
                     || glGetInteger(GL_PIXEL_PACK_BUFFER_BINDING) != pack
@@ -58,7 +61,7 @@ final class TextureCaptureChecks {
                 throw new IllegalStateException("Texture capture request was not consumed");
             Files.writeString(
                     output.resolve("texture-capture.txt"),
-                    "PASS\nchecks=exact RGBA alpha,mip averages,nondefault pack state,bindings,request consumption\n");
+                    "PASS\nchecks=exact RGBA alpha,mip averages,RGBA16F/RGBA32F mip downloads,nondefault pack state,bindings,request consumption\n");
         } finally {
             glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
             glPixelStorei(GL_PACK_ALIGNMENT, 4);
@@ -69,6 +72,44 @@ final class TextureCaptureChecks {
             glDeleteTextures(texture);
             glDeleteTextures(sentinel);
             glActiveTexture(GL_TEXTURE0);
+        }
+    }
+
+    private static void floating(Path output, int sentinel) throws IOException {
+        int framebuffer = glGenFramebuffers(), saved = glGetInteger(GL_FRAMEBUFFER_BINDING);
+        int half = glGenTextures(), full = glGenTextures();
+        try {
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+            glDisable(GL_SCISSOR_TEST);
+            glColorMask(true, true, true, true);
+            for (int texture : new int[] {half, full}) {
+                glBindTexture(GL_TEXTURE_2D, texture);
+                glTexStorage2D(GL_TEXTURE_2D, 2, texture == half ? GL_RGBA16F : GL_RGBA32F, 2, 2);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 1);
+                glClearColor(.25f, .5f, .75f, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+            }
+            glBindTexture(GL_TEXTURE_2D, sentinel);
+            Files.writeString(output.resolve("texture-capture.request"), half + " 1\n" + full + " 1\n");
+            TextureCapture.poll(output, 2);
+            var halves = ByteBuffer.wrap(Files.readAllBytes(output.resolve("textures-2/" + half + "-mip1-1x1.rgba16f")))
+                    .order(ByteOrder.nativeOrder());
+            for (int expected : new int[] {0x3400, 0x3800, 0x3a00, 0x3c00})
+                if (Short.toUnsignedInt(halves.getShort()) != expected)
+                    throw new IllegalStateException("Half-float capture lost native texel bits");
+            var floats = ByteBuffer.wrap(Files.readAllBytes(output.resolve("textures-2/" + full + "-mip1-1x1.rgba32f")))
+                    .order(ByteOrder.nativeOrder());
+            for (float expected : new float[] {.25f, .5f, .75f, 1})
+                if (floats.getFloat() != expected)
+                    throw new IllegalStateException("Float capture lost native texel bits");
+            if (glGetInteger(GL_FRAMEBUFFER_BINDING) != framebuffer)
+                throw new IllegalStateException("Float capture changed framebuffer binding");
+        } finally {
+            glBindFramebuffer(GL_FRAMEBUFFER, saved);
+            glBindTexture(GL_TEXTURE_2D, sentinel);
+            glDeleteTextures(half);
+            glDeleteTextures(full);
+            glDeleteFramebuffers(framebuffer);
         }
     }
 }
