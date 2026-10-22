@@ -51,8 +51,6 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-        with:
-          build-root-directory: java
 
       # Inside an ignored build directory, so the Git-derived version does not turn dirty.
       - name: Download Linux and Windows natives
