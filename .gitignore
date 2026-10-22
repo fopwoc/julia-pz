@@ -12,4 +12,4 @@ local.properties
 /local-test.sh
 
 # Staged by :workshop:stageAgent for Workshop uploads.
-/julia-agent.jar
+/libs/

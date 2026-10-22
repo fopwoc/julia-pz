@@ -1,0 +1,90 @@
+name: Build
+
+# One pipeline for CI and releases, so a release ships exactly what CI builds and checks.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  natives:
+    name: Linux and Windows natives
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # The same pinned toolchain image the local universal build uses (glibc 2.31 and MinGW).
+      - name: Build SDL for Linux and Windows
+        run: docker buildx build --platform linux/amd64 --output type=local,dest=natives native
+
+      - name: Upload natives
+        uses: actions/upload-artifact@v7
+        with:
+          name: natives-linux-windows
+          path: natives
+          retention-days: 7
+          if-no-files-found: error
+
+  package:
+    name: Check and package
+    needs: natives
+    # Apple Silicon: Gradle builds the arm64 host library itself; x64 is cross-built beside it.
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - name: Check out source and tags
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Temurin 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          build-root-directory: java
+
+      # Inside an ignored build directory, so the Git-derived version does not turn dirty.
+      - name: Download Linux and Windows natives
+        uses: actions/download-artifact@v8
+        with:
+          name: natives-linux-windows
+          path: native/sdl/build/universal/natives
+
+      - name: Build macOS x64 natives
+        run: tools/build-natives-macos.sh "$GITHUB_WORKSPACE/native/sdl/build/universal/natives" x64
+
+      - name: Check and build the universal agent
+        working-directory: java
+        run: >-
+          ./gradlew
+          check
+          :agent:universalJar
+          :workshop:modZip
+          "-PjuliaNatives=$GITHUB_WORKSPACE/native/sdl/build/universal/natives"
+
+      - name: Package the Workshop folder
+        run: |
+          mkdir -p dist
+          cp java/modules/agent/build/libs/julia-agent.jar dist/julia-agent.jar
+          cp java/modules/workshop/build/distributions/Julia.zip dist/julia-mod.zip
+          tools/package-workshop.sh dist/julia-agent.jar dist/julia-workshop.zip
+          unzip -p dist/julia-agent.jar META-INF/MANIFEST.MF | grep Implementation-Version
+
+      - name: Upload distribution
+        uses: actions/upload-artifact@v7
+        with:
+          name: julia-dist
+          path: dist
+          retention-days: 7
+          if-no-files-found: error

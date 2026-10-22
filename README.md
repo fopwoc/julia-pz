@@ -79,8 +79,16 @@ These GL features stop the game with a report rather than rendering incorrectly:
 
 Julia is a Java agent that starts with the game. It never patches game files on disk.
 
-1. Download `julia-<version>-agent.jar` from the [releases](../../releases) page and save it as `julia-agent.jar`.
-2. Copy it into the game's Java directory:
+1. Get `julia-agent.jar`: subscribe to the Workshop item and take it from its `libs/` folder, or download
+   `julia-<version>-agent.jar` from the [releases](../../releases) page and save it as `julia-agent.jar`.
+2. Optional: check that the jar was built by this repository's release workflow, with the
+   [GitHub CLI](https://cli.github.com):
+
+   ```sh
+   gh attestation verify julia-agent.jar --repo fopwoc/julia-pz
+   ```
+
+3. Copy it into the game's Java directory:
 
    | OS | Directory |
    | --- | --- |
@@ -88,7 +96,7 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    | Linux | the game directory that contains `projectzomboid.jar` (experimental) |
    | Windows | the game directory that contains `projectzomboid.jar` (experimental) |
 
-3. Add Steam launch options:
+4. Add Steam launch options:
 
    | OS | Launch options |
    | --- | --- |
@@ -98,11 +106,11 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    With ZombieBuddy, add its agent **after** Julia's, for example
    `-XstartOnFirstThread -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --`. Keep the final `--`.
 
-4. Optional: enable the **Julia** Lua mod from the Workshop or `Julia.zip`. It shows the agent's version and state in the
+5. Optional: enable the **Julia** Lua mod from the Workshop or `Julia.zip`. It shows the agent's version and state in the
    corner of the main menu, such as `Julia 1.2.3 active | Metal` or `Julia 1.2.3 inactive`, and warns when the agent is
    not loaded. It does not turn Julia on or off.
 
-For Linux or Windows testing, use the JAR produced by `./tools/build-universal.sh`. Check the menu first, then a
+For Linux or Windows testing, use a release jar or the one produced by `./tools/build-universal.sh`. Check the menu first, then a
 test save, resizing, and fullscreen/windowed switching. The menu status should identify Vulkan. If the process exits,
 include the newest `fatal-error.txt` and `renderer.txt` from the report directory below. Keep Julia's agent before
 ZombieBuddy's agent on every platform; `-XstartOnFirstThread` is macOS-only.
@@ -202,7 +210,7 @@ cd java
 ./gradlew check            # unit tests; never launches the game or opens a window
 ./gradlew :agent:jar       # → modules/agent/build/libs/julia-agent.jar
 ./gradlew :workshop:modZip # → modules/workshop/build/distributions/Julia.zip (Lua companion and agent jar)
-./gradlew :workshop:stageAgent # → julia-agent.jar in the repository root, for a Workshop upload (Git ignores it)
+./gradlew :workshop:stageAgent # → libs/julia-agent.jar in the repository root (Git ignores it)
 ```
 
 The agent jar bundles LWJGL natives for every platform in the support table and Julia's SDL build for the host. To
@@ -212,12 +220,20 @@ for example `linux/x64/libSDL3Julia.so` or `windows/x64/SDL3Julia.dll`.
 For a complete distribution, run `./tools/build-universal.sh` from the repository root on macOS with Docker
 running. It builds Mac ARM64 and x64 libraries with the Apple SDK, then Linux x64 and Windows x64 libraries in a
 staged container, runs the JVM checks, packages the same `java/modules/agent/build/libs/julia-agent.jar`, and stages
-a copy in the repository root for a Workshop upload.
+a copy as `libs/julia-agent.jar`.
 Container outputs and incremental build caches remain under `native/sdl/build/`. This packages platform libraries;
 it does not imply that every platform's graphics backend is ready for gameplay.
 
 When supplying prebuilt libraries yourself, use `:agent:universalJar` with `-PjuliaNatives=<dir>` to reject an
 incomplete distribution. Ordinary `:agent:jar` remains available for host-only development builds.
+
+### Releases
+
+CI builds every push the same way: the Linux and Windows libraries in the pinned container, the macOS libraries with
+the Apple SDK, then `check` and the universal jar. Pushing an `x.y.z` tag on `main` runs that build again and
+publishes three files with signed build provenance: the agent jar, the Lua companion zip, and the Workshop folder
+(this repository at the tag plus `libs/julia-agent.jar`). Upload that Workshop folder unchanged, so the jar players
+get is the attested one. `tools/package-workshop.sh` builds the same folder locally.
 
 ### GPU probes
 
