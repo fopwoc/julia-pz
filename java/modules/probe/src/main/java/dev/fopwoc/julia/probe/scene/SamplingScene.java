@@ -15,6 +15,7 @@ public final class SamplingScene {
         var backend = BackendManager.RENDER_BACKEND;
         backend.onFrameBegin();
         try {
+            LargeUniformChecks.run(output);
             FloatTextureChecks.run(output);
             TextureMipChecks.run(output);
             BakedMipChecks.run(output);
