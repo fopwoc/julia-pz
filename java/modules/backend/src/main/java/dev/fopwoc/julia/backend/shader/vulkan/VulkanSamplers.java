@@ -10,6 +10,7 @@ import static org.lwjgl.util.spvc.Spv.SpvDimBuffer;
 import static org.lwjgl.util.spvc.Spvc.*;
 
 import dev.fopwoc.julia.backend.shader.InstanceIndexSpirv;
+import dev.fopwoc.julia.backend.shader.NonUniformSamplerSpirv;
 import dev.fopwoc.julia.backend.shader.SamplerResources;
 import dev.fopwoc.julia.backend.utils.Sdl;
 import java.nio.ByteBuffer;
@@ -28,14 +29,18 @@ public final class VulkanSamplers {
         if (info.format() != SDL_GPU_SHADERFORMAT_SPIRV)
             throw new IllegalArgumentException("Vulkan shaders require SPIR-V");
         var originalCode = info.code();
-        var code = InstanceIndexSpirv.translate(
+        var indexed = InstanceIndexSpirv.translate(
                 originalCode,
                 info.stage() == SDL_GPU_SHADERSTAGE_VERTEX ? GL20.GL_VERTEX_SHADER : GL20.GL_FRAGMENT_SHADER);
+        var code = NonUniformSamplerSpirv.translate(indexed);
         int previous = info.props();
         int properties = properties(code, info.num_samplers(), previous);
         try {
-            if (code != originalCode && !SDL_SetBooleanProperty(properties, "julia.gpu.requires_draw_parameters", true))
+            if (indexed != originalCode
+                    && !SDL_SetBooleanProperty(properties, "julia.gpu.requires_draw_parameters", true))
                 throw Sdl.failure("Set Vulkan draw parameter requirement");
+            if (code != indexed && !SDL_SetBooleanProperty(properties, "julia.gpu.requires_nonuniform_samplers", true))
+                throw Sdl.failure("Set Vulkan non-uniform sampler requirement");
             info.code(code).props(properties);
             return SDL_CreateGPUShader(device, info);
         } finally {
