@@ -17,6 +17,9 @@ import java.util.stream.Stream;
  */
 final class StartupArchives {
     private static final String AGENT = "-javaagent:";
+    // ZombieBuddy's Windows installer loads it through a native shim that hands this fixed jar to java.instrument.
+    private static final String BUDDY_NATIVE = "-agentlib:zbNative";
+    private static final Path BUDDY_JAR = Path.of("ZombieBuddy.jar");
 
     private StartupArchives() {}
 
@@ -24,9 +27,10 @@ final class StartupArchives {
         var classPathJars = Stream.of(classPath.split(Pattern.quote(File.pathSeparator)))
                 .filter(entry -> !entry.isEmpty())
                 .map(Path::of);
-        var agentJars = jvmArguments.stream()
-                .filter(argument -> argument.startsWith(AGENT))
-                .map(argument -> agentJar(argument.substring(AGENT.length())));
+        var agentJars = jvmArguments.stream().<Path>mapMulti((argument, jars) -> {
+            if (argument.startsWith(AGENT)) jars.accept(agentJar(argument.substring(AGENT.length())));
+            else if (argument.equals(BUDDY_NATIVE) || argument.startsWith(BUDDY_NATIVE + "=")) jars.accept(BUDDY_JAR);
+        });
         var archives = new LinkedHashSet<Path>();
         Stream.concat(classPathJars, agentJars)
                 .map(path -> workingDirectory.resolve(path).toAbsolutePath().normalize())

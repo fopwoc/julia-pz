@@ -29,4 +29,22 @@ class StartupArchivesTest {
 
         assertEquals(List.of(pz, buddy), archives);
     }
+
+    @Test
+    void addsZombieBuddyLoadedThroughItsWindowsNativeShim(@TempDir Path game) throws Exception {
+        var pz = Files.createFile(game.resolve("projectzomboid.jar"));
+        var julia = Files.createFile(game.resolve("julia-agent.jar"));
+        var buddy = Files.createFile(game.resolve("ZombieBuddy.jar"));
+
+        var archives = StartupArchives.collect(
+                "projectzomboid.jar",
+                List.of(
+                        "-agentlib:zbNative=verbosity=2",
+                        "-agentlib:jdwp=transport=dt_socket",
+                        "-javaagent:julia-agent.jar"),
+                julia,
+                game);
+
+        assertEquals(List.of(pz, buddy), archives);
+    }
 }
