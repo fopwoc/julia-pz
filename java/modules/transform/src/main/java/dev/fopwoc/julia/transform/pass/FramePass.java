@@ -51,6 +51,19 @@ public final class FramePass {
         if (draw == null || swap == null || alreadyHooked)
             throw new IllegalArgumentException("Missing or previously transformed frame anchors");
         bracket(method, draw, swap);
+        for (var instruction : method.instructions.toArray()) {
+            if (!(instruction instanceof MethodInsnNode call)
+                    || !call.owner.equals(HOOKS)
+                    || !call.name.equals("begin")) continue;
+            var dimensions = new InsnList();
+            for (String query : new String[] {"getScreenWidth", "getScreenHeight"}) {
+                dimensions.add(new MethodInsnNode(
+                        Opcodes.INVOKESTATIC, "zombie/core/Core", "getInstance", "()Lzombie/core/Core;", false));
+                dimensions.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "zombie/core/Core", query, "()I", false));
+            }
+            method.instructions.insertBefore(call, dimensions);
+            call.desc = "(II)V";
+        }
         return true;
     }
 

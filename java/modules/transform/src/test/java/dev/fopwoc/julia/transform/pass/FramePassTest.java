@@ -139,6 +139,12 @@ class FramePassTest {
                 },
                 new RenderSession.Frames() {
                     public void begin() {
+                        fail("Game frames must supply their render dimensions");
+                    }
+
+                    public void begin(int width, int height) {
+                        assertEquals(640, width);
+                        assertEquals(480, height);
                         events.add("begin");
                     }
 

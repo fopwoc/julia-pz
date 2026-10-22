@@ -16,7 +16,7 @@ final class LiveRuntime implements AutoCloseable, RenderSession.Frames {
     private final String previousPresenter;
     private final RuntimeLoader loader;
     private final GameDisplay display;
-    private final Method beforeCall, begin, present, abort, shutdown;
+    private final Method beforeCall, begin, sizedBegin, present, abort, shutdown;
     private RenderSession session;
     private boolean recording;
 
@@ -28,6 +28,7 @@ final class LiveRuntime implements AutoCloseable, RenderSession.Frames {
         var engine = Class.forName("dev.fopwoc.julia.backend.runtime.GameRuntime", false, loader);
         beforeCall = engine.getMethod("beforeCall");
         begin = engine.getMethod("begin");
+        sizedBegin = engine.getMethod("begin", int.class, int.class);
         present = engine.getMethod("present");
         abort = engine.getMethod("abort");
         shutdown = engine.getMethod("close");
@@ -101,6 +102,12 @@ final class LiveRuntime implements AutoCloseable, RenderSession.Frames {
     @Override
     public void begin() {
         invoke(begin);
+        recording = true;
+    }
+
+    @Override
+    public void begin(int width, int height) {
+        invoke(sizedBegin, width, height);
         recording = true;
     }
 

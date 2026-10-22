@@ -121,6 +121,7 @@ public final class AdapterScene {
             ProgramInterfaceChecks.run(output);
             ShortTextureChecks.run(output);
             FloatTextureChecks.run(output);
+            DefaultTargetChecks.run(output);
             LargeUniformChecks.run(output);
             IntegerVolumeChecks.run(output);
             HighTextureUnitChecks.run(output);

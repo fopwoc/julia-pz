@@ -17,6 +17,10 @@ public final class RenderSession implements AutoCloseable {
 
         void begin();
 
+        default void begin(int width, int height) {
+            throw new UnsupportedOperationException("Sized frames are not supported by this renderer");
+        }
+
         void present();
 
         void abort();
@@ -80,11 +84,20 @@ public final class RenderSession implements AutoCloseable {
     }
 
     void begin() {
+        begin(frames::begin);
+    }
+
+    void begin(int width, int height) {
+        if (width <= 0 || height <= 0) throw new IllegalArgumentException("Positive render dimensions are required");
+        begin(() -> frames.begin(width, height));
+    }
+
+    private void begin(Runnable action) {
         requireUsable();
         if (state != State.READY) throw new IllegalStateException("Frame already open");
         state = State.FRAME;
         try {
-            frames.begin();
+            action.run();
         } catch (RuntimeException | Error failure) {
             fail(failure);
             throw failure;

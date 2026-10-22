@@ -30,6 +30,7 @@ public final class GameRuntime {
     private Path output;
     private FrameWatchdog watchdog;
     private long frames;
+    private GlsmSession.Size renderSize;
 
     private GameRuntime() {}
 
@@ -74,14 +75,23 @@ public final class GameRuntime {
     public static void beforeCall() {
         var runtime = require();
         if (!Upstream.frames().isFrameActive()) {
-            var logical = size(runtime.window.handle(), false);
+            var logical = runtime.renderSize != null ? runtime.renderSize : size(runtime.window.handle(), false);
             runtime.binding.dimensions(logical.width(), logical.height());
             runtime.session.backend().onFrameBegin();
         }
     }
 
     public static void begin() {
+        require().renderSize = null;
         beforeCall();
+    }
+
+    public static void begin(int width, int height) {
+        var runtime = require();
+        runtime.renderSize = new GlsmSession.Size(width, height);
+        runtime.binding.dimensions(width, height);
+        beforeCall();
+        DefaultTarget.resize(width, height);
     }
 
     public static void present() {

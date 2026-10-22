@@ -12,6 +12,15 @@ public final class FrameHooks {
         }
     }
 
+    /** The game may render at a different resolution from its native window during startup. */
+    public static void begin(int width, int height) {
+        try {
+            RenderSession.current().begin(width, height);
+        } catch (Throwable failure) {
+            throw FatalGraphics.failure("Cannot begin sized render frame", failure);
+        }
+    }
+
     public static void present() {
         try {
             RenderSession.current().present();
