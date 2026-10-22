@@ -248,6 +248,10 @@ Windowless GPU checks run only on request. They create a real device but open no
 Reports land in `modules/probe/build/reports/`. Run `suiteProbe` after any change to class loading, bytecode patches or
 native extensions; unit tests cannot cover those paths.
 
+For focused mip-alpha, atlas-indexing and fragment-discard checks, build `:probe:installDist`, then run
+`modules/probe/build/install/probe/bin/probe --sampling <output-dir>` with `-Djulia.gpu=vulkan` in `JAVA_OPTS` when
+selecting Vulkan explicitly.
+
 ### Offline audits
 
 These read JAR bytecode and never load game classes:
@@ -288,6 +292,12 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 With draw tracing enabled, create `draw-trace.request` inside the current run directory to restart capture at the next
 frame boundary. This replaces `draw-trace.txt` and resets its snapshot quota, so a stable in-game defect can be captured
 after startup. Matching vertex and fragment compiler inputs are stored in `draw-shaders/` (at most 8 MiB per capture).
+
+With tracing enabled, an explicit `texture-capture.request` file requests raw texture downloads on the render thread.
+Each line contains a GL texture name and mip level, for example `7290 0`. Only allocated 2D RGBA8 images are supported;
+a request is limited to 32 images and 64 MiB. Files land in `textures-<frame>/` as
+`<texture>-mip<level>-<width>x<height>.rgba`, with four unsigned bytes per pixel in native texture row order. This
+separate operation synchronizes the GPU and may briefly stall; ordinary draw tracing performs no GPU readbacks.
 
 ## License
 

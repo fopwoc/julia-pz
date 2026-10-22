@@ -18,6 +18,7 @@ public final class ProbeMain {
             "  " + RedirectAudit.USAGE,
             "  " + PreparationAudit.USAGE,
             "  --render <dir>                      raw-device clear and translated draw (main thread)",
+            "  --sampling <dir>                    mip alpha, atlas indexing, and fragment discard",
             "  --queries <dir>                     GPU timing and visibility queries",
             "  --textures <dir>                    shared texture-view and subresource checks",
             "  --vertices <dir>                    translated vertex-input and instancing checks",
@@ -45,6 +46,7 @@ public final class ProbeMain {
             case "--audit-redirects" -> RedirectAudit.run(rest, System.out);
             case "--prepare-runtime" -> PreparationAudit.run(rest, System.out);
             case "--render" -> OffscreenProbe.run(directory(rest));
+            case "--sampling" -> ProbeLauncher.runSampling(directory(rest));
             case "--queries" -> ProbeLauncher.runQueries(directory(rest));
             case "--textures" -> ProbeLauncher.runTextures(directory(rest));
             case "--vertices" -> ProbeLauncher.runVertices(directory(rest));

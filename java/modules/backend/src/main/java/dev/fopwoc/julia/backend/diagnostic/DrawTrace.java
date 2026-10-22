@@ -58,6 +58,7 @@ public final class DrawTrace implements AutoCloseable {
         frame++;
         if (output == null) return;
         try {
+            TextureCapture.poll(output, frame);
             if (!Files.deleteIfExists(output.resolve("draw-trace.request"))) return;
         } catch (IOException failure) {
             throw new IllegalStateException("Cannot consume draw-trace request", failure);

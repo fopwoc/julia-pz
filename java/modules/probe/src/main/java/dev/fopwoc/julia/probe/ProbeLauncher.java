@@ -49,6 +49,11 @@ public final class ProbeLauncher {
         runtime().invoke("dev.fopwoc.julia.probe.adapter.TextureProbe", "run", OUTPUT, output);
     }
 
+    /** Mip alpha, atlas selection, and fragment discard on the explicitly selected backend. */
+    public static void runSampling(Path output) throws Exception {
+        runtime().invoke("dev.fopwoc.julia.probe.adapter.SamplingProbe", "run", OUTPUT, output);
+    }
+
     /** Real GPU timestamps and visibility on the explicitly selected backend. */
     public static void runQueries(Path output) throws Exception {
         runtime().invoke("dev.fopwoc.julia.probe.adapter.QueryProbe", "run", OUTPUT, output);
