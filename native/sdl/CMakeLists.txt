@@ -43,6 +43,7 @@ if(NOT patched_identity STREQUAL patch_identity)
     include("${CMAKE_CURRENT_SOURCE_DIR}/common/exports.cmake")
     include("${CMAKE_CURRENT_SOURCE_DIR}/common/sampler_capacity.cmake")
     include("${CMAKE_CURRENT_SOURCE_DIR}/common/sparse_targets.cmake")
+    include("${CMAKE_CURRENT_SOURCE_DIR}/common/xkbcommon_baseline.cmake")
     # Each GPU backend folder patches only its own SDL driver.
     if(APPLE)
         set(backend "${sdl_patched}/src/gpu/metal/SDL_gpu_metal.m")

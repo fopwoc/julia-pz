@@ -24,6 +24,7 @@ RUN --mount=type=cache,id=sdl-linux-x64,target=/build/linux,sharing=locked \
       -DSDL_X11=ON -DSDL_WAYLAND=ON \
     && grep -q "^#define SDL_VIDEO_DRIVER_X11 1" /build/linux/sdl-build/include-config-release/build_config/SDL_build_config.h \
     && grep -q "^#define SDL_VIDEO_DRIVER_WAYLAND 1" /build/linux/sdl-build/include-config-release/build_config/SDL_build_config.h \
+    && grep -q "^#define SDL_XKBCOMMON_VERSION_MAJOR 0" /build/linux/sdl-build/include-config-release/build_config/SDL_build_config.h \
     && cmake --build /build/linux --target SDL3-shared --parallel 8 \
     && mkdir -p /out/linux/x64 \
     && cp -L /build/linux/lib/libSDL3Julia.so /out/linux/x64/libSDL3Julia.so
