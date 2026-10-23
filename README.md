@@ -3,26 +3,32 @@
 <img src="common/poster.png" alt="Julia" width="160" align="right">
 
 Julia does one thing: it translates Project Zomboid's OpenGL rendering to the platform's native graphics API —
-**Metal** on macOS and **Vulkan** on Linux and Windows. Modern APIs carry less driver overhead than OpenGL, which can
-mean higher and steadier FPS.
+**Metal** on macOS and **Vulkan** on Linux and Windows.
 
 The translation is seamless. Nothing is ported, and no mod needs a Julia-specific version or patch: the game and its
 Java mods ship exactly as they are and keep calling plain OpenGL. Julia redirects those calls in memory as each class
 loads and draws every frame through [Angelica](https://github.com/GTNewHorizons/Angelica)'s GL state manager and its
-SDL3 GPU backend. Files on disk are never changed, and no OpenGL driver is involved.
+SDL3 GPU backend. Files on disk are never changed and saves are untouched, so Julia can be added or removed at any time.
 
-A side effect on macOS: Apple's OpenGL is deprecated and stops at version 4.1, so mods that need newer GL features
-cannot run there. Because Julia never touches Apple's OpenGL, those mods work on Mac too. [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528), which needs
-GL 4.3, is the first example.
+Why bother:
 
-Julia targets **Project Zomboid Build 42** and is **experimental**.
+- **Performance.** Modern APIs carry less driver overhead than OpenGL, which can mean higher and steadier FPS. Julia
+  has not been benchmarked widely yet, and results range from a real gain to slower frames.
+- **Compatibility.** Apple's OpenGL is deprecated and stops at version 4.1, so mods that need newer GL features cannot
+  run on macOS. Julia never touches Apple's OpenGL, so those mods work on Mac too.
+  [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528), which needs GL 4.3, is the first
+  example.
+
+Julia targets **Project Zomboid Build 42** and is **experimental**. It doesn't cover the whole OpenGL specification
+yet, so some mods may stop with a report. Multiplayer is untested. Bug reports and contributions are welcome in
+[issues](../../issues).
 
 > [!NOTE]
 > This project contains AI-generated code. See [AI_USAGE.md](AI_USAGE.md) for details.
 
 ## Support
 
-Status legend: ✅ works · 🧪 experimental, gameplay testing pending · 🚧 planned · ➖ not applicable
+Status legend: ✅ works · 🧪 experimental, gameplay testing pending · 🚧 planned
 
 ### Platforms
 
@@ -102,34 +108,31 @@ Julia is a Java agent that starts with the game. It never patches game files on 
 
 4. Add Steam launch options:
 
-   | OS | Launch options |
-   | --- | --- |
-   | macOS | `-XstartOnFirstThread -javaagent:julia-agent.jar=activate --` |
-   | Linux | `-javaagent:julia-agent.jar=activate --` |
-   | Windows | `-agentlib:julia=activate --` |
+   | OS | Julia alone | With ZombieBuddy |
+   | --- | --- | --- |
+   | macOS | `-XstartOnFirstThread -javaagent:julia-agent.jar=activate --` | `-XstartOnFirstThread -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --` |
+   | Linux | `-javaagent:julia-agent.jar=activate --` | `-javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --` |
+   | Windows | `-agentlib:julia=activate --` | `-agentlib:julia=activate -agentlib:zbNative --` |
 
-   With ZombieBuddy, add its agent **after** Julia's, for example
-   `-XstartOnFirstThread -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --`. Keep the final `--`.
+   Julia's agent must come before ZombieBuddy's, and the final `--` must stay. Use Steam launch options rather than
+   ZombieBuddy installer's `ProjectZomboid64.json` option, which loads ZombieBuddy before Julia.
 
-   PZ's Windows launcher cannot start a `-javaagent` itself: the JVM's `instrument.dll` does not find its own
-   libraries from the game directory. `julia.dll` loads it from `jre64\bin` and starts `julia-agent.jar`, the same way
-   ZombieBuddy's `zbNative.dll` does, and takes the same options as the jar. With ZombieBuddy on Windows, use
-   `-agentlib:julia=activate -agentlib:zbNative --` in Steam's launch options. Its installer's `ProjectZomboid64.json`
-   option loads ZombieBuddy before any launch option, so choose Steam launch options there.
+   PZ's Windows launcher cannot start a `-javaagent` jar: the JVM's `instrument.dll` does not find its own libraries
+   from the game directory. `julia.dll` loads it from `jre64\bin` and starts `julia-agent.jar` with the same options,
+   the way ZombieBuddy's `zbNative.dll` does.
 
 5. Optional: enable the **Julia** Lua mod from the Workshop or `Julia.zip`. It shows the agent's version and state in the
    corner of the main menu, such as `Julia 1.2.3 active | Metal` or `Julia 1.2.3 inactive`, and warns when the agent is
    not loaded. It does not turn Julia on or off.
 
-Keep Julia's agent before ZombieBuddy's agent on every platform; `-XstartOnFirstThread` is macOS-only.
-
-Remove the `-javaagent:julia-agent.jar=activate` (Windows: `-agentlib:julia=activate`) option to return to vanilla
-rendering. Disabling the Lua mod does not
-disable the agent.
+To return to vanilla rendering, remove Julia's launch option; you can also delete the jar (and `julia.dll`). Disabling
+the Lua mod does not disable the agent.
 
 ## Troubleshooting
 
-Every launch writes a fresh report directory under `~/Zomboid/julia/run-*/`:
+Every launch writes a fresh report directory under `Zomboid/julia/run-*/` in your home folder: `~/Zomboid` on macOS
+and Linux, `%UserProfile%\Zomboid` on Windows. Under Proton it is inside the game's prefix,
+`steamapps/compatdata/108600/pfx/drive_c/users/steamuser/Zomboid`.
 
 | File | Contents |
 | --- | --- |
@@ -142,8 +145,22 @@ Julia is fail-fast: if it cannot translate or render something correctly, it wri
 game with exit code 70 instead of drawing a wrong frame. Mods cannot catch and hide that failure. When reporting a
 problem, include the newest `fatal-error.txt`.
 
-For more detail, set `LOG_LEVEL=warn`, `info` or `debug` (default `error`). To choose the report directory yourself,
-use `activate=/absolute/path/new-run` instead of `activate`.
+For more detail, set `LOG_LEVEL=warn`, `info` or `debug` (default `error`). On Linux and Proton, put it in front of
+Steam's `%command%`, for example `LOG_LEVEL=info %command% -javaagent:julia-agent.jar=activate --`. To choose the
+report directory yourself, use `activate=/absolute/path/new-run` instead of `activate`.
+
+## FAQ
+
+**Why isn't Julia a ZombieBuddy mod?** Julia has to take over OpenGL before anything draws. ZombieBuddy draws its mod
+approval dialog with ImGui over OpenGL before any of its mods load, so a ZombieBuddy mod would start too late. As its
+own agent, loaded first, Julia also translates ZombieBuddy's UI and every Java mod ZombieBuddy approves.
+
+**Will Julia raise my FPS?** Maybe. It is experimental: results so far range from a real gain to slower frames or a
+stopped game.
+
+**The game stops when I use mod X.** That is on purpose: Julia stops when it hits something it cannot render
+correctly. Open an [issue](../../issues) with the newest `fatal-error.txt`; usually it is a GL feature Julia does not
+cover yet.
 
 ## How it works
 
@@ -229,9 +246,7 @@ for example `linux/x64/libSDL3Julia.so` or `windows/x64/SDL3Julia.dll`.
 For a complete distribution, run `./tools/build-universal.sh` from the repository root on macOS with Docker
 running. It builds Mac ARM64 and x64 libraries with the Apple SDK, then Linux x64 and Windows x64 libraries in a
 staged container, runs the JVM checks, packages the same `java/modules/agent/build/libs/julia-agent.jar`, and stages
-a copy as `libs/julia-agent.jar`.
-Container outputs and incremental build caches remain under `native/sdl/build/`. This packages platform libraries;
-it does not imply that every platform's graphics backend is ready for gameplay.
+a copy as `libs/julia-agent.jar`. Container outputs and incremental build caches remain under `native/sdl/build/`.
 
 When supplying prebuilt libraries yourself, use `:agent:universalJar` with `-PjuliaNatives=<dir>` to reject an
 incomplete distribution. Ordinary `:agent:jar` remains available for host-only development builds.
@@ -304,8 +319,8 @@ frame boundary. This replaces `draw-trace.txt` and resets its snapshot quota, so
 after startup. Matching vertex and fragment compiler inputs are stored in `draw-shaders/` (at most 8 MiB per capture).
 
 With tracing enabled, an explicit `texture-capture.request` file requests raw texture downloads on the render thread.
-Each line contains a GL texture name and mip level, for example `7290 0`. Allocated 2D RGBA8, RGBA16F and RGBA32F images are supported;
-a request is limited to 32 images and 64 MiB. Files land in `textures-<frame>/` as
+Each line contains a GL texture name and mip level, for example `7290 0`. Allocated 2D RGBA8, RGBA16F and RGBA32F
+images are supported; a request is limited to 32 images and 64 MiB. Files land in `textures-<frame>/` as
 `<texture>-mip<level>-<width>x<height>.rgba`, with four unsigned bytes per pixel in native texture row order.
 Floating-point files use `.rgba16f` or `.rgba32f` and retain native-endian half/full-float channels. This
 separate operation synchronizes the GPU and may briefly stall; ordinary draw tracing performs no GPU readbacks.
