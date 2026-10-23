@@ -3,8 +3,8 @@
 <img src="common/poster.png" alt="Julia" width="160" align="right">
 
 Julia does one thing: it translates Project Zomboid's OpenGL rendering to the platform's native graphics API —
-**Metal** on macOS and **Vulkan** on Linux and Windows. The Windows game-window port is experimental. Modern APIs carry less driver
-overhead than OpenGL, which can mean higher and steadier FPS.
+**Metal** on macOS and **Vulkan** on Linux and Windows. Modern APIs carry less driver overhead than OpenGL, which can
+mean higher and steadier FPS.
 
 The translation is seamless. Nothing is ported, and no mod needs a Julia-specific version or patch: the game and its
 Java mods ship exactly as they are and keep calling plain OpenGL. Julia redirects those calls in memory as each class
@@ -31,13 +31,13 @@ Status legend: ✅ works · 🧪 experimental, gameplay testing pending · 🚧 
 | macOS | Apple silicon (arm64) | Metal | ✅ |
 | macOS | Intel (x64) | Metal | 🧪 |
 | Linux | x64 | Vulkan | ✅ |
-| Windows | x64 | Vulkan | 🧪 |
+| Windows | x64 | Vulkan | ✅ |
 
 The universal `julia-agent.jar` carries the natives for every platform above and picks the right ones at startup.
 Linux follows the game's GLFW backend. PZ uses X11 by default (XWayland on Wayland desktops), and that path is tested on a
 Steam Deck (RADV) and an RTX 4060 Ti PC (NVIDIA driver). Native Wayland is opt-in through `-Dzomboid.wayland=1` and
 probably works in windowed mode, but fractional scaling misplaces clicks in ZombieBuddy's overlay, and fullscreen leaves
-the game without a visible window. Windows still needs gameplay testing.
+the game without a visible window. Windows is tested with Proton on a Steam Deck, not on native Windows.
 
 ### GL features by GPU API
 
@@ -46,19 +46,19 @@ extensions, implemented per API.
 
 | Feature | Metal | Vulkan | Direct3D 12 |
 | --- | --- | --- | --- |
-| Core rendering: state, shaders, textures, framebuffers, draws | ✅ | 🧪 | 🚧 |
-| Buffer textures (`samplerBuffer`), including empty stores | ✅ | 🧪 | 🚧 |
-| Texture views (`glTextureView`, 2D and array) | ✅ | 🧪 | 🚧 |
-| Up to 32 sampled resources per graphics stage | ✅ | 🧪 | 🚧 |
-| Sparse draw buffers (`GL_NONE` color slots) | ✅ | 🧪 | 🚧 |
-| Full-width instance divisors and base instances | ✅ | 🧪 | 🚧 |
-| Timer queries (`GL_TIME_ELAPSED`, `GL_TIMESTAMP`) | ✅ | 🧪 | 🚧 |
-| Occlusion queries (`GL_SAMPLES_PASSED`, `GL_ANY_SAMPLES_PASSED`) | ✅ | 🧪 | 🚧 |
-| Fences (`glFenceSync`, `glClientWaitSync`) | ✅ | 🧪 | 🚧 |
+| Core rendering: state, shaders, textures, framebuffers, draws | ✅ | ✅ | 🚧 |
+| Buffer textures (`samplerBuffer`), including empty stores | ✅ | ✅ | 🚧 |
+| Texture views (`glTextureView`, 2D and array) | ✅ | ✅ | 🚧 |
+| Up to 32 sampled resources per graphics stage | ✅ | ✅ | 🚧 |
+| Sparse draw buffers (`GL_NONE` color slots) | ✅ | ✅ | 🚧 |
+| Full-width instance divisors and base instances | ✅ | ✅ | 🚧 |
+| Timer queries (`GL_TIME_ELAPSED`, `GL_TIMESTAMP`) | ✅ | ✅ | 🚧 |
+| Occlusion queries (`GL_SAMPLES_PASSED`, `GL_ANY_SAMPLES_PASSED`) | ✅ | ✅ | 🚧 |
+| Fences (`glFenceSync`, `glClientWaitSync`) | ✅ | ✅ | 🚧 |
 
 ### Game and mods
 
-These gameplay results are from macOS with Metal and Linux with Vulkan; Windows gameplay results are pending.
+These gameplay results are from macOS with Metal, Linux with Vulkan, and Windows with Vulkan under Proton.
 
 | | Status | Notes |
 | --- | --- | --- |
@@ -97,7 +97,7 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    | --- | --- |
    | macOS | `Project Zomboid.app/Contents/Java` |
    | Linux | the game directory that contains `projectzomboid.jar` |
-   | Windows | the game directory that contains `projectzomboid.jar` (experimental) |
+   | Windows | the game directory that contains `projectzomboid.jar` |
 
 4. Add Steam launch options:
 
@@ -105,7 +105,7 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    | --- | --- |
    | macOS | `-XstartOnFirstThread -javaagent:julia-agent.jar=activate --` |
    | Linux | `-javaagent:julia-agent.jar=activate --` |
-   | Windows | `-agentlib:julia=activate --` (experimental) |
+   | Windows | `-agentlib:julia=activate --` |
 
    With ZombieBuddy, add its agent **after** Julia's, for example
    `-XstartOnFirstThread -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --`. Keep the final `--`.
@@ -120,10 +120,7 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    corner of the main menu, such as `Julia 1.2.3 active | Metal` or `Julia 1.2.3 inactive`, and warns when the agent is
    not loaded. It does not turn Julia on or off.
 
-For Windows testing, use a release jar or the one produced by `./tools/build-universal.sh`. Check the menu first, then a
-test save, resizing, and fullscreen/windowed switching. The menu status should identify Vulkan. If the process exits,
-include the newest `fatal-error.txt` and `renderer.txt` from the report directory below. Keep Julia's agent before
-ZombieBuddy's agent on every platform; `-XstartOnFirstThread` is macOS-only.
+Keep Julia's agent before ZombieBuddy's agent on every platform; `-XstartOnFirstThread` is macOS-only.
 
 Remove the `-javaagent:julia-agent.jar=activate` (Windows: `-agentlib:julia=activate`) option to return to vanilla
 rendering. Disabling the Lua mod does not
