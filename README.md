@@ -37,7 +37,8 @@ The universal `julia-agent.jar` carries the natives for every platform above and
 Linux follows the game's GLFW backend. PZ uses X11 by default (XWayland on Wayland desktops), and that path is tested on a
 Steam Deck (RADV) and an RTX 4060 Ti PC (NVIDIA driver). Native Wayland is opt-in through `-Dzomboid.wayland=1` and
 probably works in windowed mode, but fractional scaling misplaces clicks in ZombieBuddy's overlay, and fullscreen leaves
-the game without a visible window. Windows is tested with Proton on a Steam Deck, not on native Windows.
+the game without a visible window. Windows is tested with Proton, not on native Windows; reports from real Windows
+machines are very welcome.
 
 ### GL features by GPU API
 
