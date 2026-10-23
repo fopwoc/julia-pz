@@ -41,6 +41,11 @@ RUN --mount=type=cache,id=sdl-windows-x64,target=/build/windows,sharing=locked \
     && cmake --build /build/windows --target SDL3-shared --parallel 8 \
     && mkdir -p /out/windows/x64 \
     && cp /build/windows/lib/SDL3Julia.dll /out/windows/x64/SDL3Julia.dll
+# The -agentlib loader PZ's Windows launcher needs; it ships beside the agent jar, not inside it.
+COPY agentlib /src/agentlib
+RUN x86_64-w64-mingw32-gcc -shared -O2 -s -Wall -Werror -static-libgcc \
+      -o /out/windows/x64/julia.dll /src/agentlib/julia.c \
+    && x86_64-w64-mingw32-objdump -p /out/windows/x64/julia.dll | grep -q "Agent_OnLoad"
 
 FROM scratch AS natives
 COPY --from=linux /out/ /

@@ -52,6 +52,7 @@ jobs:
         run: |
           mkdir release
           mv dist/julia-agent.jar "release/julia-$GITHUB_REF_NAME-agent.jar"
+          mv dist/julia.dll "release/julia-$GITHUB_REF_NAME-windows-loader.dll"
           mv dist/julia-mod.zip "release/julia-$GITHUB_REF_NAME-mod.zip"
           mv dist/julia-workshop.zip "release/julia-$GITHUB_REF_NAME-workshop.zip"
           (cd release && sha256sum -- * > SHA256SUMS)
@@ -62,6 +63,7 @@ jobs:
         with:
           subject-path: |
             release/julia-*-agent.jar
+            release/julia-*-windows-loader.dll
             release/julia-*-mod.zip
             release/julia-*-workshop.zip
 

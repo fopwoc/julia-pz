@@ -75,8 +75,9 @@ jobs:
         run: |
           mkdir -p dist
           cp java/modules/agent/build/libs/julia-agent.jar dist/julia-agent.jar
+          cp native/sdl/build/universal/natives/windows/x64/julia.dll dist/julia.dll
           cp java/modules/workshop/build/distributions/Julia.zip dist/julia-mod.zip
-          tools/package-workshop.sh dist/julia-agent.jar dist/julia-workshop.zip
+          tools/package-workshop.sh dist/julia-agent.jar dist/julia.dll dist/julia-workshop.zip
           unzip -p dist/julia-agent.jar META-INF/MANIFEST.MF | grep Implementation-Version
 
       - name: Upload distribution

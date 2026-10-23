@@ -82,7 +82,8 @@ These GL features stop the game with a report rather than rendering incorrectly:
 Julia is a Java agent that starts with the game. It never patches game files on disk.
 
 1. Get `julia-agent.jar`: subscribe to the Workshop item and take it from its `libs/` folder, or download
-   `julia-<version>-agent.jar` from the [releases](../../releases) page and save it as `julia-agent.jar`.
+   `julia-<version>-agent.jar` from the [releases](../../releases) page and save it as `julia-agent.jar`. On Windows,
+   also take `julia.dll` from the same `libs/` folder, or `julia-<version>-windows-loader.dll` saved as `julia.dll`.
 2. Optional: check that the jar was built by this repository's release workflow, with the
    [GitHub CLI](https://cli.github.com):
 
@@ -90,7 +91,7 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    gh attestation verify julia-agent.jar --repo fopwoc/julia-pz
    ```
 
-3. Copy it into the game's Java directory:
+3. Copy it (and on Windows `julia.dll`) into the game's Java directory:
 
    | OS | Directory |
    | --- | --- |
@@ -104,10 +105,16 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    | --- | --- |
    | macOS | `-XstartOnFirstThread -javaagent:julia-agent.jar=activate --` |
    | Linux | `-javaagent:julia-agent.jar=activate --` |
-   | Windows | `-javaagent:julia-agent.jar=activate --` (experimental) |
+   | Windows | `-agentlib:julia=activate --` (experimental) |
 
    With ZombieBuddy, add its agent **after** Julia's, for example
    `-XstartOnFirstThread -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --`. Keep the final `--`.
+
+   PZ's Windows launcher cannot start a `-javaagent` itself: the JVM's `instrument.dll` does not find its own
+   libraries from the game directory. `julia.dll` loads it from `jre64\bin` and starts `julia-agent.jar`, the same way
+   ZombieBuddy's `zbNative.dll` does, and takes the same options as the jar. With ZombieBuddy on Windows, use
+   `-agentlib:julia=activate -agentlib:zbNative --` in Steam's launch options. Its installer's `ProjectZomboid64.json`
+   option loads ZombieBuddy before any launch option, so choose Steam launch options there.
 
 5. Optional: enable the **Julia** Lua mod from the Workshop or `Julia.zip`. It shows the agent's version and state in the
    corner of the main menu, such as `Julia 1.2.3 active | Metal` or `Julia 1.2.3 inactive`, and warns when the agent is
@@ -118,7 +125,8 @@ test save, resizing, and fullscreen/windowed switching. The menu status should i
 include the newest `fatal-error.txt` and `renderer.txt` from the report directory below. Keep Julia's agent before
 ZombieBuddy's agent on every platform; `-XstartOnFirstThread` is macOS-only.
 
-Remove the `-javaagent:julia-agent.jar=activate` option to return to vanilla rendering. Disabling the Lua mod does not
+Remove the `-javaagent:julia-agent.jar=activate` (Windows: `-agentlib:julia=activate`) option to return to vanilla
+rendering. Disabling the Lua mod does not
 disable the agent.
 
 ## Troubleshooting
@@ -285,6 +293,7 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `-javaagent:julia-agent.jar=activate` | Launch options | Render through Julia; reports go to a fresh `~/Zomboid/julia/run-*/` |
 | `-javaagent:julia-agent.jar=activate=<dir>` | Launch options | Same, with reports in `<dir>` |
 | `-javaagent:julia-agent.jar=<report.tsv>` | Launch options | Audit only: record which classes make graphics calls into a new file; rendering is unchanged |
+| `-agentlib:julia=<options>` | Launch options, Windows | Same as `-javaagent:julia-agent.jar=<options>`; needs `julia.dll` beside the jar |
 | `-Djulia.drawTrace=true` | Launch options or probe JVM | Bounded CPU draw-state snapshots and compiler inputs beside renderer/probe reports; no GPU readbacks |
 | `-Djulia.gpu=metal\|vulkan` | Launch options or probe JVM | Override the platform's default SDL GPU driver |
 | `-Djulia.metalHud=true` | Launch options, macOS | Show Apple's Metal Performance HUD over the game (current process only; restart required) |
