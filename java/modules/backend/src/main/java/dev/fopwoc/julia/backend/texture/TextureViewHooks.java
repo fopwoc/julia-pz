@@ -41,6 +41,8 @@ public final class TextureViewHooks {
 
     public static long samplingHandle(ResourceManager resources, int name) {
         var subsystems = Subsystems.current();
+        if (SamplerFallbacks.contains(name))
+            return subsystems.samplerFallbacks().handle(name);
         var buffers = subsystems.bufferTextures();
         return buffers.contains(name)
                 ? buffers.samplingHandle(name)

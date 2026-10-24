@@ -34,6 +34,7 @@ public final class SamplerLayout {
 
     private final Map<String, Integer> names = new HashMap<>();
     private final Map<String, Integer> targets = new HashMap<>();
+    private final Map<String, Integer> scalars = new HashMap<>();
     private final int[] unitTargets = new int[TextureBindings.UNIT_COUNT];
     private int generation = Integer.MIN_VALUE;
     private final int[] bufferTypes = new int[TextureBindings.UNIT_COUNT];
@@ -133,7 +134,19 @@ public final class SamplerLayout {
         return type;
     }
 
-    private int target(String name) {
+    public int slotScalar(ProgramObject program, int slot, boolean fragment) {
+        return scalar(slots(program, fragment).names.get(slot));
+    }
+
+    public int scalar(String name) {
+        return scalars.getOrDefault(baseName(name), SPVC_BASETYPE_FP32);
+    }
+
+    public int bufferType(String name) {
+        return names.get(baseName(name));
+    }
+
+    public int target(String name) {
         int target = targets.getOrDefault(name, 0);
         if (target == 0) target = targets.getOrDefault(baseName(name), 0);
         if (target == 0) throw new UnsupportedOperationException("Sampler target reflection missing: " + name);
@@ -233,12 +246,13 @@ public final class SamplerLayout {
                             throw new UnsupportedOperationException("Sampler dimension not implemented: " + dimension);
                     };
                     targets.put(resource.nameString(), target);
+                    int scalar = spvc_type_get_basetype(
+                            spvc_compiler_get_type_handle(compiler, spvc_type_get_image_sampled_type(type)));
+                    scalars.put(resource.nameString(), scalar);
                     if (dimension != SpvDimBuffer) continue;
                     if (spvc_type_get_num_array_dimensions(type) != 0)
                         throw new UnsupportedOperationException(
                                 "Arrays of buffer-texture samplers are not implemented");
-                    int scalar = spvc_type_get_basetype(
-                            spvc_compiler_get_type_handle(compiler, spvc_type_get_image_sampled_type(type)));
                     int glType = switch (scalar) {
                         case SPVC_BASETYPE_FP32 -> GL_SAMPLER_BUFFER;
                         case SPVC_BASETYPE_INT32 -> GL_INT_SAMPLER_BUFFER;

@@ -24,6 +24,11 @@ public final class BufferTextureHooks {
         return Subsystems.current().bufferTextures().samplerBinding(state, unit, slot, fragment);
     }
 
+    public static int computeSamplerBinding(ContextState state, int unit, int slot, String[] names) {
+        if (names == null || slot >= names.length || names[slot] == null) return samplerBinding(state, unit);
+        return Subsystems.current().bufferTextures().computeSamplerBinding(state, unit, names[slot]);
+    }
+
     public static long samplingHandle(ResourceManager resources, int name) {
         return TextureViewHooks.samplingHandle(resources, name);
     }

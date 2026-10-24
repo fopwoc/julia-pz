@@ -92,8 +92,25 @@ public final class BufferTexturePass implements UpstreamPatch {
                         var read = field.getNext();
                         while (read != null && read.getOpcode() != Opcodes.IALOAD) read = read.getNext();
                         if (read == null) throw new IllegalStateException("Compute sampler texture-array read changed");
+                        if (!(Anchors.previous(field) instanceof VarInsnNode state)
+                                || !(Anchors.previous(state) instanceof VarInsnNode unitStore)
+                                || unitStore.getOpcode() != Opcodes.ISTORE
+                                || !(Anchors.previous(unitStore) instanceof MethodInsnNode resolve)
+                                || !resolve.name.equals("resolveUnit")
+                                || Anchors.previous(resolve).getOpcode() != Opcodes.IALOAD
+                                || !(Anchors.previous(Anchors.previous(resolve)) instanceof VarInsnNode slot)
+                                || slot.getOpcode() != Opcodes.ILOAD
+                                || !method.desc.equals(
+                                        "(L" + STATE + ";L" + ROOT.replace('.', '/')
+                                                + "shader/ShaderManager$ProgramObject;J[I[Ljava/lang/String;Lorg/lwjgl/system/MemoryStack;)Z"))
+                            throw new IllegalStateException("Compute sampler identity lookup changed");
+                        var identity = new InsnList();
+                        identity.add(new VarInsnNode(Opcodes.ILOAD, slot.var));
+                        identity.add(new VarInsnNode(Opcodes.ALOAD, 6));
+                        method.instructions.insertBefore(read, identity);
                         method.instructions.remove(field);
-                        method.instructions.set(read, call("samplerBinding", "(L" + STATE + ";I)I"));
+                        method.instructions.set(
+                                read, call("computeSamplerBinding", "(L" + STATE + ";II[Ljava/lang/String;)I"));
                         edits++;
                     }
                 }

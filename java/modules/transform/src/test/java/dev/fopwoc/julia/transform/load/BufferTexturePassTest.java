@@ -37,6 +37,32 @@ class BufferTexturePassTest {
         assertNotEquals(unit.var, slot.var);
     }
 
+    @Test
+    void passesComputeSamplerIdentityToTheLookup() throws IOException {
+        String binder = "com.gtnewhorizons.angelica.sdlgpu.compute.ComputeBinder";
+        var adapted = new ClassNode();
+        try (var stream = getClass().getResourceAsStream("/" + binder.replace('.', '/') + ".class")) {
+            assertNotNull(stream);
+            new ClassReader(new BufferTexturePass().adapt(binder, stream.readAllBytes())).accept(adapted, 0);
+        }
+        var method = adapted.methods.stream()
+                .filter(m -> m.name.equals("bindComputeSamplers"))
+                .findFirst()
+                .orElseThrow();
+        MethodInsnNode lookup = null;
+        for (var instruction : method.instructions)
+            if (instruction instanceof MethodInsnNode call && call.name.equals("computeSamplerBinding")) lookup = call;
+        assertNotNull(lookup);
+        assertEquals(Endpoint.BUFFER_TEXTURE_HOOKS.owner(), lookup.owner);
+        assertTrue(lookup.desc.endsWith(";II[Ljava/lang/String;)I"));
+        var names = (VarInsnNode) lookup.getPrevious();
+        var slot = (VarInsnNode) names.getPrevious();
+        assertEquals(Opcodes.ALOAD, names.getOpcode());
+        assertEquals(6, names.var);
+        assertEquals(Opcodes.ILOAD, slot.getOpcode());
+        assertEquals(9, slot.var);
+    }
+
     private static byte[] bytes() throws IOException {
         try (var stream = BufferTexturePassTest.class.getResourceAsStream("/" + BINDER.replace('.', '/') + ".class")) {
             assertNotNull(stream);

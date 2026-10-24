@@ -13,6 +13,7 @@ import dev.fopwoc.julia.backend.sdl.SdlTimestamps;
 import dev.fopwoc.julia.backend.shader.LinkedPrograms;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.sync.GpuSyncs;
+import dev.fopwoc.julia.backend.texture.SamplerFallbacks;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.texture.TextureObjects;
 import dev.fopwoc.julia.backend.texture.TextureTable;
@@ -35,6 +36,7 @@ public final class Subsystems implements AutoCloseable {
     private final BlendEquations blendEquations = new BlendEquations();
     private final DrawTrace drawTrace = new DrawTrace();
     private final TextureTable textures = new TextureTable();
+    private final SamplerFallbacks samplerFallbacks = new SamplerFallbacks();
     private final TextureBindings textureBindings = new TextureBindings();
     private final TextureObjects textureObjects = new TextureObjects(textures);
     private final TextureViews textureViews = new TextureViews(textures);
@@ -78,6 +80,10 @@ public final class Subsystems implements AutoCloseable {
     /** Per-name texture records shared by the texture subsystems. */
     public TextureTable textures() {
         return textures;
+    }
+
+    public SamplerFallbacks samplerFallbacks() {
+        return samplerFallbacks;
     }
 
     public TextureBindings textureBindings() {
@@ -124,6 +130,7 @@ public final class Subsystems implements AutoCloseable {
         drawTrace.close();
         queries.close();
         bufferTextures.close();
+        samplerFallbacks.close();
         linkedPrograms.clear();
         shaderPrograms.close();
         textureViews.close();

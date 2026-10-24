@@ -20,6 +20,7 @@ public final class SamplingScene {
             FloatTextureChecks.run(output);
             TextureMipChecks.run(output);
             VolumeMipChecks.run(output);
+            SamplerTargetChecks.run(output);
             BakedMipChecks.run(output);
             PerFragmentSamplerChecks.run(output);
             ManySamplerChecks.run(output);
