@@ -12,321 +12,145 @@ import org.objectweb.asm.tree.MethodInsnNode;
 
 /** Only the exact observed resource overloads enter the bounded bridge implementations. */
 public final class ResourcePass {
+    // Core functions keep their name in every later GL class (GL45 inherits GL32.glFenceSync), so one canonical
+    // CORE key matches any GLnn or GLnnC owner; extension and GLSM owners stay exact.
+    private static final String CORE = "GL.";
+    private static final String LWJGL = "org/lwjgl/opengl/";
+    private static final String GLSM = Endpoint.STATE_MANAGER.owner() + ".";
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
-            Map.entry("org/lwjgl/opengl/GL30.glEnablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30.glDisablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30.glIsEnabledi(II)Z", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30C.glEnablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30C.glDisablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30C.glIsEnabledi(II)Z", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40.glEnablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40.glDisablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40.glIsEnabledi(II)Z", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40.glBlendFuncSeparatei(IIIII)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40C.glEnablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40C.glDisablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40C.glIsEnabledi(II)Z", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40C.glBlendFuncSeparatei(IIIII)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glEnablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glDisablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glIsEnabledi(II)Z", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glBlendFuncSeparatei(IIIII)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43C.glEnablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43C.glDisablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43C.glIsEnabledi(II)Z", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43C.glBlendFuncSeparatei(IIIII)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glEnablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glDisablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glIsEnabledi(II)Z", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glBlendFuncSeparatei(IIIII)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glEnablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glDisablei(II)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glIsEnabledi(II)Z", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glBlendFuncSeparatei(IIIII)V", Endpoint.BLEND_BRIDGE),
+            Map.entry(CORE + "glEnablei(II)V", Endpoint.BLEND_BRIDGE),
+            Map.entry(CORE + "glDisablei(II)V", Endpoint.BLEND_BRIDGE),
+            Map.entry(CORE + "glIsEnabledi(II)Z", Endpoint.BLEND_BRIDGE),
+            Map.entry(CORE + "glBlendFuncSeparatei(IIIII)V", Endpoint.BLEND_BRIDGE),
+            Map.entry(GLSM + "glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry(CORE + "glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry(CORE + "glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry(CORE + "glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
+            Map.entry(CORE + "glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry(CORE + "glClearBufferfv(IILjava/nio/FloatBuffer;)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry(CORE + "glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
+            Map.entry(LWJGL + "ARBMultiDrawIndirect.glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
+            Map.entry(GLSM + "glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
+            Map.entry(CORE + "glDrawArraysInstancedBaseInstance(IIIII)V", Endpoint.BASE_INSTANCE_DRAWS),
             Map.entry(
-                    Endpoint.STATE_MANAGER.owner() + ".glGetBooleani_v(IILjava/nio/ByteBuffer;)V",
-                    Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30C.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30C.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40C.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40C.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43C.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43C.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL40C.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43C.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+                    LWJGL + "ARBBaseInstance.glDrawArraysInstancedBaseInstance(IIIII)V", Endpoint.BASE_INSTANCE_DRAWS),
+            Map.entry(GLSM + "glDrawArraysInstancedBaseInstance(IIIII)V", Endpoint.BASE_INSTANCE_DRAWS),
+            Map.entry(CORE + "glUniform1iv(ILjava/nio/IntBuffer;)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
+            Map.entry(CORE + "glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
+            Map.entry(CORE + "glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
+            Map.entry(CORE + "glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
+            Map.entry(CORE + "glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
+            Map.entry(LWJGL + "ARBSync.glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
+            Map.entry(LWJGL + "ARBSync.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
+            Map.entry(LWJGL + "ARBSync.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
+            Map.entry(LWJGL + "ARBSync.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
+            Map.entry(GLSM + "glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
+            Map.entry(GLSM + "glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
+            Map.entry(GLSM + "glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
+            Map.entry(GLSM + "glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
+            Map.entry(CORE + "glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(LWJGL + "ARBTextureStorage.glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(GLSM + "glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTexSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(GLSM + "glTexSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTexSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(GLSM + "glTexSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTexSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(GLSM + "glTexSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glGetProgramInterfacei(III)I", Endpoint.PROGRAM_RESOURCE_BRIDGE),
+            Map.entry(CORE + "glGetProgramInterfaceiv(III[I)V", Endpoint.PROGRAM_RESOURCE_BRIDGE),
+            Map.entry(CORE + "glGetProgramInterfaceiv(IIILjava/nio/IntBuffer;)V", Endpoint.PROGRAM_RESOURCE_BRIDGE),
             Map.entry(
-                    "org/lwjgl/opengl/GL30.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
-                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30C.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL30C.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
-                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL43.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
-                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43C.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL43C.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
-                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
-                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45C.glClearBufferfv(IILjava/nio/FloatBuffer;)V",
-                    Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
-            Map.entry("org/lwjgl/opengl/GL43C.glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
-            Map.entry("org/lwjgl/opengl/GL44.glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
-            Map.entry("org/lwjgl/opengl/GL45.glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
-            Map.entry(
-                    "org/lwjgl/opengl/ARBMultiDrawIndirect.glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
-            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
-            Map.entry("org/lwjgl/opengl/GL42.glDrawArraysInstancedBaseInstance(IIIII)V", Endpoint.BASE_INSTANCE_DRAWS),
-            Map.entry("org/lwjgl/opengl/GL42C.glDrawArraysInstancedBaseInstance(IIIII)V", Endpoint.BASE_INSTANCE_DRAWS),
-            Map.entry(
-                    "org/lwjgl/opengl/ARBBaseInstance.glDrawArraysInstancedBaseInstance(IIIII)V",
-                    Endpoint.BASE_INSTANCE_DRAWS),
-            Map.entry(
-                    Endpoint.STATE_MANAGER.owner() + ".glDrawArraysInstancedBaseInstance(IIIII)V",
-                    Endpoint.BASE_INSTANCE_DRAWS),
-            Map.entry("org/lwjgl/opengl/GL20.glUniform1iv(ILjava/nio/IntBuffer;)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30.glUniform1iv(ILjava/nio/IntBuffer;)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glUniform1iv(ILjava/nio/IntBuffer;)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL32.glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL32.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL32.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL32.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL32C.glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL32C.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL32C.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL32C.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/ARBSync.glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/ARBSync.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/ARBSync.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/ARBSync.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
-            Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
-            Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
-            Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
-            Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL42.glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL42C.glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/ARBTextureStorage.glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL12.glTexSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V",
-                    Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL12C.glTexSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V",
-                    Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(
-                    Endpoint.STATE_MANAGER.owner() + ".glTexSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V",
-                    Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL11.glTexSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V",
-                    Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL11C.glTexSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V",
-                    Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(
-                    Endpoint.STATE_MANAGER.owner() + ".glTexSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V",
-                    Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL11.glTexSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V",
-                    Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(
-                    Endpoint.STATE_MANAGER.owner() + ".glTexSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V",
-                    Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glGetProgramInterfacei(III)I", Endpoint.PROGRAM_RESOURCE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glGetProgramInterfaceiv(III[I)V", Endpoint.PROGRAM_RESOURCE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL43.glGetProgramInterfaceiv(IIILjava/nio/IntBuffer;)V",
+                    CORE + "glGetProgramResourceiv(IIILjava/nio/IntBuffer;Ljava/nio/IntBuffer;Ljava/nio/IntBuffer;)V",
                     Endpoint.PROGRAM_RESOURCE_BRIDGE),
+            Map.entry(CORE + "glCreateFramebuffers()I", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(CORE + "glCreateFramebuffers([I)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(CORE + "glCreateFramebuffers(Ljava/nio/IntBuffer;)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(CORE + "glNamedFramebufferTexture(IIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(CORE + "glNamedFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(CORE + "glNamedFramebufferDrawBuffer(II)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(CORE + "glNamedFramebufferDrawBuffers(I[I)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(CORE + "glNamedFramebufferDrawBuffers(ILjava/nio/IntBuffer;)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(CORE + "glNamedFramebufferReadBuffer(II)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(CORE + "glCheckNamedFramebufferStatus(II)I", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(CORE + "glFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(GLSM + "glFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(CORE + "glGetTextureLevelParameteri(III)I", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glGetTextureLevelParameterf(III)F", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glGetTextureLevelParameteriv(IIILjava/nio/IntBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glGetTextureLevelParameteriv(III[I)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glGetTextureLevelParameterfv(IIILjava/nio/FloatBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glGetTextureLevelParameterfv(III[F)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(LWJGL + "ARBDirectStateAccess.glGetTextureLevelParameteri(III)I", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(LWJGL + "ARBDirectStateAccess.glGetTextureLevelParameterf(III)F", Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry(
-                    "org/lwjgl/opengl/GL43.glGetProgramResourceiv(IIILjava/nio/IntBuffer;Ljava/nio/IntBuffer;Ljava/nio/IntBuffer;)V",
-                    Endpoint.PROGRAM_RESOURCE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glCreateFramebuffers()I", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glCreateFramebuffers([I)V", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glCreateFramebuffers(Ljava/nio/IntBuffer;)V", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glNamedFramebufferTexture(IIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glNamedFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glNamedFramebufferDrawBuffer(II)V", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glNamedFramebufferDrawBuffers(I[I)V", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glNamedFramebufferDrawBuffers(ILjava/nio/IntBuffer;)V",
-                    Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glNamedFramebufferReadBuffer(II)V", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glCheckNamedFramebufferStatus(II)I", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30.glFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry(
-                    Endpoint.STATE_MANAGER.owner() + ".glFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glGetTextureLevelParameteri(III)I", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glGetTextureLevelParameterf(III)F", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glGetTextureLevelParameteriv(IIILjava/nio/IntBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glGetTextureLevelParameteriv(III[I)V", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glGetTextureLevelParameterfv(IIILjava/nio/FloatBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glGetTextureLevelParameterfv(III[F)V", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glGetTextureLevelParameteri(III)I", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glGetTextureLevelParameterf(III)F", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45C.glGetTextureLevelParameteriv(IIILjava/nio/IntBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glGetTextureLevelParameteriv(III[I)V", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45C.glGetTextureLevelParameterfv(IIILjava/nio/FloatBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glGetTextureLevelParameterfv(III[F)V", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameteri(III)I",
+                    LWJGL + "ARBDirectStateAccess.glGetTextureLevelParameteriv(IIILjava/nio/IntBuffer;)V",
                     Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameterf(III)F",
+                    LWJGL + "ARBDirectStateAccess.glGetTextureLevelParameteriv(III[I)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(
+                    LWJGL + "ARBDirectStateAccess.glGetTextureLevelParameterfv(IIILjava/nio/FloatBuffer;)V",
                     Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameteriv(IIILjava/nio/IntBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
+                    LWJGL + "ARBDirectStateAccess.glGetTextureLevelParameterfv(III[F)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glCreateTextures(I)I", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glCreateTextures(ILjava/nio/IntBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glCreateTextures(I[I)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureParameteri(III)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureParameterf(IIF)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureStorage2D(IIIII)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureStorage3D(IIIIII)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureSubImage2D(IIIIIIIILjava/nio/ByteBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureSubImage2D(IIIIIIIILjava/nio/IntBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureSubImage3D(IIIIIIIIIILjava/nio/ByteBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureSubImage3D(IIIIIIIIIILjava/nio/FloatBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTextureSubImage3D(IIIIIIIIIILjava/nio/ShortBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glVertexBindingDivisor(II)V", Endpoint.VERTEX_BINDING_BRIDGE),
+            Map.entry(GLSM + "glVertexAttribDivisor(II)V", Endpoint.VERTEX_BINDING_BRIDGE),
+            Map.entry(GLSM + "glVertexAttribDivisorARB(II)V", Endpoint.VERTEX_BINDING_BRIDGE),
+            Map.entry(GLSM + "glBindTexture(II)V", Endpoint.BUFFER_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTexBuffer(III)V", Endpoint.BUFFER_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glTexBufferRange(IIIJJ)V", Endpoint.BUFFER_TEXTURE_BRIDGE),
+            Map.entry(GLSM + "glGenTextures([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(GLSM + "glDeleteTextures([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(GLSM + "glDeleteFramebuffers([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(GLSM + "glDrawBuffers([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(CORE + "glUniform1iv(I[I)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
+            Map.entry(GLSM + "glGenQueries([I)V", Endpoint.QUERY_BRIDGE),
+            Map.entry(GLSM + "glDeleteQueries([I)V", Endpoint.QUERY_BRIDGE),
+            Map.entry(CORE + "glGetQueryObjecti64(II)J", Endpoint.QUERY_BRIDGE),
+            Map.entry(GLSM + "glDrawRangeElements(IIIIIJ)V", Endpoint.DRAW_RANGE_BRIDGE),
             Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameteriv(III[I)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
+                    CORE + "glGetProgramResourceIndex(IILjava/lang/CharSequence;)I", Endpoint.PROGRAM_RESOURCE_BRIDGE),
+            Map.entry(CORE + "glGetProgramResourceName(IIII)Ljava/lang/String;", Endpoint.PROGRAM_RESOURCE_BRIDGE),
+            Map.entry(CORE + "glGetProgramResourceiv(III[I[I[I)V", Endpoint.PROGRAM_RESOURCE_BRIDGE),
+            Map.entry(CORE + "glTextureView(IIIIIIII)V", Endpoint.TEXTURE_VIEW_BRIDGE),
+            Map.entry(LWJGL + "ARBTextureView.glTextureView(IIIIIIII)V", Endpoint.TEXTURE_VIEW_BRIDGE),
+            Map.entry(CORE + "glNamedBufferStorage(ILjava/nio/ByteBuffer;I)V", Endpoint.BUFFER_STORAGE_BRIDGE),
+            Map.entry(CORE + "glNamedBufferStorage(IJI)V", Endpoint.BUFFER_STORAGE_BRIDGE),
+            Map.entry(LWJGL + "ARBDirectStateAccess.glNamedBufferStorage(IJI)V", Endpoint.BUFFER_STORAGE_BRIDGE),
             Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameterfv(IIILjava/nio/FloatBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureLevelParameterfv(III[F)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(I)I", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(ILjava/nio/IntBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glCreateTextures(I[I)V", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glTextureParameteri(III)V", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glTextureParameterf(IIF)V", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glTextureStorage2D(IIIII)V", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glTextureStorage3D(IIIIII)V", Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glTextureSubImage2D(IIIIIIIILjava/nio/ByteBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glTextureSubImage2D(IIIIIIIILjava/nio/IntBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glTextureSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glTextureSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glTextureSubImage3D(IIIIIIIIIILjava/nio/ByteBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glTextureSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glTextureSubImage3D(IIIIIIIIIILjava/nio/FloatBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glTextureSubImage3D(IIIIIIIIIILjava/nio/ShortBuffer;)V",
-                    Endpoint.NAMED_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glVertexBindingDivisor(II)V", Endpoint.VERTEX_BINDING_BRIDGE),
-            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glVertexAttribDivisor(II)V", Endpoint.VERTEX_BINDING_BRIDGE),
-            Map.entry(
-                    Endpoint.STATE_MANAGER.owner() + ".glVertexAttribDivisorARB(II)V", Endpoint.VERTEX_BINDING_BRIDGE),
-            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glBindTexture(II)V", Endpoint.BUFFER_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL31.glTexBuffer(III)V", Endpoint.BUFFER_TEXTURE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glTexBufferRange(IIIJJ)V", Endpoint.BUFFER_TEXTURE_BRIDGE),
-            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glGenTextures([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
-            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glDeleteTextures([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
-            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glDeleteFramebuffers([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
-            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glDrawBuffers([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL20.glUniform1iv(I[I)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL30.glUniform1iv(I[I)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glUniform1iv(I[I)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
-            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glGenQueries([I)V", Endpoint.QUERY_BRIDGE),
-            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glDeleteQueries([I)V", Endpoint.QUERY_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL33.glGetQueryObjecti64(II)J", Endpoint.QUERY_BRIDGE),
-            Map.entry(Endpoint.STATE_MANAGER.owner() + ".glDrawRangeElements(IIIIIJ)V", Endpoint.DRAW_RANGE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL43.glGetProgramResourceIndex(IILjava/lang/CharSequence;)I",
-                    Endpoint.PROGRAM_RESOURCE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL43.glGetProgramResourceName(IIII)Ljava/lang/String;",
-                    Endpoint.PROGRAM_RESOURCE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glGetProgramResourceiv(III[I[I[I)V", Endpoint.PROGRAM_RESOURCE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL44.glTextureView(IIIIIIII)V", Endpoint.TEXTURE_VIEW_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glTextureView(IIIIIIII)V", Endpoint.TEXTURE_VIEW_BRIDGE),
-            Map.entry("org/lwjgl/opengl/ARBTextureView.glTextureView(IIIIIIII)V", Endpoint.TEXTURE_VIEW_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glNamedBufferStorage(ILjava/nio/ByteBuffer;I)V",
+                    LWJGL + "ARBDirectStateAccess.glNamedBufferStorage(ILjava/nio/ByteBuffer;I)V",
                     Endpoint.BUFFER_STORAGE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glNamedBufferStorage(IJI)V", Endpoint.BUFFER_STORAGE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glNamedBufferStorage(IJI)V", Endpoint.BUFFER_STORAGE_BRIDGE),
+            Map.entry(CORE + "glCopyNamedBufferSubData(IIJJJ)V", Endpoint.BUFFER_TRANSFER_BRIDGE),
+            Map.entry(CORE + "glGetNamedBufferSubData(IJLjava/nio/ByteBuffer;)V", Endpoint.BUFFER_TRANSFER_BRIDGE),
+            Map.entry(LWJGL + "ARBDirectStateAccess.glCopyNamedBufferSubData(IIJJJ)V", Endpoint.BUFFER_TRANSFER_BRIDGE),
             Map.entry(
-                    "org/lwjgl/opengl/GL45C.glNamedBufferStorage(ILjava/nio/ByteBuffer;I)V",
-                    Endpoint.BUFFER_STORAGE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glNamedBufferStorage(IJI)V", Endpoint.BUFFER_STORAGE_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glNamedBufferStorage(ILjava/nio/ByteBuffer;I)V",
-                    Endpoint.BUFFER_STORAGE_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glCopyNamedBufferSubData(IIJJJ)V", Endpoint.BUFFER_TRANSFER_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glGetNamedBufferSubData(IJLjava/nio/ByteBuffer;)V",
+                    LWJGL + "ARBDirectStateAccess.glGetNamedBufferSubData(IJLjava/nio/ByteBuffer;)V",
                     Endpoint.BUFFER_TRANSFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glCopyNamedBufferSubData(IIJJJ)V", Endpoint.BUFFER_TRANSFER_BRIDGE),
+            Map.entry(CORE + "glGetTextureImage(IIIIIJ)V", Endpoint.TEXTURE_READBACK_BRIDGE),
+            Map.entry(CORE + "glGetTextureImage(IIIILjava/nio/ByteBuffer;)V", Endpoint.TEXTURE_READBACK_BRIDGE),
+            Map.entry(LWJGL + "ARBDirectStateAccess.glGetTextureImage(IIIIIJ)V", Endpoint.TEXTURE_READBACK_BRIDGE),
             Map.entry(
-                    "org/lwjgl/opengl/GL45C.glGetNamedBufferSubData(IJLjava/nio/ByteBuffer;)V",
-                    Endpoint.BUFFER_TRANSFER_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glCopyNamedBufferSubData(IIJJJ)V",
-                    Endpoint.BUFFER_TRANSFER_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetNamedBufferSubData(IJLjava/nio/ByteBuffer;)V",
-                    Endpoint.BUFFER_TRANSFER_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glGetTextureImage(IIIIIJ)V", Endpoint.TEXTURE_READBACK_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45.glGetTextureImage(IIIILjava/nio/ByteBuffer;)V",
+                    LWJGL + "ARBDirectStateAccess.glGetTextureImage(IIIILjava/nio/ByteBuffer;)V",
                     Endpoint.TEXTURE_READBACK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glGetTextureImage(IIIIIJ)V", Endpoint.TEXTURE_READBACK_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/GL45C.glGetTextureImage(IIIILjava/nio/ByteBuffer;)V",
-                    Endpoint.TEXTURE_READBACK_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureImage(IIIIIJ)V",
-                    Endpoint.TEXTURE_READBACK_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/ARBDirectStateAccess.glGetTextureImage(IIIILjava/nio/ByteBuffer;)V",
-                    Endpoint.TEXTURE_READBACK_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL43C.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL44.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL44C.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL45C.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
-            Map.entry(
-                    "org/lwjgl/opengl/ARBCopyImage.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
-            Map.entry(
-                    Endpoint.STATE_MANAGER.owner() + ".glCopyImageSubData(IIIIIIIIIIIIIII)V",
-                    Endpoint.TEXTURE_COPY_BRIDGE),
-            Map.entry("org/lwjgl/opengl/GL44.glClearTexSubImage(IIIIIIIIII[F)V", Endpoint.TEXTURE_CLEAR_BRIDGE));
+            Map.entry(CORE + "glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
+            Map.entry(LWJGL + "ARBCopyImage.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
+            Map.entry(GLSM + "glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
+            Map.entry(CORE + "glClearTexSubImage(IIIIIIIIII[F)V", Endpoint.TEXTURE_CLEAR_BRIDGE));
 
     private ResourcePass() {}
 
@@ -334,7 +158,7 @@ public final class ResourcePass {
         for (var method : node.methods) {
             for (var instruction : method.instructions) {
                 if (instruction instanceof MethodInsnNode call && call.getOpcode() == Opcodes.INVOKESTATIC) {
-                    var route = ROUTES.get(call.owner + "." + call.name + call.desc);
+                    var route = ROUTES.get(key(call.owner, call.name, call.desc));
                     if (route != null) call.owner = route.owner();
                 } else if (instruction instanceof LdcInsnNode constant) {
                     constant.cst = constant(constant.cst);
@@ -346,9 +170,23 @@ public final class ResourcePass {
         }
     }
 
+    static String key(String owner, String name, String descriptor) {
+        return (core(owner) ? CORE : owner + ".") + name + descriptor;
+    }
+
+    /** {@code org/lwjgl/opengl/GL} followed by a version number and an optional core-profile {@code C}. */
+    private static boolean core(String owner) {
+        int start = LWJGL.length() + 2;
+        if (!owner.startsWith(LWJGL + "GL")) return false;
+        int end = owner.endsWith("C") ? owner.length() - 1 : owner.length();
+        if (end <= start) return false;
+        for (int i = start; i < end; i++) if (!Character.isDigit(owner.charAt(i))) return false;
+        return true;
+    }
+
     private static Object constant(Object value) {
         if (value instanceof Handle handle && handle.getTag() == Opcodes.H_INVOKESTATIC) {
-            var route = ROUTES.get(handle.getOwner() + "." + handle.getName() + handle.getDesc());
+            var route = ROUTES.get(key(handle.getOwner(), handle.getName(), handle.getDesc()));
             if (route != null)
                 return new Handle(handle.getTag(), route.owner(), handle.getName(), handle.getDesc(), false);
         }

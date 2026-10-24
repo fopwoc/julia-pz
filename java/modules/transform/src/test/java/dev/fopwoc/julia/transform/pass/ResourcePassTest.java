@@ -55,6 +55,31 @@ class ResourcePassTest {
         assertEquals("org/lwjgl/opengl/GL30", integer.owner);
     }
 
+    @Test
+    void routesInheritedCoreOwnersButNotExtensionsOrLookalikes() {
+        var node = new ClassNode();
+        var method = new MethodNode();
+        node.methods.add(method);
+        var later = new MethodInsnNode(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/GL45", "glFenceSync", "(II)J", false);
+        var core = new MethodInsnNode(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/GL45C", "glDeleteSync", "(J)V", false);
+        var extension = new MethodInsnNode(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/ARBSync", "glIsSync", "(J)Z", false);
+        var lookalike =
+                new MethodInsnNode(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/GLX13", "glFenceSync", "(II)J", false);
+        var unknownExtension = new MethodInsnNode(
+                Opcodes.INVOKESTATIC, "org/lwjgl/opengl/EXTSemaphore", "glFenceSync", "(II)J", false);
+        var glsm = new MethodInsnNode(
+                Opcodes.INVOKESTATIC, Endpoint.STATE_MANAGER.owner(), "glDeleteTextures", "([I)V", false);
+        for (var call : new MethodInsnNode[] {later, core, extension, lookalike, unknownExtension, glsm})
+            method.instructions.add(call);
+        ResourcePass.adapt(node);
+        assertEquals(Endpoint.RESOURCE_ARRAY_BRIDGE.owner(), glsm.owner);
+        assertEquals(Endpoint.SYNC_BRIDGE.owner(), later.owner);
+        assertEquals(Endpoint.SYNC_BRIDGE.owner(), core.owner);
+        assertEquals(Endpoint.SYNC_BRIDGE.owner(), extension.owner);
+        assertEquals("org/lwjgl/opengl/GLX13", lookalike.owner);
+        assertEquals("org/lwjgl/opengl/EXTSemaphore", unknownExtension.owner);
+    }
+
     private static MethodInsnNode call(String name, String descriptor) {
         return new MethodInsnNode(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/GL43", name, descriptor, false);
     }
