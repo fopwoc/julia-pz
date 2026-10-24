@@ -5,6 +5,7 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER;
+import static org.lwjgl.opengl.GL40.glDrawElementsIndirect;
 import static org.lwjgl.opengl.GL42.glMemoryBarrier;
 import static org.lwjgl.opengl.GL43.*;
 
@@ -22,7 +23,11 @@ final class IndirectDrawChecks {
         Files.deleteIfExists(output.resolve("indirect-draws.txt"));
         int vao = glGenVertexArrays(), records = glGenBuffers(), commands = glGenBuffers();
         int target = glGenTextures(), white = glGenTextures(), fbo = glGenFramebuffers();
-        int draw = drawProgram(), compute = computeProgram();
+        int draw = drawProgram(),
+                compute =
+                        computeProgram(
+                                "for(int i=0;i<32;i++)words[i]=0u;words[4]=6u;words[5]=1u;words[6]=0u;words[7]=1u;words[10]=6u;words[11]=2u;words[12]=6u;words[13]=3u;words[16]=6u;words[17]=0u;words[18]=0u;words[19]=999u;words[22]=0u;words[23]=8u;words[24]=0u;words[25]=999u;");
+        int counter = computeProgram("atomicAdd(words[5],1u);");
         try (var stack = MemoryStack.stackPush()) {
             glBindVertexArray(vao);
             var attributes = stack.callocFloat(12 * 4);
@@ -113,11 +118,33 @@ final class IndirectDrawChecks {
                                     "Indirect divisor sample mismatch record=" + record + " channel=" + c + " actual="
                                             + (divided[(y * 12 + x) * 4 + c] & 255) + " expected=" + expected[c]);
                 }
+            int indices = glGenBuffers();
+            try {
+                glVertexBindingDivisor(6, 1);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, stack.ints(123, 123, 0, 1, 2, 3, 4, 5), GL_STATIC_DRAW);
+                glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 16L, stack.ints(6, 3, 2, 6, 2));
+                glClear(GL_COLOR_BUFFER_BIT);
+                glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 16L, 1, 20);
+                verifyIndexed(target, "Indexed indirect");
+                // Separate dispatches accumulate one instance count, as GPU culling does per chunk; a storage buffer
+                // that SDL cycles between passes would drop both the uploaded command and earlier increments.
+                glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 16L, stack.ints(6, 0, 2, 6, 2));
+                glUseProgram(counter);
+                for (int i = 0; i < 3; i++) glDispatchCompute(1, 1, 1);
+                glMemoryBarrier(GL_COMMAND_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+                glUseProgram(draw);
+                glClear(GL_COLOR_BUFFER_BIT);
+                glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 16L);
+                verifyIndexed(target, "Accumulated indirect");
+            } finally {
+                glDeleteBuffers(indices);
+            }
             if (glGetInteger(GL_DRAW_INDIRECT_BUFFER_BINDING) != commands)
                 throw new IllegalStateException("Indirect draw changed command buffer binding");
             Files.writeString(
                     output.resolve("indirect-draws.txt"),
-                    "PASS\nverified_pixels=240\nchecks=GPU-generated commands,nonzero command offset,padded/packed stride,multiple draws and instances,base instances,zero draw/instance counts,vertex/instance IDs,constant attributes,disabled integer attributes,argument-buffer vertex samplers,divisor two,invalid ranges and alignment\n");
+                    "PASS\nverified_pixels=240\nchecks=GPU-generated commands,nonzero command offset,padded/packed stride,multiple draws and instances,base instances,zero draw/instance counts,vertex/instance IDs,indexed commands,accumulated dispatches,constant attributes,disabled integer attributes,argument-buffer vertex samplers,divisor two,invalid ranges and alignment\n");
         } finally {
             glUseProgram(0);
             glBindVertexArray(0);
@@ -133,6 +160,7 @@ final class IndirectDrawChecks {
             glDeleteFramebuffers(fbo);
             glDeleteProgram(draw);
             glDeleteProgram(compute);
+            glDeleteProgram(counter);
         }
     }
 
@@ -171,12 +199,26 @@ final class IndirectDrawChecks {
         }
     }
 
-    private static int computeProgram() {
+    private static void verifyIndexed(int target, String label) {
+        byte[] pixels = ResourceReadback.layer(target, 0);
+        for (int y = 0; y < 4; y++)
+            for (int x = 0; x < 12; x++) {
+                int record = 2 + x / 4;
+                int[] expected = {20 + record * 25, 10 + record * 20, 204, 191};
+                for (int c = 0; c < 4; c++)
+                    if (Math.abs((pixels[(y * 12 + x) * 4 + c] & 255) - expected[c]) > 1)
+                        throw new IllegalStateException(label + " sample: x=" + x + " channel=" + c + " actual="
+                                + (pixels[(y * 12 + x) * 4 + c] & 255) + " expected=" + expected[c]);
+            }
+    }
+
+    private static int computeProgram(String body) {
         int p = glCreateProgram(), s = glCreateShader(GL_COMPUTE_SHADER);
         try {
             glShaderSource(
                     s,
-                    "#version 430 core\nlayout(local_size_x=1)in;layout(std430,binding=3)buffer Commands{uint words[];};void main(){for(int i=0;i<32;i++)words[i]=0u;words[4]=6u;words[5]=1u;words[6]=0u;words[7]=1u;words[10]=6u;words[11]=2u;words[12]=6u;words[13]=3u;words[16]=6u;words[17]=0u;words[18]=0u;words[19]=999u;words[22]=0u;words[23]=8u;words[24]=0u;words[25]=999u;}");
+                    "#version 430 core\nlayout(local_size_x=1)in;layout(std430,binding=3)buffer Commands{uint words[];};void main(){"
+                            + body + "}");
             compile(s);
             glAttachShader(p, s);
             glLinkProgram(p);

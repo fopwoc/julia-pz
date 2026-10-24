@@ -30,6 +30,7 @@ public final class UpstreamPatches {
             new CompatShaderPass(),
             new FrameContinuityPass(),
             new QuadIndexUploadPass(),
+            new ComputeBufferCyclePass(),
             new StencilReferencePass());
 
     private UpstreamPatches() {}
