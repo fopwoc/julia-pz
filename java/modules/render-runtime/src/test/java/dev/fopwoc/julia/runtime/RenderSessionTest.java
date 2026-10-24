@@ -117,6 +117,35 @@ class RenderSessionTest {
     }
 
     @Test
+    void linkedCallSiteServesEachThreadItsOwnSession() throws Throwable {
+        var type = MethodType.methodType(long.class);
+        var site = RenderDispatch.bootstrap(MethodHandles.lookup(), "draw", type, "test/Backend");
+        var session = RenderSession.open(
+                (owner, name, actualType) -> MethodHandles.constant(long.class, 1L), frames(new ArrayList<>()));
+        try {
+            assertEquals(1L, (long) site.dynamicInvoker().invokeExact());
+            var other = new long[1];
+            var failure = new Throwable[1];
+            var thread = new Thread(() -> {
+                try (var _ = RenderSession.open(
+                        (owner, name, actualType) -> MethodHandles.constant(long.class, 2L),
+                        frames(new ArrayList<>()))) {
+                    other[0] = (long) site.dynamicInvoker().invokeExact();
+                } catch (Throwable error) {
+                    failure[0] = error;
+                }
+            });
+            thread.start();
+            thread.join();
+            if (failure[0] != null) throw failure[0];
+            assertEquals(2L, other[0]);
+            assertEquals(1L, (long) site.dynamicInvoker().invokeExact());
+        } finally {
+            session.close();
+        }
+    }
+
+    @Test
     void doesNotAdaptMismatchedTargetTypesSilently() throws Throwable {
         var session = RenderSession.open(
                 (owner, name, type) -> MethodHandles.constant(int.class, 1), frames(new ArrayList<>()));

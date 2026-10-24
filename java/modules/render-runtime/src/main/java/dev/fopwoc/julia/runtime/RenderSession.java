@@ -78,8 +78,6 @@ public final class RenderSession implements AutoCloseable {
     MethodHandle target(RenderDispatch.Site site) throws ReflectiveOperationException {
         requireUsable();
         frames.beforeCall();
-        var binding = site.binding;
-        if (binding != null && binding.session() == this) return binding.target();
         var symbol = new Symbol(site.owner, site.name, site.type);
         var method = methods.get(symbol);
         if (method == null) {
@@ -89,9 +87,18 @@ public final class RenderSession implements AutoCloseable {
             method = FatalGraphics.guard(method, site.toString());
             methods.put(symbol, method);
         }
-        site.binding = new RenderDispatch.Site.Binding(this, method);
+        site.bind(this, method);
         bound.add(site);
         return method;
+    }
+
+    /** The linked call-site guard: this thread owns the session and it can still render. */
+    boolean usableHere() {
+        return Thread.currentThread() == owner && (state == State.READY || state == State.FRAME);
+    }
+
+    void beforeCall() {
+        frames.beforeCall();
     }
 
     void begin() {
@@ -179,10 +186,7 @@ public final class RenderSession implements AutoCloseable {
             state = State.CLOSED;
             methods.clear();
             // Call sites outlive sessions; drop their targets so the closed runtime's class loader can unload.
-            for (var site : bound) {
-                var binding = site.binding;
-                if (binding != null && binding.session() == this) site.binding = null;
-            }
+            for (var site : bound) site.unbind();
             bound.clear();
             if (recent == this) recent = null;
             CURRENT.remove();
