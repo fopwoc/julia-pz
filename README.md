@@ -83,10 +83,11 @@ These GL features stop the game with a report rather than rendering incorrectly:
 
 Julia is a Java agent that starts with the game. It never patches game files on disk.
 
-1. Get `julia-agent.jar`: subscribe to the Workshop item and take it from its `libs/` folder, or download
-   `julia-<version>-agent.jar` from the releases page and save it as `julia-agent.jar`. On Windows,
-   also take `julia.dll` from the same `libs/` folder, or `julia-<version>-windows-loader.dll` saved as `julia.dll`.
-2. Optional: check that the jar (and `julia.dll`) were built by this repository's release workflow, with the
+Get `julia-agent.jar`: subscribe to the Workshop item and take it from its `libs/` folder, or download
+`julia-<version>-agent.jar` from the releases page and save it as `julia-agent.jar`. On Windows, also take `julia.dll`
+from the same `libs/` folder, or `julia-<version>-windows-loader.dll` saved as `julia.dll`.
+
+0. Optional: make sure the binaries are genuine, built by this repository's release workflow. Check them with the
    [GitHub CLI](https://cli.github.com):
 
    ```sh
@@ -94,7 +95,7 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    gh attestation verify julia.dll --repo fopwoc/julia-pz
    ```
 
-3. Copy it (and on Windows `julia.dll`) into the game's Java directory:
+1. Copy `julia-agent.jar` (and on Windows `julia.dll`) into the game's Java directory:
 
    | OS | Directory |
    | --- | --- |
@@ -102,7 +103,7 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    | Linux | the game directory that contains `projectzomboid.jar` |
    | Windows | the game directory that contains `projectzomboid.jar` |
 
-4. Add Steam launch options:
+2. Add Steam launch options:
 
    | OS | Julia alone | With ZombieBuddy |
    | --- | --- | --- |
@@ -117,7 +118,7 @@ Julia is a Java agent that starts with the game. It never patches game files on 
    from the game directory. `julia.dll` loads it from `jre64\bin` and starts `julia-agent.jar` with the same options,
    the way ZombieBuddy's `zbNative.dll` does.
 
-5. Optional: enable the **Julia** Lua mod from the Workshop or `Julia.zip`. It shows the agent's version and state in the
+3. Optional: enable the **Julia** Lua mod from the Workshop or `Julia.zip`. It shows the agent's version and state in the
    corner of the main menu, such as `Julia 1.2.3 active | Metal` or `Julia 1.2.3 inactive`, and warns when the agent is
    not loaded. It does not turn Julia on or off.
 
