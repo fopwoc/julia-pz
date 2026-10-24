@@ -2,6 +2,7 @@ package dev.fopwoc.julia.backend;
 
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import dev.fopwoc.julia.backend.diagnostic.DrawTrace;
+import dev.fopwoc.julia.backend.framebuffer.BlendEquations;
 import dev.fopwoc.julia.backend.framebuffer.ColorMasks;
 import dev.fopwoc.julia.backend.framebuffer.Framebuffers;
 import dev.fopwoc.julia.backend.query.Queries;
@@ -30,6 +31,7 @@ public final class Subsystems implements AutoCloseable {
     private final LinkedPrograms linkedPrograms = new LinkedPrograms();
     private final Framebuffers framebuffers = new Framebuffers();
     private final ColorMasks colorMasks = new ColorMasks();
+    private final BlendEquations blendEquations = new BlendEquations();
     private final DrawTrace drawTrace = new DrawTrace();
     private final TextureTable textures = new TextureTable();
     private final TextureBindings textureBindings = new TextureBindings();
@@ -61,6 +63,10 @@ public final class Subsystems implements AutoCloseable {
 
     public ColorMasks colorMasks() {
         return colorMasks;
+    }
+
+    public BlendEquations blendEquations() {
+        return blendEquations;
     }
 
     public Framebuffers framebuffers() {

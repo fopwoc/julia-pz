@@ -34,6 +34,7 @@ public enum Endpoint {
     COLOR_MASK_BRIDGE("dev/fopwoc/julia/backend/bridge/ColorMaskBridge", false),
     DRAW_TRACE("dev/fopwoc/julia/backend/diagnostic/DrawTrace", false),
     COLOR_MASK_HOOKS("dev/fopwoc/julia/backend/framebuffer/ColorMaskHooks", false),
+    BLEND_EQUATION_HOOKS("dev/fopwoc/julia/backend/framebuffer/BlendEquationHooks", false),
     BLEND_BRIDGE("dev/fopwoc/julia/backend/bridge/BlendBridge", false),
     FRAMEBUFFER_CLEAR_BRIDGE("dev/fopwoc/julia/backend/bridge/FramebufferClearBridge", false),
     FRAMEBUFFER_BRIDGE("dev/fopwoc/julia/backend/bridge/FramebufferBridge", false),

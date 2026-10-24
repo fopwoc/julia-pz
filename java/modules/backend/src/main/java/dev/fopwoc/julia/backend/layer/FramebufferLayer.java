@@ -27,6 +27,18 @@ public abstract class FramebufferLayer extends BufferLayer {
     }
 
     @Override
+    public void blendEquation(int mode) {
+        subsystems().blendEquations().global();
+        super.blendEquation(mode);
+    }
+
+    @Override
+    public void blendEquationSeparate(int color, int alpha) {
+        subsystems().blendEquations().global();
+        super.blendEquationSeparate(color, alpha);
+    }
+
+    @Override
     public void bindFramebuffer(int target, int name) {
         super.bindFramebuffer(target, name);
         if (target != GL_READ_FRAMEBUFFER) subsystems().framebuffers().bound(Upstream.context().boundFboId);

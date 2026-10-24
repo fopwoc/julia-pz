@@ -5,6 +5,7 @@ import static org.lwjgl.opengl.GL14.*;
 
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
+import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 
 /** Indexed blend state enters GLSM's per-output path so subsequent global calls invalidate correctly. */
@@ -22,6 +23,14 @@ public final class BlendBridge {
         for (int factor : new int[] {source, destination, sourceAlpha, destinationAlpha}) requireFactor(factor);
         Upstream.flushTextureReferences();
         GLStateManager.glBlendFuncSeparatei(buffer, source, destination, sourceAlpha, destinationAlpha);
+    }
+
+    public static void glBlendEquationi(int buffer, int mode) {
+        Subsystems.current().blendEquations().indexed(buffer, mode, mode);
+    }
+
+    public static void glBlendEquationSeparatei(int buffer, int color, int alpha) {
+        Subsystems.current().blendEquations().indexed(buffer, color, alpha);
     }
 
     public static void glEnablei(int capability, int index) {

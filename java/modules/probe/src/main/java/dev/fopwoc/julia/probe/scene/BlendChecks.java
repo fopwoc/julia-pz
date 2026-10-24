@@ -1,9 +1,11 @@
 package dev.fopwoc.julia.probe.scene;
 
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL14.GL_CONSTANT_ALPHA;
+import static org.lwjgl.opengl.GL14.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL40.glBlendEquationSeparatei;
+import static org.lwjgl.opengl.GL40.glBlendEquationi;
 import static org.lwjgl.opengl.GL40.glBlendFuncSeparatei;
 import static org.lwjgl.opengl.GL40.glBlendFunci;
 
@@ -99,13 +101,39 @@ final class BlendChecks {
                 throw new AssertionError("Non-indexed capability silently changed global state");
             } catch (UnsupportedOperationException expected) {
             }
+            // Output 0 adds; output 1 reverse-subtracts RGB and takes the alpha maximum.
+            glBlendEquationi(0, GL_FUNC_ADD);
+            glBlendEquationSeparatei(1, GL_FUNC_REVERSE_SUBTRACT, GL_MAX);
+            glClearBufferfv(GL_COLOR, 0, new float[] {.5f, .5f, .5f, .5f});
+            glClearBufferfv(GL_COLOR, 1, new float[] {.5f, .5f, .5f, .5f});
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+            verify(second, 179, 230, 255, 255);
+            verify(first, 26, 77, 102, 128);
+            try {
+                glBlendEquationi(8, GL_FUNC_ADD);
+                throw new AssertionError("Out-of-range blend equation output accepted");
+            } catch (IllegalArgumentException expected) {
+            }
+            try {
+                glBlendEquationi(0, GL_ONE);
+                throw new AssertionError("Invalid blend equation accepted");
+            } catch (IllegalArgumentException expected) {
+            }
+            // Equal to GLSM's cached global equation, yet it must still reset output 1.
+            glBlendEquation(GL_FUNC_ADD);
+            glClearBufferfv(GL_COLOR, 0, new float[] {.5f, .5f, .5f, .5f});
+            glClearBufferfv(GL_COLOR, 1, new float[] {.5f, .5f, .5f, .5f});
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+            verify(second, 179, 230, 255, 255);
+            verify(first, 230, 179, 153, 192);
             Files.writeString(
                     output.resolve("indexed-blend.txt"),
-                    "PASS\nverified_pixels=48\nchecks=indexed factors,MRT routing,RGB and alpha,isolated updates,global cache invalidation,atomic invalid arguments,indexed enable/disable/query,separate RGB/alpha factors,color masks,global enable restoration\n");
+                    "PASS\nverified_pixels=64\nchecks=indexed factors,MRT routing,RGB and alpha,isolated updates,global cache invalidation,atomic invalid arguments,indexed enable/disable/query,separate RGB/alpha factors,color masks,global enable restoration,indexed equations,separate RGB/alpha equations,global equation reset\n");
         } finally {
             glUseProgram(0);
             glColorMask(true, true, true, true);
             glBlendFunc(GL_ONE, GL_ZERO);
+            glBlendEquation(GL_FUNC_ADD);
             glDisable(GL_BLEND);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glDeleteFramebuffers(fbo);

@@ -50,6 +50,8 @@ public final class ResourcePass {
             Map.entry(CORE + "glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
             Map.entry(CORE + "glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
             Map.entry(CORE + "glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
+            Map.entry(CORE + "glBlendEquationi(II)V", Endpoint.BLEND_BRIDGE),
+            Map.entry(CORE + "glBlendEquationSeparatei(III)V", Endpoint.BLEND_BRIDGE),
             Map.entry(CORE + "glClearBufferfv(II[F)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
             Map.entry(CORE + "glClearBufferfv(IILjava/nio/FloatBuffer;)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
             Map.entry(CORE + "glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),

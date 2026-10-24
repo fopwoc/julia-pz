@@ -15,6 +15,7 @@ public final class UpstreamPatches {
             new StrictQueryPass(),
             new FramebufferPass(),
             new ColorMaskPass(),
+            new BlendEquationPass(),
             new DrawTracePass(),
             new TextureBindingPass(),
             new TextureUploadOrderPass(),
