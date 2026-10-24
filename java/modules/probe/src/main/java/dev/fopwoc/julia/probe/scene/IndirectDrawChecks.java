@@ -31,8 +31,9 @@ final class IndirectDrawChecks {
                 attributes.put(i * 4 + 1, (20 + i * 25) / 255f);
                 attributes.put(i * 4 + 2, (10 + i * 20) / 255f);
             }
-            glBindBuffer(GL_ARRAY_BUFFER, records);
-            glBufferData(GL_ARRAY_BUFFER, attributes, GL_STATIC_DRAW);
+            // GL storage has no permanent target: allocate as storage, then fetch the same bytes as vertex records.
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, records);
+            glBufferData(GL_SHADER_STORAGE_BUFFER, attributes, GL_STATIC_DRAW);
             glBindVertexBuffer(6, records, 0, 16);
             glVertexAttribFormat(2, 4, GL_FLOAT, false, 0);
             glVertexAttribBinding(2, 6);
