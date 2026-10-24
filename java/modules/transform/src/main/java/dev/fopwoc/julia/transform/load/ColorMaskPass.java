@@ -19,16 +19,9 @@ public final class ColorMaskPass implements UpstreamPatch {
     public boolean apply(String name, ClassNode node) {
         int edits = 0;
         for (var method : node.methods) {
-            if (name.equals(GLSM) && method.name.equals("glColorMask") && method.desc.equals("(ZZZZ)V")) {
-                for (var instruction : method.instructions.toArray())
-                    if (instruction instanceof MethodInsnNode call
-                            && call.owner.equals(GLSM.replace('.', '/'))
-                            && call.name.equals("isCachingEnabled")
-                            && call.desc.equals("()Z")) {
-                        method.instructions.set(call, hook("cacheEnabled", "()Z"));
-                        edits++;
-                    }
-            }
+            if (name.equals(GLSM) && method.name.equals("glColorMask") && method.desc.equals("(ZZZZ)V"))
+                edits += Anchors.replaceCalls(
+                        method, GLSM.replace('.', '/'), "isCachingEnabled", "()Z", () -> hook("cacheEnabled", "()Z"));
             if (name.equals(PIPELINE) && method.name.equals("computeOutputHash") && method.desc.equals("()J")) {
                 for (var instruction : method.instructions.toArray())
                     if (instruction.getOpcode() == Opcodes.LRETURN) {

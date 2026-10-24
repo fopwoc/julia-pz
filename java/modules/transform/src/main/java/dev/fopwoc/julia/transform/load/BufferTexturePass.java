@@ -61,6 +61,20 @@ public final class BufferTexturePass implements UpstreamPatch {
                 method.instructions.insert(head);
                 edits++;
             }
+            if (compute && method.name.equals("bindComputeSamplers"))
+                edits += Anchors.replaceCalls(
+                        method,
+                        RESOURCE,
+                        "getTextureHandle",
+                        "(I)J",
+                        () -> call("samplingHandle", "(L" + RESOURCE + ";I)J"));
+            if (msl)
+                edits += Anchors.replaceCalls(
+                        method,
+                        "org/lwjgl/util/spvc/Spvc",
+                        "spvc_compiler_install_compiler_options",
+                        "(JJ)I",
+                        () -> call("installMslOptions", "(JJ)I"));
             for (var instruction : method.instructions.toArray()) {
                 if (samplers
                         && instruction instanceof MethodInsnNode invoke
@@ -82,21 +96,6 @@ public final class BufferTexturePass implements UpstreamPatch {
                         method.instructions.set(read, call("samplerBinding", "(L" + STATE + ";I)I"));
                         edits++;
                     }
-                    if (instruction instanceof MethodInsnNode invoke
-                            && invoke.owner.equals(RESOURCE)
-                            && invoke.name.equals("getTextureHandle")
-                            && invoke.desc.equals("(I)J")) {
-                        method.instructions.set(invoke, call("samplingHandle", "(L" + RESOURCE + ";I)J"));
-                        edits++;
-                    }
-                }
-                if (msl
-                        && instruction instanceof MethodInsnNode invoke
-                        && invoke.owner.equals("org/lwjgl/util/spvc/Spvc")
-                        && invoke.name.equals("spvc_compiler_install_compiler_options")
-                        && invoke.desc.equals("(JJ)I")) {
-                    method.instructions.set(invoke, call("installMslOptions", "(JJ)I"));
-                    edits++;
                 }
                 if (msl
                         && method.name.equals("<clinit>")

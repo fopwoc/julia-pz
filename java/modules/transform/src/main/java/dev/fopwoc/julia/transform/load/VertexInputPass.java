@@ -13,6 +13,7 @@ import org.objectweb.asm.tree.*;
  * layout repair.
  */
 public final class VertexInputPass implements UpstreamPatch {
+    private static final String CREATE_PIPELINE = "(JLorg/lwjgl/sdl/SDL_GPUGraphicsPipelineCreateInfo;)J";
     private static final String ROOT = "com.gtnewhorizons.angelica.sdlgpu.";
     private static final Set<String> TARGETS = Set.of(
             ROOT + "pipeline.PipelineCache",
@@ -45,6 +46,13 @@ public final class VertexInputPass implements UpstreamPatch {
                 method.instructions.insert(head);
                 protects++;
             }
+            if (pipeline)
+                creates += Anchors.replaceCalls(
+                        method,
+                        "org/lwjgl/sdl/SDLGPU",
+                        "SDL_CreateGPUGraphicsPipeline",
+                        CREATE_PIPELINE,
+                        () -> call("createPipeline", CREATE_PIPELINE));
             for (var instruction : method.instructions.toArray()) {
                 if (pipeline && method.name.equals("computeInputHash") && instruction.getOpcode() == Opcodes.LRETURN) {
                     var extra = new InsnList();
@@ -52,14 +60,6 @@ public final class VertexInputPass implements UpstreamPatch {
                     extra.add(call("pipelineHash", "(JL" + STATE + ";)J"));
                     method.instructions.insertBefore(instruction, extra);
                     hashes++;
-                }
-                if (pipeline
-                        && instruction instanceof MethodInsnNode invoke
-                        && invoke.owner.equals("org/lwjgl/sdl/SDLGPU")
-                        && invoke.name.equals("SDL_CreateGPUGraphicsPipeline")
-                        && invoke.desc.equals("(JLorg/lwjgl/sdl/SDL_GPUGraphicsPipelineCreateInfo;)J")) {
-                    method.instructions.set(invoke, call("createPipeline", invoke.desc));
-                    creates++;
                 }
                 if (pipeline
                         && method.name.equals("buildVertexInput")

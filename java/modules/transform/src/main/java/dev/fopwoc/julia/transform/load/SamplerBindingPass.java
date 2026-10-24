@@ -49,15 +49,9 @@ public final class SamplerBindingPass implements UpstreamPatch {
                 method.instructions.insert(head);
                 edits++;
             }
+            if (count != null)
+                edits += Anchors.replaceCalls(method, STATE, "boundTexture", "(I)I", SamplerBindingPass::sampler);
             for (var instruction : method.instructions.toArray()) {
-                if (count != null
-                        && instruction instanceof MethodInsnNode invoke
-                        && invoke.owner.equals(STATE)
-                        && invoke.name.equals("boundTexture")
-                        && invoke.desc.equals("(I)I")) {
-                    method.instructions.set(invoke, sampler());
-                    edits++;
-                }
                 if (capture
                         && method.name.equals("capture")
                         && instruction instanceof FieldInsnNode field

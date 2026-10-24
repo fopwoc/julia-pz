@@ -19,6 +19,8 @@ public final class FramebufferPass implements UpstreamPatch {
     private static final String FRAMES = ROOT.replace('.', '/') + "frame/FrameManager";
     private static final String RESOURCE = ROOT.replace('.', '/') + "resource/ResourceManager";
     private static final String CONTEXT = ROOT.replace('.', '/') + "frame/ContextState";
+    private static final String TARGETS_ARGS =
+            "Lorg/lwjgl/sdl/SDL_GPUColorTargetInfo$Buffer;Lorg/lwjgl/sdl/SDL_GPUDepthStencilTargetInfo;";
 
     @Override
     public boolean targets(String name) {
@@ -52,13 +54,12 @@ public final class FramebufferPass implements UpstreamPatch {
                 edits++;
             }
             if (frames && method.name.equals("beginRenderPass")) {
-                for (var instruction : method.instructions.toArray())
-                    if (instruction instanceof MethodInsnNode invoke
-                            && invoke.owner.equals("org/lwjgl/sdl/SDLGPU")
-                            && invoke.name.equals("SDL_BeginGPURenderPass")) {
-                        method.instructions.set(invoke, call("beginNative", invoke.desc));
-                        edits++;
-                    }
+                edits += Anchors.replaceCalls(
+                        method,
+                        "org/lwjgl/sdl/SDLGPU",
+                        "SDL_BeginGPURenderPass",
+                        "(J" + TARGETS_ARGS + ")J",
+                        () -> call("beginNative", "(J" + TARGETS_ARGS + ")J"));
             }
             if (fbo && method.name.equals("recomputeTargets"))
                 for (var insn : method.instructions.toArray())
@@ -101,28 +102,18 @@ public final class FramebufferPass implements UpstreamPatch {
                 head.add(call("validateDraw", "(L" + CONTEXT + ";)V"));
                 method.instructions.insert(head);
                 edits++;
-                for (var instruction : method.instructions.toArray()) {
-                    if (instruction instanceof MethodInsnNode dummy
-                            && dummy.owner.equals(RESOURCE)
-                            && dummy.name.equals("getOrCreateDummyColorTarget")
-                            && dummy.desc.equals("()J")) {
-                        method.instructions.set(dummy, call("unusedTarget", "(L" + RESOURCE + ";)J"));
-                        edits++;
-                    }
-                    if (instruction instanceof MethodInsnNode invoke
-                            && invoke.owner.equals(FRAMES)
-                            && invoke.name.equals("beginRenderPass")
-                            && invoke.desc.equals(
-                                    "(Lorg/lwjgl/sdl/SDL_GPUColorTargetInfo$Buffer;Lorg/lwjgl/sdl/SDL_GPUDepthStencilTargetInfo;)J")) {
-                        method.instructions.set(
-                                invoke,
-                                call(
-                                        "begin",
-                                        "(L" + FRAMES
-                                                + ";Lorg/lwjgl/sdl/SDL_GPUColorTargetInfo$Buffer;Lorg/lwjgl/sdl/SDL_GPUDepthStencilTargetInfo;)J"));
-                        edits++;
-                    }
-                }
+                edits += Anchors.replaceCalls(
+                        method,
+                        RESOURCE,
+                        "getOrCreateDummyColorTarget",
+                        "()J",
+                        () -> call("unusedTarget", "(L" + RESOURCE + ";)J"));
+                edits += Anchors.replaceCalls(
+                        method,
+                        FRAMES,
+                        "beginRenderPass",
+                        "(" + TARGETS_ARGS + ")J",
+                        () -> call("begin", "(L" + FRAMES + ";" + TARGETS_ARGS + ")J"));
             }
         }
         Anchors.require("framebuffer slice integration in " + name, edits, pipeline ? 3 : clears ? 2 : 1);

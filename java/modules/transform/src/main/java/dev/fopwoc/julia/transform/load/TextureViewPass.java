@@ -93,15 +93,12 @@ public final class TextureViewPass implements UpstreamPatch {
                 edits++;
             }
             if (sampler)
-                for (var instruction : method.instructions.toArray()) {
-                    if (instruction instanceof MethodInsnNode invoke
-                            && invoke.owner.equals(RESOURCE)
-                            && invoke.name.equals("getTextureHandle")
-                            && invoke.desc.equals("(I)J")) {
-                        method.instructions.set(invoke, call("samplingHandle", "(L" + RESOURCE + ";I)J"));
-                        edits++;
-                    }
-                }
+                edits += Anchors.replaceCalls(
+                        method,
+                        RESOURCE,
+                        "getTextureHandle",
+                        "(I)J",
+                        () -> call("samplingHandle", "(L" + RESOURCE + ";I)J"));
         }
         Anchors.require("texture-view integration in " + name, edits, resource ? 3 : clears ? 2 : 1);
         return true;
