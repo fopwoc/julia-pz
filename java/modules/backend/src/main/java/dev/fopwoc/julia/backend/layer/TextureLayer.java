@@ -15,6 +15,7 @@ import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.texture.ClientPixels;
 import dev.fopwoc.julia.backend.texture.NamedTextureUploads;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
+import dev.fopwoc.julia.backend.texture.TextureWrap;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
@@ -220,6 +221,7 @@ public abstract class TextureLayer extends FramebufferLayer {
 
     @Override
     public void texParameteri(int target, int parameter, int value) {
+        value = TextureWrap.sampled(parameter, value);
         var context = Upstream.context();
         if (!subsystems()
                 .textureViews()
@@ -233,6 +235,7 @@ public abstract class TextureLayer extends FramebufferLayer {
 
     @Override
     public void textureParameteri(int name, int target, int parameter, int value) {
+        value = TextureWrap.sampled(parameter, value);
         if (!subsystems().textureViews().parameter(name, parameter, value))
             super.textureParameteri(name, target, parameter, value);
     }
@@ -248,7 +251,9 @@ public abstract class TextureLayer extends FramebufferLayer {
 
     @Override
     public void texParameterf(int target, int parameter, float value) {
-        if (parameter == GL_DEPTH_STENCIL_TEXTURE_MODE
+        if (parameter == GL_TEXTURE_WRAP_S || parameter == GL_TEXTURE_WRAP_T || parameter == GL_TEXTURE_WRAP_R)
+            texParameteri(target, parameter, Math.round(value));
+        else if (parameter == GL_DEPTH_STENCIL_TEXTURE_MODE
                 || parameter == GL_TEXTURE_BASE_LEVEL
                 || parameter == GL_TEXTURE_MAX_LEVEL) {
             if (!Float.isFinite(value)) throw new IllegalArgumentException("Non-finite texture parameter");

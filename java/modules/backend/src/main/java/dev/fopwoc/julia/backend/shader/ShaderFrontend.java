@@ -46,12 +46,20 @@ public final class ShaderFrontend implements AutoCloseable {
     }
 
     public Compiled compile(int type, String source) {
+        // GL reports a stage the device lacks as a failed compile, which callers check and fall back from.
+        if (!supported(type))
+            return new Compiled(
+                    type,
+                    source,
+                    "ERROR: shader stage not supported by SDL GPU: 0x" + Integer.toHexString(type),
+                    false);
         try (var parsed = parse(type, source, false)) {
             return new Compiled(type, parsed.source(), parsed.log(), parsed.valid());
         }
     }
 
     public Compiled preprocess(int type, String source) {
+        if (!supported(type)) return new Compiled(type, source, "", false);
         try (var parsed = process(type, source, false, false)) {
             return new Compiled(type, parsed.source(), parsed.log(), parsed.valid());
         }
@@ -211,6 +219,13 @@ public final class ShaderFrontend implements AutoCloseable {
             glslang_program_delete(program);
             parsed.forEach(Parsed::close);
         }
+    }
+
+    private static boolean supported(int type) {
+        return type == GL20.GL_VERTEX_SHADER
+                || type == GL20.GL_FRAGMENT_SHADER
+                || type == GL32.GL_GEOMETRY_SHADER
+                || type == GL43.GL_COMPUTE_SHADER;
     }
 
     private static int stage(int type) {

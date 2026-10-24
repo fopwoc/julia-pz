@@ -16,6 +16,43 @@ public final class UniformUploadBridge {
         GLStateManager.glUniform1(location, values);
     }
 
+    // Upstream stores plain integer uniforms by bit pattern, so unsigned values ride the signed path once the
+    // reflected type confirms the location really is unsigned.
+    public static void glUniform1ui(int location, int x) {
+        if (unsigned(location, 1)) GLStateManager.glUniform1i(location, x);
+    }
+
+    public static void glUniform2ui(int location, int x, int y) {
+        if (unsigned(location, 2)) GLStateManager.glUniform2i(location, x, y);
+    }
+
+    public static void glUniform3ui(int location, int x, int y, int z) {
+        if (unsigned(location, 3)) GLStateManager.glUniform3i(location, x, y, z);
+    }
+
+    public static void glUniform4ui(int location, int x, int y, int z, int w) {
+        if (unsigned(location, 4)) GLStateManager.glUniform4i(location, x, y, z, w);
+    }
+
+    private static boolean unsigned(int location, int components) {
+        if (location == -1) return false;
+        var program = Upstream.context().boundProgramObj;
+        if (program == null
+                || !program.linked
+                || location < 0
+                || location >= program.uniformSlotCount
+                || !program.locationToName.containsKey(location))
+            throw new IllegalArgumentException("Invalid unsigned uniform location: " + location);
+        var info = program.anyBlockMemberInfo(location);
+        if (info == null) info = program.locationToMemberInfo.get(location);
+        if (info == null
+                || info.baseType() != Spvc.SPVC_BASETYPE_UINT32
+                || info.vectorSize() != components
+                || info.columns() != 1)
+            throw new IllegalArgumentException("Uniform is not an unsigned " + components + "-component vector");
+        return true;
+    }
+
     public static void glUniform1iv(int location, int[] values) {
         if (location < 0 || values.length == 0) return;
         if (SamplerUniforms.upload(location, IntBuffer.wrap(values))) return;

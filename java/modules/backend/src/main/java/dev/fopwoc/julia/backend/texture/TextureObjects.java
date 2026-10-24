@@ -130,6 +130,7 @@ public final class TextureObjects {
 
     public void parameter(int name, int parameter, int value) {
         int target = target(name);
+        value = TextureWrap.sampled(parameter, value);
         if ((parameter == GL_TEXTURE_WRAP_S || parameter == GL_TEXTURE_WRAP_T || parameter == GL_TEXTURE_WRAP_R)
                 && value != GL_REPEAT
                 && value != GL_CLAMP_TO_EDGE

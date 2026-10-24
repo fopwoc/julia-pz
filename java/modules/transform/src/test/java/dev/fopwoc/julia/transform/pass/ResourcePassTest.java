@@ -32,7 +32,7 @@ class ResourcePassTest {
     }
 
     @Test
-    void routesFloatingPointFramebufferClearsWithoutClaimingIntegerOverloads() {
+    void routesFloatingPointAndIntegerFramebufferClears() {
         var node = new ClassNode();
         var method = new MethodNode();
         node.methods.add(method);
@@ -52,7 +52,8 @@ class ResourcePassTest {
         ResourcePass.adapt(node);
         assertEquals(Endpoint.FRAMEBUFFER_CLEAR_BRIDGE.owner(), array.owner);
         assertEquals(Endpoint.FRAMEBUFFER_CLEAR_BRIDGE.owner(), buffer.owner);
-        assertEquals("org/lwjgl/opengl/GL30", integer.owner);
+        // Integer clears route too; the bridge accepts only the portable zero value.
+        assertEquals(Endpoint.FRAMEBUFFER_CLEAR_BRIDGE.owner(), integer.owner);
     }
 
     @Test

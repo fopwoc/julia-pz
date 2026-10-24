@@ -46,6 +46,31 @@ public final class TextureReadbackBridge {
                 texture, () -> BackendManager.RENDER_BACKEND.getTexImage(GL_TEXTURE_2D, level, format, type, offset));
     }
 
+    /** Only the whole level, which is what callers staging a full texture into a pixel-pack buffer request. */
+    public static void glGetTextureSubImage(
+            int texture,
+            int level,
+            int x,
+            int y,
+            int z,
+            int width,
+            int height,
+            int depth,
+            int format,
+            int type,
+            int capacity,
+            long offset) {
+        var objects = Subsystems.current().textureObjects();
+        if (x != 0
+                || y != 0
+                || z != 0
+                || depth != 1
+                || width != objects.levelParameter(texture, level, GL_TEXTURE_WIDTH)
+                || height != objects.levelParameter(texture, level, GL_TEXTURE_HEIGHT))
+            throw new UnsupportedOperationException("Texture sub-image readback of a partial level is not implemented");
+        glGetTextureImage(texture, level, format, type, capacity, offset);
+    }
+
     private static long required(int texture, int level, int format, int type) {
         if (format != GL_RGBA || type != GL_UNSIGNED_BYTE)
             throw new UnsupportedOperationException("Named texture readback currently requires RGBA unsigned bytes");

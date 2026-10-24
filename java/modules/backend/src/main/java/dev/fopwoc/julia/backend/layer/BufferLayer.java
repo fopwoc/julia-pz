@@ -4,6 +4,7 @@ import static org.lwjgl.opengl.GL12.*;
 import static org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
+import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.buffer.IndexBufferUploads;
@@ -18,6 +19,14 @@ public abstract class BufferLayer extends VertexLayer {
         else super.bindBuffer(target, name);
         if (name != 0 && Upstream.context().getBoundBuffer(target) == name)
             subsystems().bufferObjects().add(name);
+    }
+
+    /** SDL binds whole storage buffers, so a storage range that starts past zero would silently read the wrong data. */
+    @Override
+    public void bindBufferRange(int target, int index, int buffer, long offset, long size) {
+        if (target == GL_SHADER_STORAGE_BUFFER && buffer != 0 && offset != 0)
+            throw new UnsupportedOperationException("Shader storage ranges with a non-zero offset are not implemented");
+        super.bindBufferRange(target, index, buffer, offset, size);
     }
 
     @Override

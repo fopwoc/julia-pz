@@ -24,7 +24,8 @@ public final class FramebufferClearBridge {
                 values[0],
                 count == 4 ? values[1] : 0,
                 count == 4 ? values[2] : 0,
-                count == 4 ? values[3] : 0);
+                count == 4 ? values[3] : 0,
+                false);
     }
 
     public static void glClearBufferfv(int buffer, int drawbuffer, FloatBuffer values) {
@@ -38,7 +39,30 @@ public final class FramebufferClearBridge {
                 values.get(at),
                 count == 4 ? values.get(at + 1) : 0,
                 count == 4 ? values.get(at + 2) : 0,
-                count == 4 ? values.get(at + 3) : 0);
+                count == 4 ? values.get(at + 3) : 0,
+                false);
+    }
+
+    public static void glClearBufferuiv(int buffer, int drawbuffer, int[] values) {
+        integer(buffer, drawbuffer, values);
+    }
+
+    public static void glClearBufferiv(int buffer, int drawbuffer, int[] values) {
+        integer(buffer, drawbuffer, values);
+    }
+
+    /**
+     * SDL passes clear colours as floats, which backends read as values or as bits for integer targets; zero means
+     * the same either way, so only zero integer clears are portable.
+     */
+    private static void integer(int buffer, int drawbuffer, int[] values) {
+        if (buffer != GL_COLOR) throw new IllegalArgumentException("Integer framebuffer clear requires GL_COLOR");
+        components(buffer, drawbuffer);
+        if (values.length < 4) throw new IllegalArgumentException("Framebuffer clear values are too short");
+        for (int i = 0; i < 4; i++)
+            if (values[i] != 0)
+                throw new UnsupportedOperationException("Non-zero integer framebuffer clears are not implemented");
+        clear(buffer, drawbuffer, 0, 0, 0, 0, true);
     }
 
     private static int components(int buffer, int drawbuffer) {
@@ -49,7 +73,8 @@ public final class FramebufferClearBridge {
         return buffer == GL_COLOR ? 4 : 1;
     }
 
-    private static void clear(int buffer, int drawbuffer, float red, float green, float blue, float alpha) {
+    private static void clear(
+            int buffer, int drawbuffer, float red, float green, float blue, float alpha, boolean integer) {
         var state = Upstream.context();
         var backend = BackendManager.RENDER_BACKEND;
         var framebuffers = Subsystems.current().framebuffers();
@@ -76,8 +101,13 @@ public final class FramebufferClearBridge {
                 : Arrays.stream(fbo.drawBuffers)
                         .map(index -> index < 0 ? GL_NONE : GL_COLOR_ATTACHMENT0 + index)
                         .toArray();
-        if (fbo != null && PixelOps.isSdlFormatInteger(fbo.colorFormats[fbo.drawBuffers[drawbuffer]]))
-            throw new UnsupportedOperationException("Floating-point clear of an integer color attachment");
+        boolean integerTarget =
+                fbo != null && PixelOps.isSdlFormatInteger(fbo.colorFormats[fbo.drawBuffers[drawbuffer]]);
+        if (integerTarget != integer)
+            throw new UnsupportedOperationException(
+                    integer
+                            ? "Integer clear of a non-integer color attachment"
+                            : "Floating-point clear of an integer color attachment");
         float oldRed = state.clearR, oldGreen = state.clearG, oldBlue = state.clearB, oldAlpha = state.clearA;
         try {
             if (previous != null) {

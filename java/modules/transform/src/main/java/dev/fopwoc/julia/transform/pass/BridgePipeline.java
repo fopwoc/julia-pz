@@ -25,6 +25,7 @@ public final class BridgePipeline {
         UniformOverloadPass.adapt(node);
         UniformAccessPass.adapt(node);
         ResourcePass.adapt(node);
+        PointerBufferPass.adapt(node);
         DebugCallbackPass.adapt(node);
         TextureAllocationPass.adapt(node);
         ImGuiPass.adapt(node);

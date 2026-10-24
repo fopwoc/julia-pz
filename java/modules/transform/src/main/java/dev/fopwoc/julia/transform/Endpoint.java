@@ -44,6 +44,7 @@ public enum Endpoint {
     TEXTURE_ALLOCATION_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureAllocationBridge", false),
     BUFFER_TRANSFER_BRIDGE("dev/fopwoc/julia/backend/bridge/BufferTransferBridge", false),
     BUFFER_STORAGE_BRIDGE("dev/fopwoc/julia/backend/bridge/BufferStorageBridge", false),
+    BUFFER_BINDING_BRIDGE("dev/fopwoc/julia/backend/bridge/BufferBindingBridge", false),
     TEXTURE_CLEAR_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureClearBridge", false),
     TEXTURE_VIEW_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureViewBridge", false),
     STENCIL_REFERENCE("dev/fopwoc/julia/backend/compat/StencilReference", false),

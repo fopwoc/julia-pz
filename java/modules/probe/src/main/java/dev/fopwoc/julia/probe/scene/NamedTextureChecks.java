@@ -237,11 +237,9 @@ final class NamedTextureChecks {
             sample(program, target, 0, 0, 4, 51, 102, 153);
             glUseProgram(0);
             glDeleteProgram(program);
-            try {
-                GL45.glTextureParameteri(names[0], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-                throw new IllegalStateException("Unsupported border wrap silently accepted");
-            } catch (UnsupportedOperationException expected) {
-            }
+            // SDL has no border colour; border wrapping clamps to the edge (sampled in ModPathChecks).
+            GL45.glTextureParameteri(names[0], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+            GL45.glTextureParameteri(names[0], GL_TEXTURE_WRAP_S, GL_REPEAT);
             try {
                 GL45.glTextureParameteri(names[0], GL_TEXTURE_SWIZZLE_R, GL_GREEN);
                 throw new IllegalStateException("Unsupported named parameter accepted");

@@ -120,6 +120,7 @@ public final class AdapterScene {
             LayerViewChecks.run(output);
             ProgramInterfaceChecks.run(output);
             OverloadChecks.run(output);
+            ModPathChecks.run(output);
             ShortTextureChecks.run(output);
             FloatTextureChecks.run(output);
             DefaultTargetChecks.run(output);

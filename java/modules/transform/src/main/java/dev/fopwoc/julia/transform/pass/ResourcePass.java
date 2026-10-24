@@ -17,6 +17,15 @@ public final class ResourcePass {
     private static final String LWJGL = CoreOwners.LWJGL;
     private static final String GLSM = Endpoint.STATE_MANAGER.owner() + ".";
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
+            Map.entry(CORE + "glTexParameterfv(II[F)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(CORE + "glGetInteger64i(II)J", Endpoint.BUFFER_BINDING_BRIDGE),
+            Map.entry(CORE + "glUniform1ui(II)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
+            Map.entry(CORE + "glUniform2ui(III)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
+            Map.entry(CORE + "glUniform3ui(IIII)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
+            Map.entry(CORE + "glUniform4ui(IIIII)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
+            Map.entry(CORE + "glClearBufferuiv(II[I)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry(CORE + "glClearBufferiv(II[I)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
+            Map.entry(CORE + "glGetTextureSubImage(IIIIIIIIIIIJ)V", Endpoint.TEXTURE_READBACK_BRIDGE),
             Map.entry(CORE + "glViewportIndexedf(IFFFF)V", Endpoint.VIEWPORT_BRIDGE),
             Map.entry(CORE + "glScissorIndexed(IIIII)V", Endpoint.VIEWPORT_BRIDGE),
             Map.entry(CORE + "glDepthRangeIndexed(IDD)V", Endpoint.VIEWPORT_BRIDGE),
