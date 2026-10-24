@@ -2,6 +2,7 @@ package dev.fopwoc.julia.runtime;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 
@@ -38,10 +39,13 @@ public final class RenderSession implements AutoCloseable {
     private record Symbol(String owner, String name, MethodType type) {}
 
     private static final ThreadLocal<RenderSession> CURRENT = new ThreadLocal<>();
+    // Skips the ThreadLocal on the hot path. Owner-checked, so a stale value seen by another thread falls back to it.
+    private static RenderSession recent;
     private final Thread owner = Thread.currentThread();
     private final Targets targets;
     private final Frames frames;
     private final HashMap<Symbol, MethodHandle> methods = new HashMap<>();
+    private final ArrayList<RenderDispatch.Site> bound = new ArrayList<>();
     private State state = State.READY;
 
     private RenderSession(Targets targets, Frames frames) {
@@ -53,11 +57,13 @@ public final class RenderSession implements AutoCloseable {
         if (CURRENT.get() != null) throw new IllegalStateException("A render session is already bound to this thread");
         var session = new RenderSession(targets, frames);
         CURRENT.set(session);
+        recent = session;
         return session;
     }
 
     static RenderSession current() {
-        var session = CURRENT.get();
+        var session = recent;
+        if (session == null || session.owner != Thread.currentThread()) session = CURRENT.get();
         if (session == null) {
             StartupHooks.ensure();
             session = CURRENT.get();
@@ -69,17 +75,22 @@ public final class RenderSession implements AutoCloseable {
         return session;
     }
 
-    MethodHandle target(String owner, String name, MethodType type) throws ReflectiveOperationException {
+    MethodHandle target(RenderDispatch.Site site) throws ReflectiveOperationException {
         requireUsable();
         frames.beforeCall();
-        var symbol = new Symbol(owner, name, type);
+        var binding = site.binding;
+        if (binding != null && binding.session() == this) return binding.target();
+        var symbol = new Symbol(site.owner, site.name, site.type);
         var method = methods.get(symbol);
         if (method == null) {
-            method = targets.resolve(owner, name, type);
-            if (!method.type().equals(type)) throw new IllegalStateException("Render target type mismatch: " + symbol);
-            method = FatalGraphics.guard(method, owner + "." + name + type);
+            method = targets.resolve(site.owner, site.name, site.type);
+            if (!method.type().equals(site.type))
+                throw new IllegalStateException("Render target type mismatch: " + symbol);
+            method = FatalGraphics.guard(method, site.toString());
             methods.put(symbol, method);
         }
+        site.binding = new RenderDispatch.Site.Binding(this, method);
+        bound.add(site);
         return method;
     }
 
@@ -167,6 +178,13 @@ public final class RenderSession implements AutoCloseable {
         } finally {
             state = State.CLOSED;
             methods.clear();
+            // Call sites outlive sessions; drop their targets so the closed runtime's class loader can unload.
+            for (var site : bound) {
+                var binding = site.binding;
+                if (binding != null && binding.session() == this) site.binding = null;
+            }
+            bound.clear();
+            if (recent == this) recent = null;
             CURRENT.remove();
         }
         if (failure instanceof RuntimeException runtime) throw runtime;
