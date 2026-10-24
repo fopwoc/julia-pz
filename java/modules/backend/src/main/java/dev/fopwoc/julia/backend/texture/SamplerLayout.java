@@ -18,6 +18,7 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -38,6 +39,9 @@ public final class SamplerLayout {
     private int generation = Integer.MIN_VALUE;
     private final int[] bufferTypes = new int[TextureBindings.UNIT_COUNT];
     private BitSet bufferUnits = new BitSet(TextureBindings.UNIT_COUNT);
+    // Per-slot targets, filled on first use; sampler binding asks for every slot on every draw. 0 means not yet read.
+    private List<String> vertexSlots, fragmentSlots;
+    private int[] vertexSlotTargets = new int[0], fragmentSlotTargets = new int[0];
     private boolean warned;
 
     public SamplerLayout(ProgramObject program) {
@@ -104,7 +108,26 @@ public final class SamplerLayout {
     /** The GL target a backend sampler slot reads, or 0 for a slot without a reflected name. */
     public int slotTarget(ProgramObject program, int slot, boolean fragment) {
         var stage = fragment ? program.fragmentSamplerNames : program.vertexSamplerNames;
-        return slot < stage.size() ? target(stage.get(slot)) : 0;
+        if (slot >= stage.size()) return 0;
+        int[] cached = slotTargets(stage, fragment);
+        int target = cached[slot];
+        if (target == 0) cached[slot] = target = target(stage.get(slot));
+        return target;
+    }
+
+    private int[] slotTargets(List<String> stage, boolean fragment) {
+        if (fragment) {
+            if (stage != fragmentSlots || fragmentSlotTargets.length != stage.size()) {
+                fragmentSlots = stage;
+                fragmentSlotTargets = new int[stage.size()];
+            }
+            return fragmentSlotTargets;
+        }
+        if (stage != vertexSlots || vertexSlotTargets.length != stage.size()) {
+            vertexSlots = stage;
+            vertexSlotTargets = new int[stage.size()];
+        }
+        return vertexSlotTargets;
     }
 
     /** The GL sampler type of a buffer-texture slot. */
