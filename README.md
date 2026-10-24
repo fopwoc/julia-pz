@@ -67,6 +67,9 @@ These gameplay results are from macOS with Metal, Linux with Vulkan, and Windows
 | Vanilla Build 42 | ✅ | Menu, loading, world, map, character previews |
 | [ZombieBuddy](https://github.com/zed-0xff/ZombieBuddy) | ✅ | Optional; Julia translates the Java mods it approves |
 | [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528) | ✅ | All presets run, including high and extreme |
+| [PZ3D](https://steamcommunity.com/sharedfiles/filedetails/?id=3807334881) | 🧪 | Shadow, buffer and query paths covered by the probe suite |
+| [WinterFX](https://steamcommunity.com/sharedfiles/filedetails/?id=3819972196) | 🧪 | Indexed blending and program uniforms; snow falls back from tessellation |
+| [ViewPoint Immersive Weathers](https://steamcommunity.com/sharedfiles/filedetails/?id=3822754688) | 🧪 | Fences, named buffer queries and texture staging covered by the probe suite |
 
 ### Known limits
 
@@ -78,6 +81,12 @@ These GL features stop the game with a report rather than rendering incorrectly:
 - More than 32 sampled resources in one graphics stage, or more than 16 in a compute shader.
 - Uniform blocks, struct uniforms and atomic counters in uniform queries.
 - Indirect draws from client memory pointers.
+- Tessellation shaders and 1D textures. Tessellation stages fail to compile, as on hardware without them, so mods
+  that check fall back.
+- Integer colour clears to non-zero values, and shader storage ranges that start past offset 0.
+
+SDL GPU has no border colour, so `GL_CLAMP_TO_BORDER` and legacy `GL_CLAMP` clamp to the edge texel instead. This is
+the one approximation; Julia logs a warning the first time it happens.
 
 ## Install
 
