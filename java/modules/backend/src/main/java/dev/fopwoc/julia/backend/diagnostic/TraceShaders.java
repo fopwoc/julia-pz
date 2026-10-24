@@ -36,7 +36,7 @@ final class TraceShaders {
         Files.createDirectories(output);
         Files.write(output.resolve(name), bytes);
         written += bytes.length;
-        String relative = "draw-shaders/" + name;
+        String relative = output.getFileName() + "/" + name;
         names.put(source, relative);
         return relative;
     }

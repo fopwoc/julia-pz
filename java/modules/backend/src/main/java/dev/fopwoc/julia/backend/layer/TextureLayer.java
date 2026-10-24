@@ -12,6 +12,7 @@ import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
 import static org.lwjgl.opengl.GL43.GL_DEPTH_STENCIL_TEXTURE_MODE;
 
 import dev.fopwoc.julia.backend.Upstream;
+import dev.fopwoc.julia.backend.diagnostic.DrawTrace;
 import dev.fopwoc.julia.backend.texture.ClientPixels;
 import dev.fopwoc.julia.backend.texture.NamedTextureUploads;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
@@ -293,11 +294,13 @@ public abstract class TextureLayer extends FramebufferLayer {
     public void dispatchCompute(int x, int y, int z) {
         subsystems().textureViews().beforeCompute();
         super.dispatchCompute(x, y, z);
+        DrawTrace.afterCompute(Upstream.context(), x, y, z, -1);
     }
 
     @Override
     public void dispatchComputeIndirect(long offset) {
         subsystems().textureViews().beforeCompute();
         super.dispatchComputeIndirect(offset);
+        DrawTrace.afterCompute(Upstream.context(), 0, 0, 0, offset);
     }
 }

@@ -10,8 +10,11 @@ import static org.lwjgl.opengl.GL33.*;
 import static org.lwjgl.opengl.GL42.*;
 import static org.lwjgl.opengl.GL43.*;
 
+import dev.fopwoc.julia.backend.diagnostic.BufferCapture;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.lwjgl.system.MemoryStack;
@@ -100,6 +103,16 @@ final class SamplerTargetChecks {
             var values = stack.mallocFloat(32);
             glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, values);
             for (int i = 0; i < 8; i++) for (int c = 0; c < 4; c++) verify(i, c, values.get(i * 4 + c));
+            Files.writeString(output.resolve("buffer-capture.request"), storage + " 0 128\n");
+            int readBinding = glGetInteger(GL_COPY_READ_BUFFER_BINDING);
+            BufferCapture.poll(output, 1);
+            if (glGetInteger(GL_COPY_READ_BUFFER_BINDING) != readBinding)
+                throw new IllegalStateException("Buffer capture changed the copy-read binding");
+            var captured = ByteBuffer.wrap(
+                            Files.readAllBytes(output.resolve("buffers-1/" + storage + "-offset0-bytes128.bin")))
+                    .order(ByteOrder.nativeOrder())
+                    .asFloatBuffer();
+            for (int i = 0; i < 8; i++) for (int c = 0; c < 4; c++) verify(i, c, captured.get(i * 4 + c));
             Files.writeString(
                     output.resolve("sampler-targets.txt"),
                     "PASS\nchecks=graphics and compute,shared unit 2D/3D/array,unbound volume/array,unsigned array alpha,unbound 2D/array shadow samplers\n");

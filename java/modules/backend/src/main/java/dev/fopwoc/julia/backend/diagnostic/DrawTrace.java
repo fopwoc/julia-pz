@@ -1,18 +1,16 @@
 package dev.fopwoc.julia.backend.diagnostic;
 
+import static dev.fopwoc.julia.backend.diagnostic.TraceUniforms.*;
 import static org.lwjgl.opengl.GL12.GL_TEXTURE_BASE_LEVEL;
 import static org.lwjgl.opengl.GL12.GL_TEXTURE_MAX_LEVEL;
-import static org.lwjgl.util.spvc.Spvc.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.sampler.SamplerLookup;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
-import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.UniformMemberInfo;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.FloatBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +28,7 @@ public final class DrawTrace implements AutoCloseable {
     private Path output;
     private long frame;
     private BufferedWriter writer;
+    private ComputeTrace compute;
 
     public DrawTrace() {
         this(REQUESTED);
@@ -50,6 +49,7 @@ public final class DrawTrace implements AutoCloseable {
             writer.write("Julia draw trace: CPU snapshots; max 2048 states,64 per program,16 MiB records\n");
             writer.write("captureFrame=" + frame + "\n");
             writer.flush();
+            compute = new ComputeTrace(output);
         } catch (IOException failure) {
             throw new IllegalStateException("Cannot open draw trace", failure);
         }
@@ -61,6 +61,7 @@ public final class DrawTrace implements AutoCloseable {
         if (output == null) return;
         try {
             TextureCapture.poll(output, frame);
+            BufferCapture.poll(output, frame);
             if (!Files.deleteIfExists(output.resolve("draw-trace.request"))) return;
         } catch (IOException failure) {
             throw new IllegalStateException("Cannot consume draw-trace request", failure);
@@ -71,6 +72,12 @@ public final class DrawTrace implements AutoCloseable {
 
     public static void beforeDraw(ContextState state) {
         if (REQUESTED) Subsystems.current().drawTrace().capture(state);
+    }
+
+    public static void afterCompute(ContextState state, int x, int y, int z, long indirect) {
+        if (!REQUESTED) return;
+        var trace = Subsystems.current().drawTrace();
+        if (trace.compute != null) trace.compute.capture(state, x, y, z, indirect);
     }
 
     private void capture(ContextState state) {
@@ -130,6 +137,9 @@ public final class DrawTrace implements AutoCloseable {
         samplers(snapshot, program, state, true);
         // One program can draw several atlas batches with identical uniforms but different texture bindings.
         controls.append(snapshot.substring(samplerStart));
+        int bufferStart = snapshot.length();
+        TraceBuffers.append(snapshot, state);
+        controls.append(snapshot.substring(bufferStart));
         snapshot.append('\n');
         String text = snapshot.toString();
         if (!budget.reserve(
@@ -144,31 +154,6 @@ public final class DrawTrace implements AutoCloseable {
         } catch (IOException failure) {
             throw new IllegalStateException("Cannot write draw trace", failure);
         }
-    }
-
-    private static String values(float[] data, UniformMemberInfo member) {
-        if (data == null) return "default-zero";
-        var out = new StringBuilder("[");
-        for (int i = 0; i < Math.min(data.length, 16); i++) {
-            if (i != 0) out.append(',');
-            int type = member == null ? SPVC_BASETYPE_FP32 : member.baseType();
-            switch (type) {
-                case SPVC_BASETYPE_INT32, SPVC_BASETYPE_BOOLEAN -> out.append(Float.floatToRawIntBits(data[i]));
-                case SPVC_BASETYPE_UINT32 -> out.append(Integer.toUnsignedString(Float.floatToRawIntBits(data[i])));
-                default -> out.append(data[i]);
-            }
-        }
-        if (data.length > 16) out.append(",... length=").append(data.length);
-        return out.append(']').toString();
-    }
-
-    private static String packed(FloatBuffer buffer, UniformMemberInfo[] members, int location) {
-        if (buffer == null || location >= members.length || members[location] == null) return "-";
-        var member = members[location];
-        int count = Math.min(member.vectorSize(), buffer.capacity() - member.offset() / 4);
-        var data = new float[Math.max(0, count)];
-        for (int i = 0; i < data.length; i++) data[i] = buffer.get(member.offset() / 4 + i);
-        return values(data, member) + "@" + member.offset();
     }
 
     private static void samplers(StringBuilder out, ProgramObject program, ContextState state, boolean fragment) {
@@ -201,6 +186,10 @@ public final class DrawTrace implements AutoCloseable {
     public void close() {
         if (writer == null) return;
         try {
+            if (compute != null) {
+                compute.close();
+                compute = null;
+            }
             writer.close();
             writer = null;
         } catch (IOException failure) {
