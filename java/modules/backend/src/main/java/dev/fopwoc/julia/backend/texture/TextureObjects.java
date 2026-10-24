@@ -13,16 +13,17 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.utils.Sdl;
-import java.util.HashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 
 /** Object identity and immutable allocation without modifying active units or texture bindings. */
 public final class TextureObjects {
-    private final HashMap<Integer, Integer> targets = new HashMap<>();
+    // Bound on every texture bind, so names stay unboxed; GL texture targets are never 0.
+    private final Int2IntOpenHashMap targets = new Int2IntOpenHashMap();
 
     public void bound(int name, int target) {
         if (name == 0) return;
-        Integer previous = targets.putIfAbsent(name, target);
-        if (previous != null && previous != target) throw new IllegalArgumentException("Texture target cannot change");
+        int previous = targets.putIfAbsent(name, target);
+        if (previous != 0 && previous != target) throw new IllegalArgumentException("Texture target cannot change");
     }
 
     public boolean contains(int name) {
@@ -35,9 +36,9 @@ public final class TextureObjects {
 
     public int target(int name) {
         var meta = Upstream.resources().getTextureMeta(name);
-        Integer target = targets.get(name);
-        if (target == null && meta != null) target = meta.glTarget();
-        if (name == 0 || target == null) throw new IllegalArgumentException("Named texture does not exist: " + name);
+        int target = targets.get(name);
+        if (target == 0 && meta != null) target = meta.glTarget();
+        if (name == 0 || target == 0) throw new IllegalArgumentException("Named texture does not exist: " + name);
         return target;
     }
 

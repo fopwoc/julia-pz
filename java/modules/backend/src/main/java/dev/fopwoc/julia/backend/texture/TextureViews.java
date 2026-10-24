@@ -13,6 +13,9 @@ import com.gtnewhorizons.angelica.sdlgpu.sampler.SamplerLookup;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.sdl.SdlTextureViews;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -21,12 +24,15 @@ import java.util.Set;
 /** Same-format 2D/array views share physical storage while retaining independent texture state. */
 public final class TextureViews implements AutoCloseable {
     private final TextureMipSampling mips = new TextureMipSampling();
-    private final Set<Integer> fresh = new HashSet<>();
-    private final Set<Integer> immutable = new HashSet<>();
-    private final Map<Integer, Integer> modes = new HashMap<>();
-    private final Set<Integer> views = new HashSet<>();
+    // Sampling consults these on every draw, so texture names stay unboxed.
+    private final IntOpenHashSet fresh = new IntOpenHashSet();
+    private final IntOpenHashSet immutable = new IntOpenHashSet();
+    /** Only stencil-mode textures; every other texture samples depth, the GL default. */
+    private final Int2IntOpenHashMap modes = new Int2IntOpenHashMap();
+
+    private final IntOpenHashSet views = new IntOpenHashSet();
     private final Map<Long, StencilSampling> stencil = new HashMap<>();
-    private final Map<Integer, TextureViewRange> ranges = new HashMap<>();
+    private final Int2ObjectOpenHashMap<TextureViewRange> ranges = new Int2ObjectOpenHashMap<>();
     private final Map<Long, Set<Long>> shared = new HashMap<>();
     private boolean resolvingSharedClears;
 
@@ -150,7 +156,8 @@ public final class TextureViews implements AutoCloseable {
                 throw new UnsupportedOperationException("Stencil sampling requires one-level 2D depth/stencil storage");
             }
         }
-        modes.put(name, value);
+        if (value == GL_STENCIL_INDEX) modes.put(name, value);
+        else modes.remove(name);
         Upstream.context().samplerBindGen++;
         return true;
     }
@@ -200,7 +207,7 @@ public final class TextureViews implements AutoCloseable {
 
     public void beforeCompute() {
         flushSharedClears();
-        if (!modes.containsValue(GL_STENCIL_INDEX)) return;
+        if (modes.isEmpty()) return;
         for (int name : Upstream.context().boundTextures) {
             if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) == GL_STENCIL_INDEX) {
                 throw new UnsupportedOperationException(
@@ -211,7 +218,7 @@ public final class TextureViews implements AutoCloseable {
 
     public void prepare(ContextState state) {
         flushSharedClears();
-        if (!modes.containsValue(GL_STENCIL_INDEX)) return;
+        if (modes.isEmpty()) return;
         var program = Upstream.shaders().getProgram(state.boundProgram);
         if (program == null || !program.linked) return;
         var done = new HashSet<Long>();

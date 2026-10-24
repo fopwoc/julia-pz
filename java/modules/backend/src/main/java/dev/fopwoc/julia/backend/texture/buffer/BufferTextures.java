@@ -13,8 +13,8 @@ import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.texture.SamplerLayout;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.utils.Sdl;
-import java.util.HashMap;
-import java.util.HashSet;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import java.util.WeakHashMap;
 import java.util.function.Supplier;
 import org.lwjgl.sdl.SDL_GPUBufferCreateInfo;
@@ -63,8 +63,9 @@ public final class BufferTextures implements AutoCloseable {
 
     private final Supplier<BufferTextureDriver> factory;
     private BufferTextureDriver driver;
-    private final HashMap<Integer, View> views = new HashMap<>();
-    private final HashSet<Integer> ordinaryTextures = new HashSet<>();
+    // Checked on every texture bind and sampler resolution, so names stay unboxed.
+    private final Int2ObjectOpenHashMap<View> views = new Int2ObjectOpenHashMap<>();
+    private final IntOpenHashSet ordinaryTextures = new IntOpenHashSet();
     private final WeakHashMap<ProgramObject, SamplerLayout> layouts = new WeakHashMap<>();
     private final int[] bound = new int[TextureBindings.UNIT_COUNT];
     private final long[] placeholders = new long[Placeholder.values().length];
@@ -114,7 +115,7 @@ public final class BufferTextures implements AutoCloseable {
         if (name != 0) {
             if (ordinaryTextures.contains(name))
                 throw new IllegalArgumentException("Texture target cannot change to GL_TEXTURE_BUFFER");
-            views.computeIfAbsent(name, ignored -> new View());
+            if (!views.containsKey(name)) views.put(name, new View());
             Subsystems.current().textureViews().bound(name);
         }
         if (bound[unit] != name) {

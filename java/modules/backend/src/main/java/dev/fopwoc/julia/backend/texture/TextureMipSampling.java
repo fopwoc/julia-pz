@@ -10,12 +10,14 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.sdl.SdlTextureViews;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.HashMap;
 import java.util.Map;
 
 /** Native sampling views implement base-relative fetches and restrict LOD without changing FBO mip addressing. */
 final class TextureMipSampling implements AutoCloseable {
-    private final Map<Integer, TextureMipRange> ranges = new HashMap<>();
+    // Read for every sampled texture on every draw, so names stay unboxed.
+    private final Int2ObjectOpenHashMap<TextureMipRange> ranges = new Int2ObjectOpenHashMap<>();
     private final Map<Long, Map<TextureMipRange, Long>> views = new HashMap<>();
 
     boolean parameter(int name, int parameter, int value) {

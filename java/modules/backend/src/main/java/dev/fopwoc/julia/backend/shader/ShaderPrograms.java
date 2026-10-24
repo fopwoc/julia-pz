@@ -129,6 +129,8 @@ public final class ShaderPrograms implements AutoCloseable {
     }
 
     public void releaseDeletedPrograms() {
+        // Runs on every glUseProgram; skip the iterator when nothing is pending.
+        if (deletedPrograms.isEmpty()) return;
         for (var iterator = deletedPrograms.iterator(); iterator.hasNext(); ) {
             int id = iterator.next();
             if (Upstream.shaders().getProgram(id) != null) continue;

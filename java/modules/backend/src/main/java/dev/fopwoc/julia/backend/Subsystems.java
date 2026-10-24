@@ -16,8 +16,8 @@ import dev.fopwoc.julia.backend.texture.TextureObjects;
 import dev.fopwoc.julia.backend.texture.TextureViews;
 import dev.fopwoc.julia.backend.texture.VolumeUnpack;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextures;
-import java.util.HashSet;
-import java.util.Set;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.WeakHashMap;
 
 /**
@@ -35,7 +35,7 @@ public final class Subsystems implements AutoCloseable {
     private final TextureViews textureViews = new TextureViews();
     private final BufferTextures bufferTextures = new BufferTextures(SdlBufferTextures::new);
     private final WeakHashMap<ContextState, VolumeUnpack> volumeUnpack = new WeakHashMap<>();
-    private final Set<Integer> bufferObjects = new HashSet<>();
+    private final IntOpenHashSet bufferObjects = new IntOpenHashSet();
     private final Queries queries = new Queries(SdlTimestamps::new, SdlOcclusionQueries::new);
     private final GpuSyncs syncs = new GpuSyncs();
 
@@ -85,7 +85,7 @@ public final class Subsystems implements AutoCloseable {
     }
 
     /** Buffer names that were bound or created, so {@code glIsBuffer} matches GL before storage exists. */
-    public Set<Integer> bufferObjects() {
+    public IntSet bufferObjects() {
         return bufferObjects;
     }
 
