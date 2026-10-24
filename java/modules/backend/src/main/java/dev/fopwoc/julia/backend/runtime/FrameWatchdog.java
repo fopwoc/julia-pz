@@ -11,12 +11,15 @@ import java.time.Instant;
 
 /**
  * Records every thread's stack when the game stops presenting frames. A freeze raises no exception, and Steam on Linux
- * discards the JVM's own thread dumps, so this report is the only way a player can show where rendering is stuck. It
- * never stops the game.
+ * discards the JVM's own thread dumps, so this report is the only way a player can show where rendering is stuck. While
+ * the stall lasts it keeps appending short samples of the running threads, which tell a loop from slow progress. It never
+ * stops the game.
  */
 final class FrameWatchdog implements AutoCloseable {
     private static final System.Logger LOG = System.getLogger(FrameWatchdog.class.getName());
     private static final int MAX_REPORTS = 3;
+    private static final int MAX_SAMPLES = 8;
+    private static final int SAMPLE_FRAMES = 12;
 
     private final Path output;
     private final Duration stall;
@@ -42,9 +45,9 @@ final class FrameWatchdog implements AutoCloseable {
     }
 
     private void watch() {
-        int reports = 0;
+        int reports = 0, samples = 0;
         Path stalled = null;
-        long stallStart = 0;
+        long stallStart = 0, lastSample = 0;
         try {
             while (true) {
                 Thread.sleep(poll);
@@ -56,9 +59,17 @@ final class FrameWatchdog implements AutoCloseable {
                     }
                 } else if (stalled == null && reports < MAX_REPORTS) {
                     reports++;
+                    samples = 0;
                     stallStart = lastPresent;
+                    lastSample = System.nanoTime();
                     stalled = output.resolve("hang-" + reports + ".txt");
                     write(stalled, Duration.ofNanos(since));
+                } else if (stalled != null
+                        && samples < MAX_SAMPLES
+                        && System.nanoTime() - lastSample >= stall.toNanos()) {
+                    samples++;
+                    lastSample = System.nanoTime();
+                    sample(stalled, samples, Duration.ofNanos(since));
                 }
             }
         } catch (InterruptedException closed) {
@@ -92,6 +103,23 @@ final class FrameWatchdog implements AutoCloseable {
                 "No frame presented for {0}s; thread report: {1}",
                 since.toSeconds(),
                 report);
+    }
+
+    /** Top frames of runnable threads only; a thread stuck in one loop shows the same frames sample after sample. */
+    private static void sample(Path report, int number, Duration since) {
+        var text = new StringBuilder("\nsample ")
+                .append(number)
+                .append(" after ")
+                .append(since.toSeconds())
+                .append("s, runnable threads:\n");
+        for (ThreadInfo info : ManagementFactory.getThreadMXBean().dumpAllThreads(false, false)) {
+            if (info.getThreadState() != Thread.State.RUNNABLE || info.getStackTrace().length == 0) continue;
+            text.append('"').append(info.getThreadName()).append("\"\n");
+            var stack = info.getStackTrace();
+            for (int i = 0; i < Math.min(stack.length, SAMPLE_FRAMES); i++)
+                text.append("\tat ").append(stack[i]).append('\n');
+        }
+        append(report, text.toString());
     }
 
     private static void append(Path report, String text) {
