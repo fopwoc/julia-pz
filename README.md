@@ -2,22 +2,9 @@
 
 <img src="common/poster.png" alt="Julia" width="160" align="right">
 
-Julia does one thing: it translates Project Zomboid's OpenGL rendering to the platform's native graphics API —
-**Metal** on macOS and **Vulkan** on Linux and Windows.
-
-The translation is seamless. Nothing is ported, and no mod needs a Julia-specific version or patch: the game and its
-Java mods ship exactly as they are and keep calling plain OpenGL. Julia redirects those calls in memory as each class
-loads and draws every frame through [Angelica](https://github.com/GTNewHorizons/Angelica)'s GL state manager and its
-SDL3 GPU backend. Files on disk are never changed and saves are untouched, so Julia can be added or removed at any time.
-
-Why bother:
-
-- **Performance.** Modern APIs carry less driver overhead than OpenGL, which can mean higher and steadier FPS. Julia
-  has not been benchmarked widely yet, and results range from a real gain to slower frames.
-- **Compatibility.** Apple's OpenGL is deprecated and stops at version 4.1, so mods that need newer GL features cannot
-  run on macOS. Julia never touches Apple's OpenGL, so those mods work on Mac too.
-  [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528), which needs GL 4.3, is the first
-  example.
+Julia translates Project Zomboid's OpenGL rendering to the platform's native graphics API: **Metal** on macOS and
+**Vulkan** on Linux and Windows. It is a Java agent that starts with the game. The game and its mods run unchanged,
+nothing on disk or in saves is modified, and Julia can be added or removed at any time.
 
 Julia targets **Project Zomboid Build 42** and is **experimental**. It doesn't cover the whole OpenGL specification
 yet, so some mods may stop with a report. Multiplayer is untested. Bug reports and contributions are welcome in
@@ -25,6 +12,15 @@ yet, so some mods may stop with a report. Multiplayer is untested. Bug reports a
 
 > [!NOTE]
 > This project contains AI-generated code. See [AI_USAGE.md](AI_USAGE.md) for details.
+
+## Why
+
+- **Performance.** Modern APIs carry less driver overhead than OpenGL, which can mean higher and steadier FPS. Julia
+  has not been benchmarked widely yet, and results range from a real gain to slower frames.
+- **Compatibility.** Apple's OpenGL is deprecated and stops at version 4.1, so mods that need newer GL features cannot
+  run on macOS. Julia never touches Apple's OpenGL, so those mods work on Mac too.
+  [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528), which needs GL 4.3, is the first
+  example.
 
 ## Support
 
@@ -163,6 +159,11 @@ correctly. Open an [issue](../../issues) with the newest `fatal-error.txt`; usua
 cover yet.
 
 ## How it works
+
+Nothing is ported, and no mod needs a Julia-specific version or patch: the game and its Java mods keep calling plain
+OpenGL. Julia redirects those calls in memory as each class loads and draws every frame through
+[Angelica](https://github.com/GTNewHorizons/Angelica)'s GL state manager and its SDL3 GPU backend. No OpenGL driver is
+involved.
 
 ### Startup: all or nothing
 
