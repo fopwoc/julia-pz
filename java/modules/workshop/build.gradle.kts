@@ -37,7 +37,8 @@ val modZip by tasks.registering(Zip::class) {
         into("Julia")
     }
     from(agentJar) { into("Julia/libs") }
-    from(windowsLoader) { into("Julia/libs") }
+    // Local builds have no Windows natives; CI passes them and the zip then carries the loader.
+    from(windowsLoader.map { listOf(it) }.orElse(emptyList())) { into("Julia/libs") }
 }
 
 tasks.assemble { dependsOn(modZip) }
