@@ -3,18 +3,21 @@ package dev.fopwoc.julia.backend.shader;
 import static org.lwjgl.opengl.GL20.*;
 
 import dev.fopwoc.julia.backend.Upstream;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 
 /** Owns GL shader-object attachments; only complete translated stages enter the upstream shader manager. */
 public final class ShaderPrograms implements AutoCloseable {
     private static final System.Logger LOG = System.getLogger(ShaderPrograms.class.getName());
+    /** {@link #cachedLocation} result for a name not resolved since the program last linked. */
+    public static final int UNRESOLVED = Integer.MIN_VALUE;
 
     private static final class Shader {
         final int type;
@@ -35,11 +38,17 @@ public final class ShaderPrograms implements AutoCloseable {
         final ArrayList<Integer> stages = new ArrayList<>();
         Map<String, float[]> initializers = Map.of();
         boolean renamedTexture;
+        // Games look locations up by name every frame; GL keeps them fixed until the program relinks.
+        final Object2IntOpenHashMap<String> locations = new Object2IntOpenHashMap<>();
+
+        Program() {
+            locations.defaultReturnValue(UNRESOLVED);
+        }
     }
 
-    private final HashMap<Integer, Shader> shaders = new HashMap<>();
-    private final HashMap<Integer, Program> programs = new HashMap<>();
-    private final HashSet<Integer> deletedPrograms = new HashSet<>();
+    private final Int2ObjectOpenHashMap<Shader> shaders = new Int2ObjectOpenHashMap<>();
+    private final Int2ObjectOpenHashMap<Program> programs = new Int2ObjectOpenHashMap<>();
+    private final IntOpenHashSet deletedPrograms = new IntOpenHashSet();
     private ShaderFrontend frontend;
 
     public void created(int id, int type) {
@@ -69,6 +78,16 @@ public final class ShaderPrograms implements AutoCloseable {
         return renamedTexture(program) && (name.equals("texture") || name.startsWith("texture["))
                 ? "gtexture" + name.substring("texture".length())
                 : name;
+    }
+
+    public int cachedLocation(int program, String name) {
+        var linked = programs.get(program);
+        return linked == null ? UNRESOLVED : linked.locations.getInt(name);
+    }
+
+    public void cacheLocation(int program, String name, int location) {
+        var linked = programs.get(program);
+        if (linked != null) linked.locations.put(name, location);
     }
 
     public boolean contains(int id) {
@@ -132,7 +151,7 @@ public final class ShaderPrograms implements AutoCloseable {
         // Runs on every glUseProgram; skip the iterator when nothing is pending.
         if (deletedPrograms.isEmpty()) return;
         for (var iterator = deletedPrograms.iterator(); iterator.hasNext(); ) {
-            int id = iterator.next();
+            int id = iterator.nextInt();
             if (Upstream.shaders().getProgram(id) != null) continue;
             var program = programs.remove(id);
             for (int shader : program.attachments) release(shader);
@@ -142,6 +161,7 @@ public final class ShaderPrograms implements AutoCloseable {
 
     public boolean link(int id) {
         var program = programs.get(id);
+        program.locations.clear();
         var manager = Upstream.shaders();
         var compiled = new ArrayList<ShaderFrontend.Compiled>();
         boolean renamedTexture = false;

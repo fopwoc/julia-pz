@@ -124,15 +124,29 @@ public final class Upstream {
         }
     }
 
-    public static void lockedDraw(Runnable action) {
+    /** GLSM's draw lock as a try-with-resources scope; a nested scope leaves release to the one that acquired it. */
+    public enum DrawLock implements AutoCloseable {
+        ACQUIRED,
+        NESTED;
+
+        @Override
+        public void close() {
+            if (this == NESTED) return;
+            try {
+                DRAW_UNLOCK.invokeExact();
+            } catch (RuntimeException | Error failure) {
+                throw failure;
+            } catch (Throwable failure) {
+                throw new IllegalStateException("Cannot release graphics draw lock", failure);
+            }
+        }
+    }
+
+    // Draw paths take this per call, so the scope is a constant rather than a captured action.
+    public static DrawLock drawLock() {
         ownedBackend();
         try {
-            boolean locked = (boolean) DRAW_LOCK.invokeExact();
-            try {
-                action.run();
-            } finally {
-                if (locked) DRAW_UNLOCK.invokeExact();
-            }
+            return (boolean) DRAW_LOCK.invokeExact() ? DrawLock.ACQUIRED : DrawLock.NESTED;
         } catch (RuntimeException | Error failure) {
             throw failure;
         } catch (Throwable failure) {

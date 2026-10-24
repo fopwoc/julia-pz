@@ -25,6 +25,7 @@ public final class MatrixUniformUploads {
             throw new IllegalArgumentException("Multiple matrices supplied for a non-array uniform");
         // GL ignores writes past the end of an array; incomplete trailing matrices are ignored too.
         int written = Math.min(count, Math.max(1, member.arrayLen())) * size * size;
-        return source.duplicate().limit(source.position() + written);
+        // Upstream reads with absolute offsets, so an exact-size upload passes through without a view.
+        return written == source.remaining() ? source : source.duplicate().limit(source.position() + written);
     }
 }

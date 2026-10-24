@@ -32,10 +32,10 @@ public final class IndirectDraws {
                 || size > resources.getBufferSize(state.boundIndirectBuffer) - offset
                 || offset + size > 0x100000000L)
             throw new IllegalArgumentException("Indirect commands outside allocated GPU buffer");
-        Upstream.lockedDraw(() -> {
+        try (var _ = Upstream.drawLock()) {
             GLStateManager.preDraw(GLStateManager.ctx(), mode);
             draw(state, mode, buffer, offset, count, step);
-        });
+        }
     }
 
     private static void draw(ContextState state, int mode, long buffer, long offset, int count, int stride) {

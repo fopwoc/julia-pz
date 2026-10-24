@@ -16,10 +16,10 @@ import dev.fopwoc.julia.backend.sdl.SdlTextureViews;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 
 /** Same-format 2D/array views share physical storage while retaining independent texture state. */
 public final class TextureViews implements AutoCloseable {
@@ -31,9 +31,11 @@ public final class TextureViews implements AutoCloseable {
     private final Int2IntOpenHashMap modes = new Int2IntOpenHashMap();
 
     private final IntOpenHashSet views = new IntOpenHashSet();
-    private final Map<Long, StencilSampling> stencil = new HashMap<>();
+    private final Long2ObjectOpenHashMap<StencilSampling> stencil = new Long2ObjectOpenHashMap<>();
     private final Int2ObjectOpenHashMap<TextureViewRange> ranges = new Int2ObjectOpenHashMap<>();
-    private final Map<Long, Set<Long>> shared = new HashMap<>();
+    // Consulted for every sampled texture and before every draw, so handles stay unboxed.
+    private final Long2ObjectOpenHashMap<LongOpenHashSet> shared = new Long2ObjectOpenHashMap<>();
+    private final LongArrayList pendingShared = new LongArrayList();
     private boolean resolvingSharedClears;
 
     public void generated(int name) {
@@ -87,7 +89,7 @@ public final class TextureViews implements AutoCloseable {
                         meta.usage());
                 Upstream.registerTextureView(name, handle, viewMeta);
                 registered = true;
-                var family = shared.computeIfAbsent(source, ignored -> new HashSet<>());
+                var family = shared.computeIfAbsent(source, ignored -> new LongOpenHashSet());
                 family.add(source);
                 family.add(handle);
                 shared.put(handle, family);
@@ -114,25 +116,57 @@ public final class TextureViews implements AutoCloseable {
 
     /** Pending clears are keyed by SDL handle upstream; aliases must observe each other's writes in GL order. */
     public void sharedAccess(long handle) {
+        if (shared.isEmpty() || resolvingSharedClears) return;
         var family = shared.get(handle);
-        if (family == null || resolvingSharedClears) return;
+        if (family == null) return;
+        var state = Upstream.context();
+        if (!pendingClears(state)) return;
         resolvingSharedClears = true;
         try {
-            for (long peer : family)
-                if (peer != handle) Upstream.clears().materializePendingClearForTexture(Upstream.context(), peer);
+            var peers = family.iterator();
+            while (peers.hasNext()) {
+                long peer = peers.nextLong();
+                if (peer != handle) Upstream.clears().materializePendingClearForTexture(state, peer);
+            }
         } finally {
             resolvingSharedClears = false;
         }
     }
 
+    /**
+     * Runs before every draw. Pending clears are far fewer than shared handles, and materializing a handle without one
+     * does nothing, so only shared handles that have a pending clear are visited.
+     */
     public void flushSharedClears() {
         if (shared.isEmpty() || resolvingSharedClears) return;
+        var state = Upstream.context();
+        if (!pendingClears(state)) return;
+        pendingShared.clear();
+        collectShared(state.pendingColorTextures);
+        collectShared(state.pendingDepthTextures);
+        collectShared(state.pendingStencilTextures);
+        if (pendingShared.isEmpty()) return;
         resolvingSharedClears = true;
         try {
-            for (long handle : shared.keySet())
-                Upstream.clears().materializePendingClearForTexture(Upstream.context(), handle);
+            for (int i = 0; i < pendingShared.size(); i++)
+                Upstream.clears().materializePendingClearForTexture(state, pendingShared.getLong(i));
         } finally {
             resolvingSharedClears = false;
+        }
+    }
+
+    private static boolean pendingClears(ContextState state) {
+        return !state.pendingColorTextures.isEmpty()
+                || !state.pendingDepthTextures.isEmpty()
+                || !state.pendingStencilTextures.isEmpty();
+    }
+
+    // Collected first: materializing removes entries from the pending sets being walked.
+    private void collectShared(LongSet pending) {
+        var handles = pending.iterator();
+        while (handles.hasNext()) {
+            long handle = handles.nextLong();
+            if (shared.containsKey(handle)) pendingShared.add(handle);
         }
     }
 
@@ -221,7 +255,7 @@ public final class TextureViews implements AutoCloseable {
         if (modes.isEmpty()) return;
         var program = Upstream.shaders().getProgram(state.boundProgram);
         if (program == null || !program.linked) return;
-        var done = new HashSet<Long>();
+        var done = new LongOpenHashSet();
         for (boolean fragment : new boolean[] {false, true}) {
             int[] units = SamplerLookup.resolvedUnits(program, fragment);
             for (int slot = 0; slot < units.length; slot++) {
@@ -239,7 +273,7 @@ public final class TextureViews implements AutoCloseable {
     public long samplingHandle(ResourceManager resources, int name) {
         long handle = resources.getTextureHandle(name);
         if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) != GL_STENCIL_INDEX)
-            return mips.handle(name, handle, resources.getTextureMeta(name), immutable.contains(name));
+            return mips.handle(resources, name, handle, immutable);
         var sampling = stencil.get(handle);
         if (sampling == null) throw new IllegalStateException("Stencil view was not prepared before sampling");
         return sampling.texture();

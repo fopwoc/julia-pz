@@ -15,6 +15,7 @@ import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.utils.Sdl;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import java.util.WeakHashMap;
 import java.util.function.Supplier;
 import org.lwjgl.sdl.SDL_GPUBufferCreateInfo;
@@ -48,24 +49,31 @@ public final class BufferTextures implements AutoCloseable {
             this.format = format;
         }
 
+        // values() clones its array, and these run per sampled texture on every draw.
+        private static final Placeholder[] ALL = values();
+
         static Placeholder of(int type) {
-            for (var placeholder : values()) if (placeholder.type == type) return placeholder;
+            for (var placeholder : ALL) if (placeholder.type == type) return placeholder;
             throw new IllegalArgumentException("Not a buffer sampler type: 0x" + Integer.toHexString(type));
         }
 
         static Placeholder named(int name) {
-            for (var placeholder : values()) if (placeholder.name == name) return placeholder;
-            return null;
+            int index = -2 - name;
+            return index >= 0 && index < ALL.length ? ALL[index] : null;
         }
     }
 
     private static final int PLACEHOLDER_BYTES = 16;
 
     private final Supplier<BufferTextureDriver> factory;
+    private final TextureBindings bindings;
     private BufferTextureDriver driver;
     // Checked on every texture bind and sampler resolution, so names stay unboxed.
     private final Int2ObjectOpenHashMap<View> views = new Int2ObjectOpenHashMap<>();
-    private final IntOpenHashSet ordinaryTextures = new IntOpenHashSet();
+    // Buffers sampled through a view since the last submission, so sub-data uploads need not scan every view.
+    private final IntOpenHashSet readBuffers = new IntOpenHashSet();
+    // Live views per retained SDL buffer handle, so buffer retirement need not scan every view.
+    private final Long2IntOpenHashMap retained = new Long2IntOpenHashMap();
     private final WeakHashMap<ProgramObject, SamplerLayout> layouts = new WeakHashMap<>();
     private ProgramObject lastProgram;
     private SamplerLayout lastLayout;
@@ -77,11 +85,17 @@ public final class BufferTextures implements AutoCloseable {
     private long epoch;
 
     public void beginFrame() {
-        epoch++;
+        nextEpoch();
     }
 
-    public BufferTextures(Supplier<BufferTextureDriver> factory) {
+    private void nextEpoch() {
+        epoch++;
+        readBuffers.clear();
+    }
+
+    public BufferTextures(Supplier<BufferTextureDriver> factory, TextureBindings bindings) {
         this.factory = factory;
+        this.bindings = bindings;
     }
 
     private BufferTextureDriver driver() {
@@ -115,10 +129,11 @@ public final class BufferTextures implements AutoCloseable {
     public void bindTexture(int unit, int name) {
         if (name < 0) throw new IllegalArgumentException("Negative buffer texture name");
         if (name != 0) {
-            if (ordinaryTextures.contains(name))
+            var subsystems = Subsystems.current();
+            if (subsystems.textureObjects().contains(name))
                 throw new IllegalArgumentException("Texture target cannot change to GL_TEXTURE_BUFFER");
             if (!views.containsKey(name)) views.put(name, new View());
-            Subsystems.current().textureViews().bound(name);
+            subsystems.textureViews().bound(name);
         }
         if (bound[unit] != name) {
             bound[unit] = name;
@@ -127,11 +142,8 @@ public final class BufferTextures implements AutoCloseable {
     }
 
     public void ordinaryTextureBound(int name) {
-        if (name != 0) {
-            if (views.containsKey(name))
-                throw new IllegalArgumentException("Buffer texture rebound to an ordinary target");
-            ordinaryTextures.add(name);
-        }
+        if (name != 0 && views.containsKey(name))
+            throw new IllegalArgumentException("Buffer texture rebound to an ordinary target");
     }
 
     public boolean contains(int name) {
@@ -190,6 +202,7 @@ public final class BufferTextures implements AutoCloseable {
         if (texels == 0) {
             // GL keeps a zero-width texture here; Metal has no empty texture views, so sampling uses a placeholder.
             if (view.texture != 0) {
+                untrack(view);
                 driver().release(view.texture);
                 view.texture = 0;
                 Upstream.context().samplerBindGen++;
@@ -205,10 +218,12 @@ public final class BufferTextures implements AutoCloseable {
         if (identity == view.identity && handle == view.bufferHandle && length == view.size && view.texture != 0)
             return;
         long replacement = driver().create(handle, view.format, Math.toIntExact(view.offset), texels);
+        untrack(view);
         driver().release(view.texture);
         view.texture = replacement;
         view.identity = identity;
         view.bufferHandle = handle;
+        track(view);
         view.size = length;
         view.texels = texels;
         Upstream.context().samplerBindGen++;
@@ -234,27 +249,24 @@ public final class BufferTextures implements AutoCloseable {
     public int samplerBinding(ContextState state, int unit) {
         if (unit < 0 || unit >= bound.length)
             throw new IllegalArgumentException("Sampler texture unit out of range: " + unit);
-        if (Subsystems.current().textureBindings().samplerOverride(state)) return state.boundTexture(unit);
+        if (bindings.samplerOverride(state)) return state.boundTexture(unit);
         var program = state.boundProgramObj;
-        if (program == null || !program.linked)
-            return Subsystems.current().textureBindings().get(state, unit, GL_TEXTURE_2D);
+        if (program == null || !program.linked) return bindings.get(state, unit, GL_TEXTURE_2D);
         var layout = layout(program);
         if (!layout.bufferUnit(program, unit) || layout.hasOrdinaryTarget(program, unit))
-            return Subsystems.current().textureBindings().get(state, unit, layout.ordinaryTarget(program, unit));
+            return bindings.get(state, unit, layout.ordinaryTarget(program, unit));
         return bufferBinding(unit, layout.bufferType(program, unit));
     }
 
     /** Binding for one backend sampler slot, read from its unit's binding for the slot's own target. */
     public int samplerBinding(ContextState state, int unit, int slot, boolean fragment) {
         var program = state.boundProgramObj;
-        if (program == null
-                || !program.linked
-                || Subsystems.current().textureBindings().samplerOverride(state)) return samplerBinding(state, unit);
+        if (program == null || !program.linked || bindings.samplerOverride(state)) return samplerBinding(state, unit);
         var layout = layout(program);
         int target = layout.slotTarget(program, slot, fragment);
         if (target == 0) return samplerBinding(state, unit);
         if (target == GL_TEXTURE_BUFFER) return bufferBinding(unit, layout.slotBufferType(program, slot, fragment));
-        return Subsystems.current().textureBindings().get(state, unit, target);
+        return bindings.get(state, unit, target);
     }
 
     // GL reads an unbound buffer texture without failing, so typed placeholders stand in for the missing view.
@@ -269,7 +281,10 @@ public final class BufferTextures implements AutoCloseable {
         var view = views.get(name);
         if (view == null) throw new IllegalArgumentException("Unknown buffer texture");
         if (view.buffer == 0) throw new IllegalStateException("Buffer texture has no attached storage");
-        if (!view.deleted) refresh(view);
+        if (!view.deleted) {
+            refresh(view);
+            readBuffers.add(view.buffer);
+        }
         view.readEpoch = epoch;
         return view.texels == 0 ? placeholder(Placeholder.of(view.format.samplerType())) : view.texture;
     }
@@ -348,32 +363,39 @@ public final class BufferTextures implements AutoCloseable {
     }
 
     public void beforeSubData(int name) {
-        for (var view : views.values()) {
-            if (view.buffer != name || view.deleted || view.readEpoch != epoch) continue;
-            Upstream.submitPendingCommands();
-            epoch++;
-            return;
-        }
+        if (!readBuffers.contains(name)) return;
+        Upstream.submitPendingCommands();
+        nextEpoch();
     }
 
     public boolean retains(long handle) {
-        for (var view : views.values()) if (view.texture != 0 && view.bufferHandle == handle) return true;
-        return false;
+        return retained.containsKey(handle);
+    }
+
+    private void track(View view) {
+        if (view.texture != 0) retained.addTo(view.bufferHandle, 1);
+    }
+
+    private void untrack(View view) {
+        if (view.texture == 0) return;
+        if (retained.addTo(view.bufferHandle, -1) == 1) retained.remove(view.bufferHandle);
     }
 
     public void deletedBuffer(int name) {
         if (boundBuffer == name) boundBuffer = 0;
+        // A recycled name is a different buffer; views of the deleted one never invalidate its uploads.
+        readBuffers.remove(name);
         for (var view : views.values()) if (view.buffer == name) view.deleted = true;
     }
 
     public void deleteTexture(int name) {
-        ordinaryTextures.remove(name);
         var view = views.remove(name);
         if (view != null) clear(view);
         for (int unit = 0; unit < bound.length; unit++) if (bound[unit] == name) bound[unit] = 0;
     }
 
     private void clear(View view) {
+        untrack(view);
         if (view.texture != 0) driver().release(view.texture);
         view.texture = view.bufferHandle = view.identity = view.offset = view.size = 0;
         view.buffer = view.texels = 0;
@@ -392,9 +414,10 @@ public final class BufferTextures implements AutoCloseable {
         }
         for (var view : views.values()) clear(view);
         views.clear();
+        retained.clear();
+        readBuffers.clear();
         layouts.clear();
         lastProgram = null;
         lastLayout = null;
-        ordinaryTextures.clear();
     }
 }

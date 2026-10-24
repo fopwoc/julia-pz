@@ -39,9 +39,8 @@ public final class SamplerLayout {
     private int generation = Integer.MIN_VALUE;
     private final int[] bufferTypes = new int[TextureBindings.UNIT_COUNT];
     private BitSet bufferUnits = new BitSet(TextureBindings.UNIT_COUNT);
-    // Per-slot targets, filled on first use; sampler binding asks for every slot on every draw. 0 means not yet read.
-    private List<String> vertexSlots, fragmentSlots;
-    private int[] vertexSlotTargets = new int[0], fragmentSlotTargets = new int[0];
+    // Sampler binding asks for every slot on every draw, so each stage caches its slots' reflection.
+    private final Slots vertexSlots = new Slots(), fragmentSlots = new Slots();
     private boolean warned;
 
     public SamplerLayout(ProgramObject program) {
@@ -105,35 +104,40 @@ public final class SamplerLayout {
         generation = program.samplerUnitsGeneration;
     }
 
-    /** The GL target a backend sampler slot reads, or 0 for a slot without a reflected name. */
-    public int slotTarget(ProgramObject program, int slot, boolean fragment) {
-        var stage = fragment ? program.fragmentSamplerNames : program.vertexSamplerNames;
-        if (slot >= stage.size()) return 0;
-        int[] cached = slotTargets(stage, fragment);
-        int target = cached[slot];
-        if (target == 0) cached[slot] = target = target(stage.get(slot));
-        return target;
+    /** One stage's slot targets and buffer sampler types, filled on first use; 0 means not yet read. */
+    private static final class Slots {
+        List<String> names;
+        int[] targets = new int[0], bufferTypes = new int[0];
+
+        Slots of(List<String> stage) {
+            if (stage != names || targets.length != stage.size()) {
+                names = stage;
+                targets = new int[stage.size()];
+                bufferTypes = new int[stage.size()];
+            }
+            return this;
+        }
     }
 
-    private int[] slotTargets(List<String> stage, boolean fragment) {
-        if (fragment) {
-            if (stage != fragmentSlots || fragmentSlotTargets.length != stage.size()) {
-                fragmentSlots = stage;
-                fragmentSlotTargets = new int[stage.size()];
-            }
-            return fragmentSlotTargets;
-        }
-        if (stage != vertexSlots || vertexSlotTargets.length != stage.size()) {
-            vertexSlots = stage;
-            vertexSlotTargets = new int[stage.size()];
-        }
-        return vertexSlotTargets;
+    private Slots slots(ProgramObject program, boolean fragment) {
+        return fragment ? fragmentSlots.of(program.fragmentSamplerNames) : vertexSlots.of(program.vertexSamplerNames);
+    }
+
+    /** The GL target a backend sampler slot reads, or 0 for a slot without a reflected name. */
+    public int slotTarget(ProgramObject program, int slot, boolean fragment) {
+        var slots = slots(program, fragment);
+        if (slot >= slots.targets.length) return 0;
+        int target = slots.targets[slot];
+        if (target == 0) slots.targets[slot] = target = target(slots.names.get(slot));
+        return target;
     }
 
     /** The GL sampler type of a buffer-texture slot. */
     public int slotBufferType(ProgramObject program, int slot, boolean fragment) {
-        var stage = fragment ? program.fragmentSamplerNames : program.vertexSamplerNames;
-        return names.get(baseName(stage.get(slot)));
+        var slots = slots(program, fragment);
+        int type = slots.bufferTypes[slot];
+        if (type == 0) slots.bufferTypes[slot] = type = names.get(baseName(slots.names.get(slot)));
+        return type;
     }
 
     private int target(String name) {

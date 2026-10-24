@@ -11,6 +11,8 @@ import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.sdl.SdlTextureViews;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,7 +20,7 @@ import java.util.Map;
 final class TextureMipSampling implements AutoCloseable {
     // Read for every sampled texture on every draw, so names stay unboxed.
     private final Int2ObjectOpenHashMap<TextureMipRange> ranges = new Int2ObjectOpenHashMap<>();
-    private final Map<Long, Map<TextureMipRange, Long>> views = new HashMap<>();
+    private final Long2ObjectOpenHashMap<Map<TextureMipRange, Long>> views = new Long2ObjectOpenHashMap<>();
 
     boolean parameter(int name, int parameter, int value) {
         if (parameter != GL_TEXTURE_BASE_LEVEL && parameter != GL_TEXTURE_MAX_LEVEL) return false;
@@ -45,11 +47,15 @@ final class TextureMipSampling implements AutoCloseable {
         };
     }
 
-    long handle(int name, long source, ResourceManager.TextureMeta meta, boolean immutable) {
-        if (source == 0 || meta == null) return source;
-        var requested = ranges.getOrDefault(name, TextureMipRange.DEFAULT);
-        if (requested.base() == 0 && requested.max() >= meta.levels() - 1) return source;
-        var range = requested.effective(meta.levels(), immutable);
+    /** Runs for every sampled texture on every draw; the full-range default needs no texture metadata. */
+    long handle(ResourceManager resources, int name, long source, IntSet immutable) {
+        if (source == 0) return source;
+        var requested = ranges.get(name);
+        if (requested == null || requested.base() == 0 && requested.max() >= TextureMipRange.DEFAULT.max())
+            return source;
+        var meta = resources.getTextureMeta(name);
+        if (meta == null || requested.base() == 0 && requested.max() >= meta.levels() - 1) return source;
+        var range = requested.effective(meta.levels(), immutable.contains(name));
         if (range.base() == 0 && range.levels() == meta.levels()) return source;
         if (meta.glTarget() != GL_TEXTURE_2D && meta.glTarget() != GL_TEXTURE_2D_ARRAY)
             throw new UnsupportedOperationException("Sampling a restricted mip range requires a 2D or array texture");
@@ -84,7 +90,7 @@ final class TextureMipSampling implements AutoCloseable {
 
     @Override
     public void close() {
-        for (long source : views.keySet().toArray(Long[]::new)) release(source);
+        for (long source : views.keySet().toLongArray()) release(source);
         ranges.clear();
     }
 }

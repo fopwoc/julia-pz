@@ -33,7 +33,7 @@ public final class Subsystems implements AutoCloseable {
     private final TextureBindings textureBindings = new TextureBindings();
     private final TextureObjects textureObjects = new TextureObjects();
     private final TextureViews textureViews = new TextureViews();
-    private final BufferTextures bufferTextures = new BufferTextures(SdlBufferTextures::new);
+    private final BufferTextures bufferTextures = new BufferTextures(SdlBufferTextures::new, textureBindings);
     private final WeakHashMap<ContextState, VolumeUnpack> volumeUnpack = new WeakHashMap<>();
     private final IntOpenHashSet bufferObjects = new IntOpenHashSet();
     private final Queries queries = new Queries(SdlTimestamps::new, SdlOcclusionQueries::new);

@@ -8,7 +8,8 @@ import static org.lwjgl.opengl.GL33.GL_TIMESTAMP;
 import static org.lwjgl.opengl.GL33.GL_TIME_ELAPSED;
 import static org.lwjgl.opengl.GL43.GL_ANY_SAMPLES_PASSED_CONSERVATIVE;
 
-import java.util.HashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 /**
@@ -22,10 +23,12 @@ public final class Queries implements AutoCloseable {
         long start;
         long end;
         boolean ended;
-        Long result;
+        long result;
+        boolean resolved;
     }
 
-    private final HashMap<Integer, Query> queries = new HashMap<>();
+    // Read every frame by timer-query HUDs, so names and results stay unboxed.
+    private final Int2ObjectOpenHashMap<Query> queries = new Int2ObjectOpenHashMap<>();
     private final Supplier<TimestampDriver> timestamps;
     private final Supplier<OcclusionDriver> occlusion;
     private TimestampDriver timestampDriver;
@@ -107,13 +110,16 @@ public final class Queries implements AutoCloseable {
             throw new IllegalArgumentException("Query has no completed measurement: " + name);
         boolean counted = occlusion(query.target);
         if (parameter == GL_QUERY_RESULT_AVAILABLE)
-            return query.result != null
+            return query.resolved
                             || (counted
                                     ? occlusion().available(query.start)
                                     : timestamps().available(query.end))
                     ? 1
                     : 0;
-        if (query.result == null) query.result = counted ? samples(query) : elapsed(query);
+        if (!query.resolved) {
+            query.result = counted ? samples(query) : elapsed(query);
+            query.resolved = true;
+        }
         return query.result;
     }
 
@@ -164,12 +170,16 @@ public final class Queries implements AutoCloseable {
         query.start = 0;
         query.end = 0;
         query.ended = false;
-        query.result = null;
+        query.result = 0;
+        query.resolved = false;
     }
 
     @Override
     public void close() {
-        for (var query : queries.values()) release(query);
+        // Native handles are released in name order, so shutdown matches GL generation order.
+        int[] names = queries.keySet().toIntArray();
+        Arrays.sort(names);
+        for (int name : names) release(queries.get(name));
         queries.clear();
         activeTimer = 0;
         activeOcclusion = 0;

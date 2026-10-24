@@ -26,6 +26,11 @@ public final class TextureObjects {
         if (previous != 0 && previous != target) throw new IllegalArgumentException("Texture target cannot change");
     }
 
+    /** Whether {@code name} was already bound or created with {@code target}; the default name 0 always is. */
+    public boolean known(int name, int target) {
+        return name == 0 || targets.get(name) == target;
+    }
+
     public boolean contains(int name) {
         return targets.containsKey(name);
     }

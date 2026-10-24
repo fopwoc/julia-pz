@@ -25,10 +25,17 @@ public abstract class ShaderLayer extends TextureLayer {
 
     @Override
     public int getUniformLocation(int program, CharSequence name) {
-        String backendName = subsystems().shaderPrograms().backendUniformName(program, name.toString());
+        var programs = subsystems().shaderPrograms();
+        String key = name.toString();
+        int location = programs.cachedLocation(program, key);
+        if (location != ShaderPrograms.UNRESOLVED) return location;
+        String backendName = programs.backendUniformName(program, key);
         var object = Upstream.shaders().getProgram(program);
         if (object != null && object.allSamplerNames.contains(backendName + "[0]")) backendName += "[0]";
-        return super.getUniformLocation(program, backendName);
+        location = super.getUniformLocation(program, backendName);
+        // Unlinked programs report GL errors on lookup, so only stable answers are remembered.
+        if (object != null && object.linked) programs.cacheLocation(program, key, location);
+        return location;
     }
 
     @Override

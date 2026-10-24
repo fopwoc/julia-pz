@@ -20,6 +20,8 @@ import java.util.Arrays;
 
 /** Opt-in CPU-side graphics snapshots. Never reads back GPU resources or changes render state. */
 public final class DrawTrace implements AutoCloseable {
+    // Checked before every draw; skips subsystem lookup when tracing is off for the whole process.
+    private static final boolean REQUESTED = Boolean.getBoolean("julia.drawTrace");
     // Frame index and two bounded content-addressed source paths accompany each snapshot.
     private static final int SOURCE_HEADER_BYTES = 256;
     private final boolean enabled;
@@ -30,7 +32,7 @@ public final class DrawTrace implements AutoCloseable {
     private BufferedWriter writer;
 
     public DrawTrace() {
-        this(Boolean.getBoolean("julia.drawTrace"));
+        this(REQUESTED);
     }
 
     DrawTrace(boolean enabled) {
@@ -68,7 +70,7 @@ public final class DrawTrace implements AutoCloseable {
     }
 
     public static void beforeDraw(ContextState state) {
-        Subsystems.current().drawTrace().capture(state);
+        if (REQUESTED) Subsystems.current().drawTrace().capture(state);
     }
 
     private void capture(ContextState state) {

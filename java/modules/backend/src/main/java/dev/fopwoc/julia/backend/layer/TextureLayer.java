@@ -97,11 +97,14 @@ public abstract class TextureLayer extends FramebufferLayer {
 
     @Override
     public void bindTexture(int target, int name) {
-        subsystems().textureObjects().bound(name, target);
+        // Sprite batches rebind known textures constantly; only a name's first bind needs object bookkeeping.
+        if (!subsystems().textureObjects().known(name, target)) {
+            subsystems().bufferTextures().ordinaryTextureBound(name);
+            subsystems().textureObjects().bound(name, target);
+            subsystems().textureViews().bound(name);
+        }
         var state = Upstream.context();
         subsystems().textureBindings().bind(state, state.activeTextureUnit, target, name);
-        subsystems().textureViews().bound(name);
-        subsystems().bufferTextures().ordinaryTextureBound(name);
         super.bindTexture(target, name);
     }
 
