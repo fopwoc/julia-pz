@@ -5,7 +5,7 @@ import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.shader.SamplerUniforms;
 import java.nio.IntBuffer;
-import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.spvc.Spvc;
 
 /** Integer-array uploads, with sampler/image scalars using their upstream binding path. */
@@ -46,12 +46,9 @@ public final class UniformUploadBridge {
         if (values.length > Math.max(1, info.arrayLen())) {
             throw new UnsupportedOperationException("Integer upload exceeds reflected array length");
         }
-        var buffer = MemoryUtil.memAllocInt(values.length);
-        try {
-            buffer.put(values).flip();
-            GLStateManager.glUniform1(location, buffer);
-        } finally {
-            MemoryUtil.memFree(buffer);
+        // Upstream copies uniform data before returning, so reflected-length arrays fit the thread stack.
+        try (var stack = MemoryStack.stackPush()) {
+            GLStateManager.glUniform1(location, stack.ints(values));
         }
     }
 }

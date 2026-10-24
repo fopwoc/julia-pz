@@ -1,6 +1,7 @@
 package dev.fopwoc.julia.backend.bridge;
 
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -9,38 +10,51 @@ import org.lwjgl.system.MemoryUtil;
 public final class UniformBridge {
     private UniformBridge() {}
 
+    // Upstream copies uniform data before returning, so uploads this small use the thread stack instead of malloc.
+    private static final int STACK_FLOATS = 1024;
+
     public static void glUniform1(int location, float[] values) {
-        var buffer = MemoryUtil.memAllocFloat(values.length);
-        try {
-            buffer.put(values).flip();
-            GLStateManager.glUniform1(location, buffer);
-        } finally {
-            MemoryUtil.memFree(buffer);
+        try (var stack = MemoryStack.stackPush()) {
+            var buffer = stage(stack, values, values.length);
+            try {
+                GLStateManager.glUniform1(location, buffer);
+            } finally {
+                release(buffer);
+            }
         }
     }
 
     public static void glUniformMatrix3(int location, boolean transpose, float[] values) {
         // LWJGL derives count by integer division; incomplete trailing matrices are ignored.
-        int count = values.length / 9 * 9;
-        var buffer = MemoryUtil.memAllocFloat(count);
-        try {
-            buffer.put(values, 0, count).flip();
-            GLStateManager.glUniformMatrix3(location, transpose, buffer);
-        } finally {
-            MemoryUtil.memFree(buffer);
+        try (var stack = MemoryStack.stackPush()) {
+            var buffer = stage(stack, values, values.length / 9 * 9);
+            try {
+                GLStateManager.glUniformMatrix3(location, transpose, buffer);
+            } finally {
+                release(buffer);
+            }
         }
     }
 
     public static void glUniformMatrix4(int location, boolean transpose, float[] values) {
         // LWJGL derives count by integer division; incomplete trailing matrices are ignored.
-        int count = values.length / 16 * 16;
-        var buffer = MemoryUtil.memAllocFloat(count);
-        try {
-            buffer.put(values, 0, count).flip();
-            GLStateManager.glUniformMatrix4(location, transpose, buffer);
-        } finally {
-            MemoryUtil.memFree(buffer);
+        try (var stack = MemoryStack.stackPush()) {
+            var buffer = stage(stack, values, values.length / 16 * 16);
+            try {
+                GLStateManager.glUniformMatrix4(location, transpose, buffer);
+            } finally {
+                release(buffer);
+            }
         }
+    }
+
+    private static FloatBuffer stage(MemoryStack stack, float[] values, int count) {
+        var buffer = count <= STACK_FLOATS ? stack.mallocFloat(count) : MemoryUtil.memAllocFloat(count);
+        return buffer.put(values, 0, count).flip();
+    }
+
+    private static void release(FloatBuffer buffer) {
+        if (buffer.capacity() > STACK_FLOATS) MemoryUtil.memFree(buffer);
     }
 
     public static String glGetActiveUniform(int program, int index, int maxLength, IntBuffer size, IntBuffer type) {

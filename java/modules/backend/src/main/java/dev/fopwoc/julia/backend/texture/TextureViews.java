@@ -10,6 +10,7 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.sampler.SamplerLookup;
+import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.sdl.SdlTextureViews;
@@ -26,6 +27,8 @@ public final class TextureViews implements AutoCloseable {
     private int stencilTextures, viewTextures;
 
     private final Long2ObjectOpenHashMap<StencilSampling> stencil = new Long2ObjectOpenHashMap<>();
+    // Handles refreshed by the current draw's stencil preparation; reused across draws.
+    private final LongOpenHashSet prepared = new LongOpenHashSet();
     // Consulted for every sampled texture and before every draw, so handles stay unboxed.
     private final Long2ObjectOpenHashMap<LongOpenHashSet> shared = new Long2ObjectOpenHashMap<>();
     private final LongArrayList pendingShared = new LongArrayList();
@@ -269,18 +272,23 @@ public final class TextureViews implements AutoCloseable {
         if (stencilTextures == 0) return;
         var program = Upstream.shaders().getProgram(state.boundProgram);
         if (program == null || !program.linked) return;
-        var done = new LongOpenHashSet();
-        for (boolean fragment : new boolean[] {false, true}) {
-            int[] units = SamplerLookup.resolvedUnits(program, fragment);
-            for (int slot = 0; slot < units.length; slot++) {
-                int name = Subsystems.current().bufferTextures().samplerBinding(state, units[slot], slot, fragment);
-                if (!stencil(textures.get(name))) continue;
-                long handle = Upstream.resources().getTextureHandle(name);
-                if (handle == 0 || !done.add(handle)) continue;
-                var meta = Upstream.resources().getTextureMeta(name);
-                stencil.computeIfAbsent(handle, ignored -> new StencilSampling())
-                        .refresh(state, handle, meta);
-            }
+        prepared.clear();
+        prepareStencil(state, program, false);
+        prepareStencil(state, program, true);
+    }
+
+    private void prepareStencil(ContextState state, ShaderManager.ProgramObject program, boolean fragment) {
+        var buffers = Subsystems.current().bufferTextures();
+        var resources = Upstream.resources();
+        int[] units = SamplerLookup.resolvedUnits(program, fragment);
+        for (int slot = 0; slot < units.length; slot++) {
+            int name = buffers.samplerBinding(state, units[slot], slot, fragment);
+            if (!stencil(textures.get(name))) continue;
+            long handle = resources.getTextureHandle(name);
+            if (handle == 0 || !prepared.add(handle)) continue;
+            var sampling = stencil.get(handle);
+            if (sampling == null) stencil.put(handle, sampling = new StencilSampling());
+            sampling.refresh(state, handle, resources.getTextureMeta(name));
         }
     }
 

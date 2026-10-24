@@ -208,17 +208,8 @@ public final class Upstream {
     }
 
     public static void forgetTextureName(int name) {
-        try {
-            boolean locked = (boolean) DRAW_LOCK.invokeExact();
-            try {
-                ((IntOpenHashSet) UNSHRINKABLE.get()).remove(name);
-            } finally {
-                if (locked) DRAW_UNLOCK.invokeExact();
-            }
-        } catch (RuntimeException | Error failure) {
-            throw failure;
-        } catch (Throwable failure) {
-            throw new IllegalStateException("Cannot clear texture name bookkeeping", failure);
+        try (var _ = drawLock()) {
+            ((IntOpenHashSet) UNSHRINKABLE.get()).remove(name);
         }
     }
 
