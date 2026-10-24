@@ -96,8 +96,11 @@ public final class Framebuffers {
             Upstream.clears()
                     .materializePendingClearForTexture(
                             Upstream.context(), Upstream.resources().getTextureHandle(previous.texture));
-        if (name == Upstream.context().boundFboId)
+        if (name == Upstream.context().boundFboId) {
             Upstream.frames().endRenderPassIfActive(FrameManager.PASS_END_TARGET);
+            // Which packed aspects are attached gates the pipeline's depth and stencil tests.
+            Upstream.context().pipeline.markOutputDirty();
+        }
         long handle = 0;
         int format = 0;
         if (meta != null) {
@@ -342,14 +345,23 @@ public final class Framebuffers {
         // Completeness changes only with attachments or texture storage, so repeated draws skip the per-slice lookups.
         long generation = TextureStorage.generation();
         if (fields.complete == generation) return;
-        if (PixelOps.isDepthStencilFormat(fbo.depthFormat) && (fields.depth == null || fields.stencil == null))
-            throw new UnsupportedOperationException(
-                    "Rendering a single aspect of a packed depth/stencil framebuffer attachment is not implemented");
         int status = status(fbo);
         if (status != GL_FRAMEBUFFER_COMPLETE)
             throw new IllegalStateException(
                     "Cannot render incomplete framebuffer: " + context.boundFboId + " status=" + status);
         fields.complete = generation;
+    }
+
+    /**
+     * Aspects of a packed depth/stencil image that the bound framebuffer leaves unattached. SDL always targets both
+     * aspects, so GL's "no such buffer" behaviour is emulated: the absent test passes and its writes and clears drop.
+     */
+    public int absentAspects(ContextState context) {
+        if (context.boundFboId == 0 || context.boundFboId == context.defaultFboId) return 0;
+        var fbo = Upstream.resources().getFbo(context.boundFboId);
+        if (fbo == null || !PixelOps.isDepthStencilFormat(fbo.depthFormat)) return 0;
+        var fields = state(fbo);
+        return (fields.depth == null ? GL_DEPTH_BUFFER_BIT : 0) | (fields.stencil == null ? GL_STENCIL_BUFFER_BIT : 0);
     }
 
     public void validateRead(int format) {

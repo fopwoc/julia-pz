@@ -18,6 +18,7 @@ final class ViewChecks {
     static void run() {
         colorAliases();
         stencilAspect();
+        PackedAspectChecks.run();
         int root = glGenTextures(), view = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, root);
         glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 2, 2);

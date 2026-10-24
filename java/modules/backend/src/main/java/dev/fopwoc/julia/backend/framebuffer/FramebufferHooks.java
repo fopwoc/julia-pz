@@ -56,6 +56,11 @@ public final class FramebufferHooks {
         Subsystems.current().framebuffers().validateDraw(context);
     }
 
+    /** A pipeline depth or stencil flag, off when the bound framebuffer leaves that packed aspect unattached. */
+    public static boolean attached(boolean enabled, int aspect) {
+        return enabled && (Subsystems.current().framebuffers().absentAspects(Upstream.context()) & aspect) == 0;
+    }
+
     public static long begin(
             FrameManager frames, SDL_GPUColorTargetInfo.Buffer colors, SDL_GPUDepthStencilTargetInfo depth) {
         return Subsystems.current().framebuffers().begin(frames, colors, depth);

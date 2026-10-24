@@ -1,12 +1,18 @@
 package dev.fopwoc.julia.transform.load;
 
+import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT;
+
 import dev.fopwoc.julia.transform.Endpoint;
 import dev.fopwoc.julia.transform.asm.Anchors;
 import java.util.Set;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
-/** Pinned framebuffer slice metadata participates in render-pass creation and structural equivalence. */
+/**
+ * Pinned framebuffer slice metadata participates in render-pass creation and structural equivalence, and an unattached
+ * aspect of a packed depth/stencil image switches its test off in pipeline state.
+ */
 public final class FramebufferPass implements UpstreamPatch {
     private static final String ROOT = "com.gtnewhorizons.angelica.sdlgpu.";
     private static final Set<String> TARGETS = Set.of(
@@ -53,6 +59,28 @@ public final class FramebufferPass implements UpstreamPatch {
                 method.instructions.add(new InsnNode(Opcodes.RETURN));
                 edits++;
             }
+            if (cache
+                    && (method.name.equals("computeOutputHash")
+                            || method.name.equals("createPipelineInner")
+                            || method.name.equals("effectiveStencilTestEnabled")))
+                for (var insn : method.instructions.toArray()) {
+                    if (!(insn instanceof FieldInsnNode field)
+                            || field.getOpcode() != Opcodes.GETFIELD
+                            || !field.owner.equals(node.name)
+                            || !field.desc.equals("Z")) continue;
+                    int aspect = switch (field.name) {
+                        case "depthTestEnabled", "depthWriteEnabled" -> GL_DEPTH_BUFFER_BIT;
+                        case "stencilTestEnabled" -> GL_STENCIL_BUFFER_BIT;
+                        default -> 0;
+                    };
+                    if (aspect == 0) continue;
+                    // The pipeline key and its create info read the same gated flags, so they cannot disagree.
+                    var gate = new InsnList();
+                    gate.add(new LdcInsnNode(aspect));
+                    gate.add(call("attached", "(ZI)Z"));
+                    method.instructions.insert(field, gate);
+                    edits++;
+                }
             if (frames && method.name.equals("beginRenderPass")) {
                 edits += Anchors.replaceCalls(
                         method,
@@ -116,7 +144,7 @@ public final class FramebufferPass implements UpstreamPatch {
                         () -> call("begin", "(L" + FRAMES + ";" + TARGETS_ARGS + ")J"));
             }
         }
-        Anchors.require("framebuffer slice integration in " + name, edits, pipeline ? 3 : clears ? 2 : 1);
+        Anchors.require("framebuffer slice integration in " + name, edits, pipeline ? 3 : clears ? 2 : cache ? 6 : 1);
         return true;
     }
 

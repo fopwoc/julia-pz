@@ -149,6 +149,8 @@ public abstract class FramebufferLayer extends BufferLayer {
         subsystems().textureViews().flushSharedClears();
         var state = Upstream.context();
         subsystems().framebuffers().validateDraw(state);
+        mask &= ~subsystems().framebuffers().absentAspects(state);
+        if (mask == 0) return;
         if (subsystems().colorMasks().clear(mask)) return;
         var fbo = Upstream.resources().getFbo(state.boundFboId);
         if (fbo != null && subsystems().framebuffers().sliced(fbo)) {
