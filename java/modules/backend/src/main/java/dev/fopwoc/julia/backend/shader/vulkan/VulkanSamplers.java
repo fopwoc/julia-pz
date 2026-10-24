@@ -29,15 +29,14 @@ public final class VulkanSamplers {
         if (info.format() != SDL_GPU_SHADERFORMAT_SPIRV)
             throw new IllegalArgumentException("Vulkan shaders require SPIR-V");
         var originalCode = info.code();
+        var located = ResourceLocationsSpirv.translate(originalCode);
         var indexed = InstanceIndexSpirv.translate(
-                originalCode,
-                info.stage() == SDL_GPU_SHADERSTAGE_VERTEX ? GL20.GL_VERTEX_SHADER : GL20.GL_FRAGMENT_SHADER);
+                located, info.stage() == SDL_GPU_SHADERSTAGE_VERTEX ? GL20.GL_VERTEX_SHADER : GL20.GL_FRAGMENT_SHADER);
         var code = NonUniformSamplerSpirv.translate(indexed);
         int previous = info.props();
         int properties = properties(code, info.num_samplers(), previous);
         try {
-            if (indexed != originalCode
-                    && !SDL_SetBooleanProperty(properties, "julia.gpu.requires_draw_parameters", true))
+            if (indexed != located && !SDL_SetBooleanProperty(properties, "julia.gpu.requires_draw_parameters", true))
                 throw Sdl.failure("Set Vulkan draw parameter requirement");
             if (code != indexed && !SDL_SetBooleanProperty(properties, "julia.gpu.requires_nonuniform_samplers", true))
                 throw Sdl.failure("Set Vulkan non-uniform sampler requirement");
@@ -53,12 +52,14 @@ public final class VulkanSamplers {
         if (info.format() != SDL_GPU_SHADERFORMAT_SPIRV)
             throw new IllegalArgumentException("Vulkan compute shaders require SPIR-V");
         int previous = info.props();
-        int properties = properties(info.code(), info.num_samplers(), previous);
+        var originalCode = info.code();
+        var code = ResourceLocationsSpirv.translate(originalCode);
+        int properties = properties(code, info.num_samplers(), previous);
         try {
-            info.props(properties);
+            info.code(code).props(properties);
             return SDL_CreateGPUComputePipeline(device, info);
         } finally {
-            info.props(previous);
+            info.code(originalCode).props(previous);
             SDL_DestroyProperties(properties);
         }
     }

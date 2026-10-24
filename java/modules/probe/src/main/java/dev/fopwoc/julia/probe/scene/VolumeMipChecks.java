@@ -83,7 +83,7 @@ final class VolumeMipChecks {
                         shader,
                         type == GL_VERTEX_SHADER
                                 ? "#version 430 core\nvoid main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);gl_Position=vec4(p*2.-1.,0,1);}"
-                                : "#version 430 core\nuniform sampler3D volume;out vec4 colour;void main(){int l=int(gl_FragCoord.y);float d=float(max(1,8>>l));colour=textureLod(volume,vec3(.5,.5,min((floor(gl_FragCoord.x)+.5)/d,1.)),float(l));}");
+                                : "#version 430 core\nlayout(location=12) uniform sampler3D volume;out vec4 colour;void main(){int l=int(gl_FragCoord.y);float d=float(max(1,8>>l));colour=textureLod(volume,vec3(.5,.5,min((floor(gl_FragCoord.x)+.5)/d,1.)),float(l));}");
                 glCompileShader(shader);
                 if (glGetShaderi(shader, GL_COMPILE_STATUS) == 0)
                     throw new IllegalStateException(glGetShaderInfoLog(shader));
