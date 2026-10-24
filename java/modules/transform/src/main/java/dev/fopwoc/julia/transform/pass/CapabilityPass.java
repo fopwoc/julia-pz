@@ -85,10 +85,10 @@ public final class CapabilityPass {
                         throw new IllegalArgumentException("Capability object crosses a field boundary");
                     }
                 } else if (instruction instanceof LdcInsnNode constant) {
-                    checkConstant(constant.cst);
+                    checkConstant(constant.cst, pkg);
                 } else if (instruction instanceof InvokeDynamicInsnNode dynamic) {
-                    checkConstant(dynamic.bsm);
-                    for (Object argument : dynamic.bsmArgs) checkConstant(argument);
+                    checkConstant(dynamic.bsm, pkg);
+                    for (Object argument : dynamic.bsmArgs) checkConstant(argument, pkg);
                 } else if (instruction instanceof TypeInsnNode type
                         && type.desc.equals(CAPS)
                         && type.getOpcode() != Opcodes.CHECKCAST
@@ -111,9 +111,12 @@ public final class CapabilityPass {
         return internalName.substring(0, Math.max(0, internalName.lastIndexOf('/')));
     }
 
-    private static void checkConstant(Object value) {
+    private static void checkConstant(Object value, String pkg) {
+        // Same-package handles, such as a record's generated component accessors, are remapped with their targets.
         if (value instanceof Handle handle
-                && (handle.getOwner().equals(CAPS) || handle.getDesc().contains(DESCRIPTOR))) {
+                && (handle.getOwner().equals(CAPS)
+                        || handle.getDesc().contains(DESCRIPTOR)
+                                && !pkg(handle.getOwner()).equals(pkg))) {
             throw new IllegalArgumentException("Capability method/field handles require a dedicated bridge");
         }
         if (value instanceof Type type && type.getDescriptor().contains(CAPS)) {
@@ -122,9 +125,9 @@ public final class CapabilityPass {
         if (value instanceof ConstantDynamic dynamic) {
             if (dynamic.getDescriptor().contains(DESCRIPTOR))
                 throw new IllegalArgumentException("Native capability dynamic constant");
-            checkConstant(dynamic.getBootstrapMethod());
+            checkConstant(dynamic.getBootstrapMethod(), pkg);
             for (int i = 0; i < dynamic.getBootstrapMethodArgumentCount(); i++)
-                checkConstant(dynamic.getBootstrapMethodArgument(i));
+                checkConstant(dynamic.getBootstrapMethodArgument(i), pkg);
         }
     }
 }

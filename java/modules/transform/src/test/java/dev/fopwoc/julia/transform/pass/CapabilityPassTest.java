@@ -8,12 +8,17 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
 class CapabilityPassTest {
     private static final String CAPS = "Lorg/lwjgl/opengl/GLCapabilities;";
@@ -78,6 +83,35 @@ class CapabilityPassTest {
         var remapped = adapted.methods.getFirst();
         assertEquals("(Ljava/util/Set;)V", remapped.desc);
         assertEquals("(Ljava/util/Set;)Lfixture/Profile;", ((MethodInsnNode) remapped.instructions.getFirst()).desc);
+    }
+
+    @Test
+    void remapsRecordComponentHandlesWithinThePackage() throws Exception {
+        var node = fixture();
+        node.name = "fixture/Profile";
+        node.superName = "java/lang/Record";
+        node.fields.add(new FieldNode(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "owner", CAPS, null, null));
+        var method = new MethodNode(Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL, "hashCode", "()I", null, null);
+        method.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        method.instructions.add(new InvokeDynamicInsnNode(
+                "hashCode",
+                "(Lfixture/Profile;)I",
+                new Handle(
+                        Opcodes.H_INVOKESTATIC,
+                        "java/lang/runtime/ObjectMethods",
+                        "bootstrap",
+                        "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/TypeDescriptor;"
+                                + "Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/invoke/MethodHandle;)Ljava/lang/Object;",
+                        false),
+                Type.getObjectType("fixture/Profile"),
+                "owner",
+                new Handle(Opcodes.H_GETFIELD, "fixture/Profile", "owner", CAPS, false)));
+        method.instructions.add(new InsnNode(Opcodes.IRETURN));
+        node.methods.add(method);
+        var adapted = CapabilityPass.adapt(node);
+        var dynamic =
+                (InvokeDynamicInsnNode) adapted.methods.getFirst().instructions.get(1);
+        assertEquals("Ljava/util/Set;", ((Handle) dynamic.bsmArgs[2]).getDesc());
     }
 
     @Test
