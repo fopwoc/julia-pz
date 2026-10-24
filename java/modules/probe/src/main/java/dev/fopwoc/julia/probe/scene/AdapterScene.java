@@ -108,6 +108,7 @@ public final class AdapterScene {
             NamedTextureChecks.run(output);
             TextureLevelChecks.run(output);
             TextureMipChecks.run(output);
+            VolumeMipChecks.run(output);
             BakedMipChecks.run(output);
             PerFragmentSamplerChecks.run(output);
             TextureReadbackChecks.run(output);

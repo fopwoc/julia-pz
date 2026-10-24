@@ -19,6 +19,7 @@ public final class SamplingScene {
             LargeUniformChecks.run(output);
             FloatTextureChecks.run(output);
             TextureMipChecks.run(output);
+            VolumeMipChecks.run(output);
             BakedMipChecks.run(output);
             PerFragmentSamplerChecks.run(output);
             ManySamplerChecks.run(output);

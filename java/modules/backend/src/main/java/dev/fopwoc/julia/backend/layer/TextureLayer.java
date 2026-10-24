@@ -22,6 +22,12 @@ import java.nio.IntBuffer;
 /** Logical per-target texture bindings, views, buffer textures, and upload paths SDL needs adjusted. */
 public abstract class TextureLayer extends FramebufferLayer {
     @Override
+    public void generateTextureMipmap(int name) {
+        subsystems().textureObjects().prepareMipmaps(name);
+        super.generateTextureMipmap(name);
+    }
+
+    @Override
     public int createTextures(int target) {
         return subsystems().textureObjects().create(target);
     }

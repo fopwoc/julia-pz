@@ -56,6 +56,22 @@ public final class TextureObjects {
         return target;
     }
 
+    /** A volume's depth contributes to its mip chain; array layer counts do not. */
+    public void prepareMipmaps(int name) {
+        var resources = Upstream.resources();
+        var meta = resources.getTextureMeta(name);
+        var texture = textures.get(name);
+        if (meta == null || meta.glTarget() != GL_TEXTURE_3D || texture != null && texture.immutable) return;
+        int largest = Math.max(Math.max(meta.width(), meta.height()), meta.depth());
+        int levels = 32 - Integer.numberOfLeadingZeros(largest);
+        int max = resources.getOrCreateTexSamplerState(name).maxLevel;
+        if (max >= 0) levels = Math.min(levels, max + 1);
+        if (levels <= meta.levels()) return;
+        Upstream.flushTextureReferences();
+        if (!resources.ensureTextureLevels(name, levels))
+            throw new IllegalStateException("Cannot grow volume texture mip chain: " + name);
+    }
+
     public int create(int target) {
         requireTarget(target);
         int name = BackendManager.RENDER_BACKEND.genTextures();
