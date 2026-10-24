@@ -257,9 +257,9 @@ incomplete distribution. Ordinary `:agent:jar` remains available for host-only d
 
 CI builds every push the same way: the Linux and Windows libraries in the pinned container, the macOS libraries with
 the Apple SDK, then `check` and the universal jar. Pushing an `x.y.z` tag on `main` runs that build again and
-publishes three files with signed build provenance: the agent jar, the Lua companion zip, and the Workshop folder
-(this repository at the tag plus `libs/julia-agent.jar`). Upload that Workshop folder unchanged, so the jar players
-get is the attested one. `tools/package-workshop.sh` builds the same folder locally.
+publishes four files with signed build provenance: the agent jar, the Windows loader, the Lua companion zip, and the
+Workshop folder (this repository at the tag plus `libs/julia-agent.jar` and `libs/julia.dll`).
+`tools/package-workshop.sh` builds the same folder locally.
 
 ### GPU probes
 
