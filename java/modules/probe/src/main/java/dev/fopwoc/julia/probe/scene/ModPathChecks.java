@@ -1,11 +1,17 @@
 package dev.fopwoc.julia.probe.scene;
 
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL12.GL_ALIASED_LINE_WIDTH_RANGE;
+import static org.lwjgl.opengl.GL12.GL_PACK_IMAGE_HEIGHT;
+import static org.lwjgl.opengl.GL12.GL_PACK_SKIP_IMAGES;
 import static org.lwjgl.opengl.GL13.GL_CLAMP_TO_BORDER;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL21.GL_PIXEL_PACK_BUFFER_BINDING;
+import static org.lwjgl.opengl.GL21.GL_PIXEL_UNPACK_BUFFER_BINDING;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL31.*;
+import static org.lwjgl.opengl.GL40.GL_PATCH_VERTICES;
 import static org.lwjgl.opengl.GL40.GL_TESS_CONTROL_SHADER;
 import static org.lwjgl.opengl.GL43.*;
 
@@ -52,11 +58,12 @@ final class ModPathChecks {
         }
         integerClear();
         bufferRanges();
+        stateQueries();
         Files.writeString(
                 output.resolve("mod-paths.txt"),
-                "PASS\nchecks=tessellation compile failure,border wrap as edge clamp,border colour,unsigned uniforms,"
+                "PASS\nchecks=tessellation compile failure,generic buffer binding queries,border wrap as edge clamp,border colour,unsigned uniforms,"
                         + "multi-draw base vertex,full-level sub-image readback,zero integer clears,"
-                        + "indexed 64-bit buffer ranges,whole storage-buffer bindings\n");
+                        + "indexed 64-bit buffer ranges,whole storage-buffer bindings,saved-state queries\n");
     }
 
     // WinterFX tries tessellated snow first and falls back when its program does not build.
@@ -238,6 +245,16 @@ final class ModPathChecks {
                     || GL32.glGetInteger64i(GL_SHADER_STORAGE_BUFFER_START, 0) != 0
                     || GL32.glGetInteger64i(GL_SHADER_STORAGE_BUFFER_SIZE, 0) != 0)
                 throw new IllegalStateException("Storage buffer binding query differs");
+            // GrassierGrass saves the generic storage binding next to the indexed ones.
+            int[] binding = {-1};
+            glGetIntegerv(GL_SHADER_STORAGE_BUFFER_BINDING, binding);
+            if (glGetInteger(GL_SHADER_STORAGE_BUFFER_BINDING) != storage
+                    || binding[0] != storage
+                    || glGetInteger(GL_UNIFORM_BUFFER_BINDING) != uniform
+                    || glGetInteger(GL_PIXEL_PACK_BUFFER_BINDING) != 0
+                    || glGetInteger(GL_PIXEL_UNPACK_BUFFER_BINDING) != 0
+                    || glGetInteger(GL_DISPATCH_INDIRECT_BUFFER_BINDING) != 0)
+                throw new IllegalStateException("Generic buffer binding queries differ");
             glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, storage, 0, 64);
             try {
                 glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, storage, 16, 16);
@@ -251,6 +268,64 @@ final class ModPathChecks {
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
             glDeleteBuffers(uniform);
             glDeleteBuffers(storage);
+        }
+    }
+
+    // PZ3D, WinterFX and GrassierGrass save this state before their passes and restore it after.
+    private static void stateQueries() {
+        glPolygonOffset(2, 3);
+        float factor = glGetFloat(GL_POLYGON_OFFSET_FACTOR), units = glGetFloat(GL_POLYGON_OFFSET_UNITS);
+        glPolygonOffset(0, 0);
+        float[] lines = new float[2], skip = {-1};
+        glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lines);
+        glPixelStorei(GL_PACK_SKIP_IMAGES, 0);
+        glGetFloatv(GL_PACK_SKIP_IMAGES, skip);
+        if (factor != 2
+                || units != 3
+                || lines[0] != 1
+                || lines[1] != 1
+                || skip[0] != 0
+                || glGetInteger(GL_PACK_IMAGE_HEIGHT) != 0
+                || glGetInteger(GL_PATCH_VERTICES) != 3)
+            throw new IllegalStateException("Raster or pack state query differs");
+        try {
+            glPixelStorei(GL_PACK_SKIP_IMAGES, 1);
+            throw new IllegalStateException("Volume pack layout was accepted");
+        } catch (UnsupportedOperationException expected) {
+        }
+        glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR, GL_REPLACE);
+        glStencilFuncSeparate(GL_BACK, GL_LEQUAL, 0, 0xff);
+        boolean stencil = glGetInteger(GL_STENCIL_BACK_FAIL) == GL_KEEP
+                && glGetInteger(GL_STENCIL_BACK_PASS_DEPTH_FAIL) == GL_INCR
+                && glGetInteger(GL_STENCIL_BACK_PASS_DEPTH_PASS) == GL_REPLACE
+                && glGetInteger(GL_STENCIL_BACK_FUNC) == GL_LEQUAL;
+        glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_KEEP);
+        glStencilFuncSeparate(GL_BACK, GL_ALWAYS, 0, 0xff);
+        if (!stencil) throw new IllegalStateException("Back stencil state query differs");
+        int renderbuffer = glGenRenderbuffers();
+        glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
+        int bound = glGetInteger(GL_RENDERBUFFER_BINDING);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        glDeleteRenderbuffers(renderbuffer);
+        if (bound != renderbuffer || glGetInteger(GL_RENDERBUFFER_BINDING) != 0)
+            throw new IllegalStateException("Renderbuffer binding query differs");
+        int first = GL45.glCreateTextures(GL_TEXTURE_2D), second = GL45.glCreateTextures(GL_TEXTURE_2D);
+        int fbo = glGenFramebuffers();
+        try {
+            for (int texture : new int[] {first, second}) GL45.glTextureStorage2D(texture, 1, GL_RGBA8, 2, 2);
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, first, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, second, 0);
+            glDrawBuffers(new int[] {GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT0});
+            if (glGetInteger(GL_DRAW_BUFFER0) != GL_COLOR_ATTACHMENT1
+                    || glGetInteger(GL_DRAW_BUFFER1) != GL_COLOR_ATTACHMENT0
+                    || glGetInteger(GL_DRAW_BUFFER2) != GL_NONE)
+                throw new IllegalStateException("Draw buffer queries differ");
+        } finally {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glDeleteFramebuffers(fbo);
+            glDeleteTextures(first);
+            glDeleteTextures(second);
         }
     }
 

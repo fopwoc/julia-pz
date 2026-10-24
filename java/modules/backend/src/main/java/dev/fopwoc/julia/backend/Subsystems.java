@@ -1,6 +1,7 @@
 package dev.fopwoc.julia.backend;
 
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
+import dev.fopwoc.julia.backend.compat.ReportedState;
 import dev.fopwoc.julia.backend.diagnostic.DrawTrace;
 import dev.fopwoc.julia.backend.framebuffer.BlendEquations;
 import dev.fopwoc.julia.backend.framebuffer.ColorMasks;
@@ -43,6 +44,7 @@ public final class Subsystems implements AutoCloseable {
     private final IntOpenHashSet bufferObjects = new IntOpenHashSet();
     private final Queries queries = new Queries(SdlTimestamps::new, SdlOcclusionQueries::new);
     private final GpuSyncs syncs = new GpuSyncs();
+    private final ReportedState reported = new ReportedState();
 
     public static Subsystems current() {
         return Upstream.ownedBackend().subsystems();
@@ -106,6 +108,10 @@ public final class Subsystems implements AutoCloseable {
 
     public Queries queries() {
         return queries;
+    }
+
+    public ReportedState reported() {
+        return reported;
     }
 
     public GpuSyncs syncs() {

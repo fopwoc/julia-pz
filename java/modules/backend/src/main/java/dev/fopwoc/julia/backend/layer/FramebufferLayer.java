@@ -39,6 +39,32 @@ public abstract class FramebufferLayer extends BufferLayer {
     }
 
     @Override
+    public void polygonOffset(float factor, float units) {
+        subsystems().reported().polygonOffsetFactor = factor;
+        subsystems().reported().polygonOffsetUnits = units;
+        super.polygonOffset(factor, units);
+    }
+
+    @Override
+    public void polygonOffsetClamp(float factor, float units, float clamp) {
+        subsystems().reported().polygonOffsetFactor = factor;
+        subsystems().reported().polygonOffsetUnits = units;
+        super.polygonOffsetClamp(factor, units, clamp);
+    }
+
+    @Override
+    public void bindRenderbuffer(int target, int name) {
+        super.bindRenderbuffer(target, name);
+        subsystems().reported().renderbuffer = name;
+    }
+
+    @Override
+    public void deleteRenderbuffers(int name) {
+        if (subsystems().reported().renderbuffer == name) subsystems().reported().renderbuffer = 0;
+        super.deleteRenderbuffers(name);
+    }
+
+    @Override
     public void bindFramebuffer(int target, int name) {
         super.bindFramebuffer(target, name);
         if (target != GL_READ_FRAMEBUFFER) subsystems().framebuffers().bound(Upstream.context().boundFboId);

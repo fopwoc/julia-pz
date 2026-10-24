@@ -33,7 +33,10 @@ public abstract class TextureLayer extends FramebufferLayer {
             if (parameter == GL_UNPACK_IMAGE_HEIGHT) subsystems().volumeUnpack().imageHeight = value;
             else subsystems().volumeUnpack().skipImages = value;
         } else if (parameter == GL_UNPACK_SWAP_BYTES) subsystems().volumeUnpack().swapBytes = value != 0;
-        else super.pixelStorei(parameter, value);
+        else if (parameter == GL_PACK_IMAGE_HEIGHT || parameter == GL_PACK_SKIP_IMAGES) {
+            // Volume readback is not implemented, so only the default layout can be honoured; callers restore it.
+            if (value != 0) throw new UnsupportedOperationException("3D pixel-pack layout not implemented");
+        } else super.pixelStorei(parameter, value);
     }
 
     @Override
