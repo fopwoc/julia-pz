@@ -12,10 +12,11 @@ import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.texture.SamplerLayout;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
+import dev.fopwoc.julia.backend.texture.TextureTable;
 import dev.fopwoc.julia.backend.utils.Sdl;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import java.util.WeakHashMap;
 import java.util.function.Supplier;
 import org.lwjgl.sdl.SDL_GPUBufferCreateInfo;
@@ -27,15 +28,6 @@ import org.lwjgl.system.MemoryUtil;
 
 /** GL buffer-texture attachments own views, not copies; replacement follows the buffer object's current store. */
 public final class BufferTextures implements AutoCloseable {
-    private static final class View {
-        int buffer;
-        BufferTextureFormat format;
-        long offset, size, bufferHandle, identity, texture;
-        boolean whole, deleted;
-        long readEpoch = -1;
-        int texels;
-    }
-
     /** Reserved names below every GL name; one 16-byte texel of the sampler's scalar type. */
     private enum Placeholder {
         FLOAT(GL_SAMPLER_BUFFER, BufferTextureFormat.RGBA32F),
@@ -67,9 +59,10 @@ public final class BufferTextures implements AutoCloseable {
 
     private final Supplier<BufferTextureDriver> factory;
     private final TextureBindings bindings;
+    private final TextureTable textures;
     private BufferTextureDriver driver;
-    // Checked on every texture bind and sampler resolution, so names stay unboxed.
-    private final Int2ObjectOpenHashMap<View> views = new Int2ObjectOpenHashMap<>();
+    // Every live attachment; each name's own view sits on its texture record for per-draw lookups.
+    private final ReferenceOpenHashSet<BufferTextureView> views = new ReferenceOpenHashSet<>();
     // Buffers sampled through a view since the last submission, so sub-data uploads need not scan every view.
     private final IntOpenHashSet readBuffers = new IntOpenHashSet();
     // Live views per retained SDL buffer handle, so buffer retirement need not scan every view.
@@ -93,9 +86,15 @@ public final class BufferTextures implements AutoCloseable {
         readBuffers.clear();
     }
 
-    public BufferTextures(Supplier<BufferTextureDriver> factory, TextureBindings bindings) {
+    public BufferTextures(Supplier<BufferTextureDriver> factory, TextureBindings bindings, TextureTable textures) {
         this.factory = factory;
         this.bindings = bindings;
+        this.textures = textures;
+    }
+
+    private BufferTextureView view(int name) {
+        var texture = textures.get(name);
+        return texture == null ? null : texture.buffer();
     }
 
     private BufferTextureDriver driver() {
@@ -129,11 +128,15 @@ public final class BufferTextures implements AutoCloseable {
     public void bindTexture(int unit, int name) {
         if (name < 0) throw new IllegalArgumentException("Negative buffer texture name");
         if (name != 0) {
-            var subsystems = Subsystems.current();
-            if (subsystems.textureObjects().contains(name))
+            var texture = textures.getOrCreate(name);
+            if (texture.target() != 0)
                 throw new IllegalArgumentException("Texture target cannot change to GL_TEXTURE_BUFFER");
-            if (!views.containsKey(name)) views.put(name, new View());
-            subsystems.textureViews().bound(name);
+            if (texture.buffer() == null) {
+                var view = new BufferTextureView();
+                texture.buffer(view);
+                views.add(view);
+            }
+            Subsystems.current().textureViews().bound(name);
         }
         if (bound[unit] != name) {
             bound[unit] = name;
@@ -142,19 +145,20 @@ public final class BufferTextures implements AutoCloseable {
     }
 
     public void ordinaryTextureBound(int name) {
-        if (name != 0 && views.containsKey(name))
+        if (name != 0 && view(name) != null)
             throw new IllegalArgumentException("Buffer texture rebound to an ordinary target");
     }
 
     public boolean contains(int name) {
-        return views.containsKey(name) || Placeholder.named(name) != null;
+        return view(name) != null || Placeholder.named(name) != null;
     }
 
     public void attach(int name, int format, int buffer, long offset, long size, boolean whole) {
-        if (name == 0 || !views.containsKey(name)) throw new IllegalArgumentException("No buffer texture is bound");
+        var old = name == 0 ? null : view(name);
+        if (old == null) throw new IllegalArgumentException("No buffer texture is bound");
         var layout = BufferTextureFormat.get(format);
         if (buffer == 0) {
-            var view = views.get(name);
+            var view = old;
             clear(view);
             view.format = layout;
             Upstream.context().samplerBindGen++;
@@ -172,8 +176,7 @@ public final class BufferTextures implements AutoCloseable {
                 || offset > actualSize
                 || length > actualSize - offset
                 || offset % alignment() != 0) throw new IllegalArgumentException("Invalid buffer texture range");
-        var old = views.get(name);
-        var view = new View();
+        var view = new BufferTextureView();
         view.buffer = buffer;
         view.format = layout;
         view.offset = offset;
@@ -185,12 +188,14 @@ public final class BufferTextures implements AutoCloseable {
             clear(view);
             throw failure;
         }
-        views.put(name, view);
+        textures.get(name).buffer(view);
+        views.remove(old);
+        views.add(view);
         clear(old);
         Upstream.context().samplerBindGen++;
     }
 
-    private void refresh(View view) {
+    private void refresh(BufferTextureView view) {
         var resources = Upstream.resources();
         long handle = view.deleted ? view.bufferHandle : resources.getBufferHandle(view.buffer);
         long length = view.deleted ? view.size : view.whole ? resources.getBufferSize(view.buffer) : view.size;
@@ -278,7 +283,7 @@ public final class BufferTextures implements AutoCloseable {
     public long samplingHandle(int name) {
         var placeholder = Placeholder.named(name);
         if (placeholder != null) return placeholder(placeholder);
-        var view = views.get(name);
+        var view = view(name);
         if (view == null) throw new IllegalArgumentException("Unknown buffer texture");
         if (view.buffer == 0) throw new IllegalStateException("Buffer texture has no attached storage");
         if (!view.deleted) {
@@ -348,7 +353,7 @@ public final class BufferTextures implements AutoCloseable {
 
     public int levelParameter(int name, int level, int parameter) {
         if (level != 0) throw new IllegalArgumentException("Buffer textures have only level zero");
-        var view = views.get(name);
+        var view = view(name);
         if (view == null) throw new IllegalArgumentException("Unknown buffer texture");
         if (view.buffer != 0 && !view.deleted) refresh(view);
         return switch (parameter) {
@@ -372,11 +377,11 @@ public final class BufferTextures implements AutoCloseable {
         return retained.containsKey(handle);
     }
 
-    private void track(View view) {
+    private void track(BufferTextureView view) {
         if (view.texture != 0) retained.addTo(view.bufferHandle, 1);
     }
 
-    private void untrack(View view) {
+    private void untrack(BufferTextureView view) {
         if (view.texture == 0) return;
         if (retained.addTo(view.bufferHandle, -1) == 1) retained.remove(view.bufferHandle);
     }
@@ -385,16 +390,21 @@ public final class BufferTextures implements AutoCloseable {
         if (boundBuffer == name) boundBuffer = 0;
         // A recycled name is a different buffer; views of the deleted one never invalidate its uploads.
         readBuffers.remove(name);
-        for (var view : views.values()) if (view.buffer == name) view.deleted = true;
+        for (var view : views) if (view.buffer == name) view.deleted = true;
     }
 
     public void deleteTexture(int name) {
-        var view = views.remove(name);
-        if (view != null) clear(view);
+        var texture = textures.get(name);
+        var view = texture == null ? null : texture.buffer();
+        if (view != null) {
+            texture.buffer(null);
+            views.remove(view);
+            clear(view);
+        }
         for (int unit = 0; unit < bound.length; unit++) if (bound[unit] == name) bound[unit] = 0;
     }
 
-    private void clear(View view) {
+    private void clear(BufferTextureView view) {
         untrack(view);
         if (view.texture != 0) driver().release(view.texture);
         view.texture = view.bufferHandle = view.identity = view.offset = view.size = 0;
@@ -412,7 +422,7 @@ public final class BufferTextures implements AutoCloseable {
             SDL_ReleaseGPUBuffer(device(), placeholderBuffer);
             placeholderBuffer = 0;
         }
-        for (var view : views.values()) clear(view);
+        for (var view : views) clear(view);
         views.clear();
         retained.clear();
         readBuffers.clear();

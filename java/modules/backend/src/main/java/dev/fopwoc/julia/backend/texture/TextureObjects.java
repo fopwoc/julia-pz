@@ -13,35 +13,44 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.utils.Sdl;
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 
 /** Object identity and immutable allocation without modifying active units or texture bindings. */
 public final class TextureObjects {
-    // Bound on every texture bind, so names stay unboxed; GL texture targets are never 0.
-    private final Int2IntOpenHashMap targets = new Int2IntOpenHashMap();
+    private final TextureTable textures;
+
+    public TextureObjects(TextureTable textures) {
+        this.textures = textures;
+    }
 
     public void bound(int name, int target) {
         if (name == 0) return;
-        int previous = targets.putIfAbsent(name, target);
-        if (previous != 0 && previous != target) throw new IllegalArgumentException("Texture target cannot change");
+        var texture = textures.getOrCreate(name);
+        if (texture.target == 0) texture.target = target;
+        else if (texture.target != target) throw new IllegalArgumentException("Texture target cannot change");
     }
 
     /** Whether {@code name} was already bound or created with {@code target}; the default name 0 always is. */
     public boolean known(int name, int target) {
-        return name == 0 || targets.get(name) == target;
+        if (name == 0) return true;
+        var texture = textures.get(name);
+        return texture != null && texture.target == target;
     }
 
     public boolean contains(int name) {
-        return targets.containsKey(name);
+        var texture = textures.get(name);
+        return texture != null && texture.target != 0;
     }
 
+    /** GL forgets the target with the name; the record itself goes once every subsystem has seen the deletion. */
     public void deleted(int name) {
-        targets.remove(name);
+        var texture = textures.get(name);
+        if (texture != null) texture.target = 0;
     }
 
     public int target(int name) {
         var meta = Upstream.resources().getTextureMeta(name);
-        int target = targets.get(name);
+        var texture = textures.get(name);
+        int target = texture == null ? 0 : texture.target;
         if (target == 0 && meta != null) target = meta.glTarget();
         if (name == 0 || target == 0) throw new IllegalArgumentException("Named texture does not exist: " + name);
         return target;

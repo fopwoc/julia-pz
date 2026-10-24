@@ -13,6 +13,7 @@ import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.sync.GpuSyncs;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.texture.TextureObjects;
+import dev.fopwoc.julia.backend.texture.TextureTable;
 import dev.fopwoc.julia.backend.texture.TextureViews;
 import dev.fopwoc.julia.backend.texture.VolumeUnpack;
 import dev.fopwoc.julia.backend.texture.buffer.BufferTextures;
@@ -30,10 +31,11 @@ public final class Subsystems implements AutoCloseable {
     private final Framebuffers framebuffers = new Framebuffers();
     private final ColorMasks colorMasks = new ColorMasks();
     private final DrawTrace drawTrace = new DrawTrace();
+    private final TextureTable textures = new TextureTable();
     private final TextureBindings textureBindings = new TextureBindings();
-    private final TextureObjects textureObjects = new TextureObjects();
-    private final TextureViews textureViews = new TextureViews();
-    private final BufferTextures bufferTextures = new BufferTextures(SdlBufferTextures::new, textureBindings);
+    private final TextureObjects textureObjects = new TextureObjects(textures);
+    private final TextureViews textureViews = new TextureViews(textures);
+    private final BufferTextures bufferTextures = new BufferTextures(SdlBufferTextures::new, textureBindings, textures);
     private final WeakHashMap<ContextState, VolumeUnpack> volumeUnpack = new WeakHashMap<>();
     private final IntOpenHashSet bufferObjects = new IntOpenHashSet();
     private final Queries queries = new Queries(SdlTimestamps::new, SdlOcclusionQueries::new);
@@ -61,6 +63,11 @@ public final class Subsystems implements AutoCloseable {
 
     public Framebuffers framebuffers() {
         return framebuffers;
+    }
+
+    /** Per-name texture records shared by the texture subsystems. */
+    public TextureTable textures() {
+        return textures;
     }
 
     public TextureBindings textureBindings() {
@@ -106,5 +113,6 @@ public final class Subsystems implements AutoCloseable {
         programResources.clear();
         shaderPrograms.close();
         textureViews.close();
+        textures.clear();
     }
 }

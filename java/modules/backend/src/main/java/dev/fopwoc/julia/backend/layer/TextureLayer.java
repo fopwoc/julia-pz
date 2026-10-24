@@ -215,6 +215,7 @@ public abstract class TextureLayer extends FramebufferLayer {
         subsystems().textureViews().beforeDelete(name);
         super.deleteTextures(name);
         subsystems().textureViews().deleted(name, handle);
+        subsystems().textures().deleted(name);
     }
 
     @Override

@@ -13,9 +13,6 @@ import com.gtnewhorizons.angelica.sdlgpu.sampler.SamplerLookup;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.sdl.SdlTextureViews;
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -23,44 +20,56 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 
 /** Same-format 2D/array views share physical storage while retaining independent texture state. */
 public final class TextureViews implements AutoCloseable {
-    private final TextureMipSampling mips = new TextureMipSampling();
-    // Sampling consults these on every draw, so texture names stay unboxed.
-    private final IntOpenHashSet fresh = new IntOpenHashSet();
-    private final IntOpenHashSet immutable = new IntOpenHashSet();
-    /** Only stencil-mode textures; every other texture samples depth, the GL default. */
-    private final Int2IntOpenHashMap modes = new Int2IntOpenHashMap();
+    private final TextureTable textures;
+    private final TextureMipSampling mips;
+    // Live counts of flagged records, so per-draw and per-dispatch checks skip the common case.
+    private int stencilTextures, viewTextures;
 
-    private final IntOpenHashSet views = new IntOpenHashSet();
     private final Long2ObjectOpenHashMap<StencilSampling> stencil = new Long2ObjectOpenHashMap<>();
-    private final Int2ObjectOpenHashMap<TextureViewRange> ranges = new Int2ObjectOpenHashMap<>();
     // Consulted for every sampled texture and before every draw, so handles stay unboxed.
     private final Long2ObjectOpenHashMap<LongOpenHashSet> shared = new Long2ObjectOpenHashMap<>();
     private final LongArrayList pendingShared = new LongArrayList();
     private boolean resolvingSharedClears;
 
+    public TextureViews(TextureTable textures) {
+        this.textures = textures;
+        mips = new TextureMipSampling(textures);
+    }
+
     public void generated(int name) {
-        fresh.add(name);
+        textures.getOrCreate(name).fresh = true;
     }
 
     public void bound(int name) {
-        fresh.remove(name);
+        var texture = textures.get(name);
+        if (texture != null) texture.fresh = false;
     }
 
     public void immutable(int name) {
-        immutable.add(name);
+        textures.getOrCreate(name).immutable = true;
+    }
+
+    private static boolean immutable(TextureTable.Texture texture) {
+        return texture != null && texture.immutable;
+    }
+
+    private static boolean stencil(TextureTable.Texture texture) {
+        return texture != null && texture.stencil;
     }
 
     public void create(
             int name, int target, int original, int format, int minLevel, int levels, int minLayer, int layers) {
         var resources = Upstream.resources();
         var meta = resources.getTextureMeta(original);
-        if (!fresh.contains(name) || name == original || resources.getTextureHandle(name) != 0) {
+        var destination = textures.get(name);
+        var parent = textures.get(original);
+        if (destination == null || !destination.fresh || name == original || resources.getTextureHandle(name) != 0) {
             throw new IllegalArgumentException("Texture view requires a fresh generated, unbound destination name");
         }
-        if (!immutable.contains(original) || meta == null || resources.getTextureHandle(original) == 0) {
+        if (!immutable(parent) || meta == null || resources.getTextureHandle(original) == 0) {
             throw new IllegalArgumentException("Texture view requires immutable source storage");
         }
-        var sourceRange = ranges.getOrDefault(original, TextureViewRange.storage(meta));
+        var sourceRange = parent.range != null ? parent.range : TextureViewRange.storage(meta);
         var range = sourceRange.subset(meta, target, format, minLevel, levels, minLayer, layers);
         long source = resources.getTextureHandle(original);
         // Resolve queued parent clears/uploads before exposing an independently addressed native handle.
@@ -97,10 +106,11 @@ public final class TextureViews implements AutoCloseable {
                 if (!registered) SDL_ReleaseGPUTexture(SDLGPUGate.device().getDevice(), handle);
             }
         }
-        ranges.put(name, range);
-        fresh.remove(name);
-        immutable.add(name);
-        views.add(name);
+        destination.range = range;
+        destination.fresh = false;
+        destination.immutable = true;
+        if (!destination.view) viewTextures++;
+        destination.view = true;
     }
 
     public static void validate(
@@ -171,7 +181,7 @@ public final class TextureViews implements AutoCloseable {
     }
 
     public void beforeAllocation(int name) {
-        if (immutable.contains(name)) throw new IllegalStateException("Cannot redefine immutable texture storage");
+        if (immutable(textures.get(name))) throw new IllegalStateException("Cannot redefine immutable texture storage");
         mips.release(Upstream.resources().getTextureHandle(name));
     }
 
@@ -190,8 +200,10 @@ public final class TextureViews implements AutoCloseable {
                 throw new UnsupportedOperationException("Stencil sampling requires one-level 2D depth/stencil storage");
             }
         }
-        if (value == GL_STENCIL_INDEX) modes.put(name, value);
-        else modes.remove(name);
+        var texture = textures.getOrCreate(name);
+        boolean stencilMode = value == GL_STENCIL_INDEX;
+        if (texture.stencil != stencilMode) stencilTextures += stencilMode ? 1 : -1;
+        texture.stencil = stencilMode;
         Upstream.context().samplerBindGen++;
         return true;
     }
@@ -200,12 +212,13 @@ public final class TextureViews implements AutoCloseable {
         var mip = mips.parameter(name, parameter);
         if (mip != null) return mip;
         var meta = Upstream.resources().getTextureMeta(name);
-        var range = meta == null || !immutable.contains(name)
+        var texture = textures.get(name);
+        var range = meta == null || !immutable(texture)
                 ? null
-                : ranges.getOrDefault(name, TextureViewRange.storage(meta));
+                : texture.range != null ? texture.range : TextureViewRange.storage(meta);
         return switch (parameter) {
-            case GL_DEPTH_STENCIL_TEXTURE_MODE -> modes.getOrDefault(name, GL_DEPTH_COMPONENT);
-            case GL_TEXTURE_IMMUTABLE_FORMAT -> immutable.contains(name) ? GL_TRUE : GL_FALSE;
+            case GL_DEPTH_STENCIL_TEXTURE_MODE -> stencil(texture) ? GL_STENCIL_INDEX : GL_DEPTH_COMPONENT;
+            case GL_TEXTURE_IMMUTABLE_FORMAT -> immutable(texture) ? GL_TRUE : GL_FALSE;
             case GL_TEXTURE_IMMUTABLE_LEVELS -> range == null ? 0 : range.immutableLevels();
             case GL_TEXTURE_VIEW_MIN_LEVEL -> range == null ? 0 : range.minLevel();
             case GL_TEXTURE_VIEW_MIN_LAYER -> range == null ? 0 : range.minLayer();
@@ -231,19 +244,20 @@ public final class TextureViews implements AutoCloseable {
             var family = shared.remove(handle);
             if (family != null) family.remove(handle);
         }
-        mips.deleted(name);
-        ranges.remove(name);
-        fresh.remove(name);
-        immutable.remove(name);
-        views.remove(name);
-        modes.remove(name);
+        var texture = textures.get(name);
+        if (texture == null) return;
+        if (texture.view) viewTextures--;
+        if (texture.stencil) stencilTextures--;
+        texture.mip = null;
+        texture.range = null;
+        texture.fresh = texture.immutable = texture.view = texture.stencil = false;
     }
 
     public void beforeCompute() {
         flushSharedClears();
-        if (modes.isEmpty()) return;
+        if (stencilTextures == 0) return;
         for (int name : Upstream.context().boundTextures) {
-            if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) == GL_STENCIL_INDEX) {
+            if (stencil(textures.get(name))) {
                 throw new UnsupportedOperationException(
                         "Compute dispatch with a bound stencil-aspect texture is unsupported");
             }
@@ -252,7 +266,7 @@ public final class TextureViews implements AutoCloseable {
 
     public void prepare(ContextState state) {
         flushSharedClears();
-        if (modes.isEmpty()) return;
+        if (stencilTextures == 0) return;
         var program = Upstream.shaders().getProgram(state.boundProgram);
         if (program == null || !program.linked) return;
         var done = new LongOpenHashSet();
@@ -260,7 +274,7 @@ public final class TextureViews implements AutoCloseable {
             int[] units = SamplerLookup.resolvedUnits(program, fragment);
             for (int slot = 0; slot < units.length; slot++) {
                 int name = Subsystems.current().bufferTextures().samplerBinding(state, units[slot], slot, fragment);
-                if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) != GL_STENCIL_INDEX) continue;
+                if (!stencil(textures.get(name))) continue;
                 long handle = Upstream.resources().getTextureHandle(name);
                 if (handle == 0 || !done.add(handle)) continue;
                 var meta = Upstream.resources().getTextureMeta(name);
@@ -272,8 +286,8 @@ public final class TextureViews implements AutoCloseable {
 
     public long samplingHandle(ResourceManager resources, int name) {
         long handle = resources.getTextureHandle(name);
-        if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) != GL_STENCIL_INDEX)
-            return mips.handle(resources, name, handle, immutable);
+        var texture = textures.get(name);
+        if (!stencil(texture)) return mips.handle(resources, name, texture, handle);
         var sampling = stencil.get(handle);
         if (sampling == null) throw new IllegalStateException("Stencil view was not prepared before sampling");
         return sampling.texture();
@@ -281,17 +295,13 @@ public final class TextureViews implements AutoCloseable {
 
     @Override
     public void close() {
-        if (!views.isEmpty() || mips.hasViews()) Upstream.flushTextureReferences();
+        if (viewTextures != 0 || mips.hasViews()) Upstream.flushTextureReferences();
         mips.close();
         for (var sampler : stencil.values()) sampler.close();
         stencil.clear();
         // Upstream shutdown releases one handle per name. Keep one name per physical allocation.
-        if (!views.isEmpty()) Upstream.deduplicateTextures();
-        ranges.clear();
+        if (viewTextures != 0) Upstream.deduplicateTextures();
         shared.clear();
-        fresh.clear();
-        immutable.clear();
-        modes.clear();
-        views.clear();
+        stencilTextures = viewTextures = 0;
     }
 }

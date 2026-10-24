@@ -10,28 +10,34 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.sdl.SdlTextureViews;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import java.util.HashMap;
 import java.util.Map;
 
 /** Native sampling views implement base-relative fetches and restrict LOD without changing FBO mip addressing. */
 final class TextureMipSampling implements AutoCloseable {
-    // Read for every sampled texture on every draw, so names stay unboxed.
-    private final Int2ObjectOpenHashMap<TextureMipRange> ranges = new Int2ObjectOpenHashMap<>();
+    private final TextureTable textures;
     private final Long2ObjectOpenHashMap<Map<TextureMipRange, Long>> views = new Long2ObjectOpenHashMap<>();
+
+    TextureMipSampling(TextureTable textures) {
+        this.textures = textures;
+    }
+
+    private static TextureMipRange range(TextureTable.Texture texture) {
+        return texture == null || texture.mip == null ? TextureMipRange.DEFAULT : texture.mip;
+    }
 
     boolean parameter(int name, int parameter, int value) {
         if (parameter != GL_TEXTURE_BASE_LEVEL && parameter != GL_TEXTURE_MAX_LEVEL) return false;
-        var old = ranges.getOrDefault(name, TextureMipRange.DEFAULT);
+        var texture = textures.getOrCreate(name);
+        var old = range(texture);
         var next = parameter == GL_TEXTURE_BASE_LEVEL
                 ? new TextureMipRange(value, old.max())
                 : new TextureMipRange(old.base(), value);
         if (!old.equals(next)) {
             // Queued draws must consume the previous image range before a texture parameter changes.
             Upstream.flushTextureReferences();
-            ranges.put(name, next);
+            texture.mip = next;
             Upstream.textureMipParameter(name, parameter, value);
             Upstream.context().samplerBindGen++;
         }
@@ -39,7 +45,7 @@ final class TextureMipSampling implements AutoCloseable {
     }
 
     Integer parameter(int name, int parameter) {
-        var range = ranges.getOrDefault(name, TextureMipRange.DEFAULT);
+        var range = range(textures.get(name));
         return switch (parameter) {
             case GL_TEXTURE_BASE_LEVEL -> range.base();
             case GL_TEXTURE_MAX_LEVEL -> range.max();
@@ -48,14 +54,14 @@ final class TextureMipSampling implements AutoCloseable {
     }
 
     /** Runs for every sampled texture on every draw; the full-range default needs no texture metadata. */
-    long handle(ResourceManager resources, int name, long source, IntSet immutable) {
-        if (source == 0) return source;
-        var requested = ranges.get(name);
+    long handle(ResourceManager resources, int name, TextureTable.Texture texture, long source) {
+        if (source == 0 || texture == null) return source;
+        var requested = texture.mip;
         if (requested == null || requested.base() == 0 && requested.max() >= TextureMipRange.DEFAULT.max())
             return source;
         var meta = resources.getTextureMeta(name);
         if (meta == null || requested.base() == 0 && requested.max() >= meta.levels() - 1) return source;
-        var range = requested.effective(meta.levels(), immutable.contains(name));
+        var range = requested.effective(meta.levels(), texture.immutable);
         if (range.base() == 0 && range.levels() == meta.levels()) return source;
         if (meta.glTarget() != GL_TEXTURE_2D && meta.glTarget() != GL_TEXTURE_2D_ARRAY)
             throw new UnsupportedOperationException("Sampling a restricted mip range requires a 2D or array texture");
@@ -73,10 +79,6 @@ final class TextureMipSampling implements AutoCloseable {
                                 meta.depth()));
     }
 
-    void deleted(int name) {
-        ranges.remove(name);
-    }
-
     void release(long source) {
         var cached = views.remove(source);
         if (cached == null) return;
@@ -91,6 +93,5 @@ final class TextureMipSampling implements AutoCloseable {
     @Override
     public void close() {
         for (long source : views.keySet().toLongArray()) release(source);
-        ranges.clear();
     }
 }
