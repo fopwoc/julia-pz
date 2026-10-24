@@ -86,11 +86,12 @@ Julia is a Java agent that starts with the game. It never patches game files on 
 1. Get `julia-agent.jar`: subscribe to the Workshop item and take it from its `libs/` folder, or download
    `julia-<version>-agent.jar` from the releases page and save it as `julia-agent.jar`. On Windows,
    also take `julia.dll` from the same `libs/` folder, or `julia-<version>-windows-loader.dll` saved as `julia.dll`.
-2. Optional: check that the jar was built by this repository's release workflow, with the
+2. Optional: check that the jar (and `julia.dll`) were built by this repository's release workflow, with the
    [GitHub CLI](https://cli.github.com):
 
    ```sh
    gh attestation verify julia-agent.jar --repo fopwoc/julia-pz
+   gh attestation verify julia.dll --repo fopwoc/julia-pz
    ```
 
 3. Copy it (and on Windows `julia.dll`) into the game's Java directory:

@@ -80,11 +80,13 @@ jobs:
             cat <<NOTES
 
           ## Verify
-          The agent jar is built and signed by this repository's release workflow. Check any copy, including the one in
-          the Workshop item (\`libs/julia-agent.jar\`), with the GitHub CLI:
+          The agent jar and the Windows loader are built and signed by this repository's release workflow. Check any
+          copy, including the ones in the Workshop item (\`libs/julia-agent.jar\`, \`libs/julia.dll\`), with the
+          GitHub CLI:
 
           \`\`\`
           gh attestation verify julia-agent.jar --repo $GITHUB_REPOSITORY
+          gh attestation verify julia.dll --repo $GITHUB_REPOSITORY
           \`\`\`
 
           \`\`\`
