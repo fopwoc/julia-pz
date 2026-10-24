@@ -158,7 +158,9 @@ final class MapQuadChecks {
                     for (int i = 0; i < 64; i++)
                         for (int c = 0; c < 4; c++) {
                             int expected = c == 3 ? 255 : c == (i % 2 == 0 ? 0 : 1) ? run == 0 ? 255 : 128 : 0;
-                            if ((pixels[i * 4 + c] & 255) != expected)
+                            // Fractional UNORM conversion can differ by one byte across GPU backends.
+                            int tolerance = expected == 128 ? 1 : 0;
+                            if (Math.abs((pixels[i * 4 + c] & 255) - expected) > tolerance)
                                 throw new IllegalStateException("Map quad framebuffer=" + framebuffer + " run=" + run
                                         + " pixel=" + i + " channel=" + c + " got=" + (pixels[i * 4 + c] & 255)
                                         + " expected=" + expected);

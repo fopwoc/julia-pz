@@ -12,12 +12,17 @@ import java.nio.file.Path;
 
 /** Both shader stages must see uniforms past the first 4 KiB of a default block. */
 final class LargeUniformChecks {
-    private static final int COUNT = 600;
-
     private LargeUniformChecks() {}
 
     static void run(Path output) throws IOException {
-        int program = program(), target = glGenTextures(), fbo = glGenFramebuffers();
+        for (int count : new int[] {600, 3000}) check(count);
+        Files.writeString(
+                output.resolve("large-uniforms.txt"),
+                "PASS\nchecks=9600-byte and 48000-byte vertex/fragment arrays,tail uniforms,repeated updates,pool rollover\n");
+    }
+
+    private static void check(int count) {
+        int program = program(count), target = glGenTextures(), fbo = glGenFramebuffers();
         try {
             glBindTexture(GL_TEXTURE_2D, target);
             glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1, 1);
@@ -28,13 +33,14 @@ final class LargeUniformChecks {
             glDisable(GL_BLEND);
             glDisable(GL_SCISSOR_TEST);
             glUseProgram(program);
-            float[] values = new float[COUNT * 4];
+            float[] values = new float[count * 4];
             for (int i = 0; i < values.length; i++) values[i] = .25f;
             glUniform4fv(glGetUniformLocation(program, "vertexValues"), values);
             glUniform4fv(glGetUniformLocation(program, "fragmentValues"), values);
-            glUniform1i(glGetUniformLocation(program, "index"), COUNT - 1);
+            glUniform1i(glGetUniformLocation(program, "index"), count - 1);
             glUniform3f(glGetUniformLocation(program, "vertexTail"), 1, 1, 1);
-            for (float value : new float[] {.25f, .75f}) {
+            for (int update = 0; update < 12; update++) {
+                float value = (update % 3 + 1) * .25f;
                 glUniform3f(glGetUniformLocation(program, "tail"), value, value, value);
                 glDrawArrays(GL_TRIANGLES, 0, 3);
                 byte[] pixels = ResourceReadback.layer(target, 0);
@@ -44,9 +50,6 @@ final class LargeUniformChecks {
                         throw new IllegalStateException("Large uniform channel " + c + ": got " + (pixels[c] & 255)
                                 + " expected " + expected[c]);
             }
-            Files.writeString(
-                    output.resolve("large-uniforms.txt"),
-                    "PASS\nchecks=9600-byte vertex and fragment arrays,tail uniform,updated tail\n");
         } finally {
             glUseProgram(0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -56,7 +59,7 @@ final class LargeUniformChecks {
         }
     }
 
-    private static int program() {
+    private static int program(int count) {
         String vertex = """
             #version 430 core
             uniform vec4 vertexValues[600];
@@ -82,7 +85,8 @@ final class LargeUniformChecks {
         for (int type : new int[] {GL_VERTEX_SHADER, GL_FRAGMENT_SHADER}) {
             int shader = glCreateShader(type);
             try {
-                glShaderSource(shader, type == GL_VERTEX_SHADER ? vertex : fragment);
+                glShaderSource(
+                        shader, (type == GL_VERTEX_SHADER ? vertex : fragment).replace("[600]", "[" + count + "]"));
                 glCompileShader(shader);
                 if (glGetShaderi(shader, GL_COMPILE_STATUS) == 0)
                     throw new IllegalStateException(glGetShaderInfoLog(shader));
