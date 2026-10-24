@@ -32,7 +32,6 @@ import org.lwjgl.util.spvc.SpvcReflectedResource;
 public final class SamplerLayout {
     private static final System.Logger LOG = System.getLogger(SamplerLayout.class.getName());
 
-    private final ByteBuffer vertex, fragment, compute;
     private final Map<String, Integer> names = new HashMap<>();
     private final Map<String, Integer> targets = new HashMap<>();
     private final int[] unitTargets = new int[TextureBindings.UNIT_COUNT];
@@ -43,17 +42,11 @@ public final class SamplerLayout {
     private final Slots vertexSlots = new Slots(), fragmentSlots = new Slots();
     private boolean warned;
 
+    /** Reads the program's current SPIR-V; {@code LinkedProgram} replaces the layout when the program relinks. */
     public SamplerLayout(ProgramObject program) {
-        vertex = program.vertexSpirv;
-        fragment = program.fragmentSpirv;
-        compute = program.computeSpirv;
-        read(vertex);
-        read(fragment);
-        read(compute);
-    }
-
-    public boolean matches(ProgramObject program) {
-        return vertex == program.vertexSpirv && fragment == program.fragmentSpirv && compute == program.computeSpirv;
+        read(program.vertexSpirv);
+        read(program.fragmentSpirv);
+        read(program.computeSpirv);
     }
 
     public int uniformType(String name, int fallback) {

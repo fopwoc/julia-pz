@@ -89,12 +89,12 @@ public final class ProgramResourceBridge {
     }
 
     private static UniformResources uniforms(int program) {
-        return Subsystems.current()
-                .programResources()
-                .uniforms(Upstream.shaders().getProgram(program));
+        var object = Upstream.shaders().getProgram(program);
+        return Subsystems.current().linkedPrograms().of(object).uniforms(object);
     }
 
     private static ProgramResources resources(int program) {
-        return Subsystems.current().programResources().get(Upstream.shaders().getProgram(program));
+        var object = Upstream.shaders().getProgram(program);
+        return Subsystems.current().linkedPrograms().of(object).resources(object);
     }
 }

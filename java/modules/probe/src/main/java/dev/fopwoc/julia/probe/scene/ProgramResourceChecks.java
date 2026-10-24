@@ -160,13 +160,14 @@ final class ProgramResourceChecks {
                 }
             glUseProgram(0);
             var object = Upstream.shaders().getProgram(program);
-            var before = Subsystems.current().programResources().get(object);
+            var before = Subsystems.current().linkedPrograms().of(object).resources(object);
             compile(vs, VERTEX.replace("instances[2]", "instances[3]"));
             compile(fs, FRAGMENT.replace("instances[2]", "instances[3]"));
             link(program);
             int afterBlock = glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, "InstancedData");
             if (query(program, GL_SHADER_STORAGE_BLOCK, afterBlock, GL_BUFFER_DATA_SIZE)[0] != 192
-                    || before == Subsystems.current().programResources().get(object)) {
+                    || before
+                            == Subsystems.current().linkedPrograms().of(object).resources(object)) {
                 throw new IllegalStateException("Program resource cache survived a changed relink");
             }
         } finally {

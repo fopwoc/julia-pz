@@ -10,6 +10,7 @@ import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
+import dev.fopwoc.julia.backend.shader.LinkedPrograms;
 import dev.fopwoc.julia.backend.texture.SamplerLayout;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
 import dev.fopwoc.julia.backend.texture.TextureTable;
@@ -17,7 +18,6 @@ import dev.fopwoc.julia.backend.utils.Sdl;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
-import java.util.WeakHashMap;
 import java.util.function.Supplier;
 import org.lwjgl.sdl.SDL_GPUBufferCreateInfo;
 import org.lwjgl.sdl.SDL_GPUBufferRegion;
@@ -67,9 +67,7 @@ public final class BufferTextures implements AutoCloseable {
     private final IntOpenHashSet readBuffers = new IntOpenHashSet();
     // Live views per retained SDL buffer handle, so buffer retirement need not scan every view.
     private final Long2IntOpenHashMap retained = new Long2IntOpenHashMap();
-    private final WeakHashMap<ProgramObject, SamplerLayout> layouts = new WeakHashMap<>();
-    private ProgramObject lastProgram;
-    private SamplerLayout lastLayout;
+    private final LinkedPrograms programs;
     private final int[] bound = new int[TextureBindings.UNIT_COUNT];
     private final long[] placeholders = new long[Placeholder.values().length];
     private long placeholderBuffer;
@@ -86,10 +84,15 @@ public final class BufferTextures implements AutoCloseable {
         readBuffers.clear();
     }
 
-    public BufferTextures(Supplier<BufferTextureDriver> factory, TextureBindings bindings, TextureTable textures) {
+    public BufferTextures(
+            Supplier<BufferTextureDriver> factory,
+            TextureBindings bindings,
+            TextureTable textures,
+            LinkedPrograms programs) {
         this.factory = factory;
         this.bindings = bindings;
         this.textures = textures;
+        this.programs = programs;
     }
 
     private BufferTextureView view(int name) {
@@ -235,15 +238,7 @@ public final class BufferTextures implements AutoCloseable {
     }
 
     private SamplerLayout layout(ProgramObject program) {
-        // Read per sampler slot on every draw; the bound program usually repeats, so skip the weak map.
-        var layout = program == lastProgram ? lastLayout : layouts.get(program);
-        if (layout == null || !layout.matches(program)) {
-            layout = new SamplerLayout(program);
-            layouts.put(program, layout);
-        }
-        lastProgram = program;
-        lastLayout = layout;
-        return layout;
+        return programs.of(program).samplers(program);
     }
 
     public int uniformType(ProgramObject program, String name, int fallback) {
@@ -426,8 +421,5 @@ public final class BufferTextures implements AutoCloseable {
         views.clear();
         retained.clear();
         readBuffers.clear();
-        layouts.clear();
-        lastProgram = null;
-        lastLayout = null;
     }
 }

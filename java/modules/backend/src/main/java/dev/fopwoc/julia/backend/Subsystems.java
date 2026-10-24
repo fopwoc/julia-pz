@@ -8,7 +8,7 @@ import dev.fopwoc.julia.backend.query.Queries;
 import dev.fopwoc.julia.backend.sdl.SdlBufferTextures;
 import dev.fopwoc.julia.backend.sdl.SdlOcclusionQueries;
 import dev.fopwoc.julia.backend.sdl.SdlTimestamps;
-import dev.fopwoc.julia.backend.shader.ProgramResourceCache;
+import dev.fopwoc.julia.backend.shader.LinkedPrograms;
 import dev.fopwoc.julia.backend.shader.ShaderPrograms;
 import dev.fopwoc.julia.backend.sync.GpuSyncs;
 import dev.fopwoc.julia.backend.texture.TextureBindings;
@@ -27,7 +27,7 @@ import java.util.WeakHashMap;
  */
 public final class Subsystems implements AutoCloseable {
     private final ShaderPrograms shaderPrograms = new ShaderPrograms();
-    private final ProgramResourceCache programResources = new ProgramResourceCache();
+    private final LinkedPrograms linkedPrograms = new LinkedPrograms();
     private final Framebuffers framebuffers = new Framebuffers();
     private final ColorMasks colorMasks = new ColorMasks();
     private final DrawTrace drawTrace = new DrawTrace();
@@ -35,7 +35,8 @@ public final class Subsystems implements AutoCloseable {
     private final TextureBindings textureBindings = new TextureBindings();
     private final TextureObjects textureObjects = new TextureObjects(textures);
     private final TextureViews textureViews = new TextureViews(textures);
-    private final BufferTextures bufferTextures = new BufferTextures(SdlBufferTextures::new, textureBindings, textures);
+    private final BufferTextures bufferTextures =
+            new BufferTextures(SdlBufferTextures::new, textureBindings, textures, linkedPrograms);
     private final WeakHashMap<ContextState, VolumeUnpack> volumeUnpack = new WeakHashMap<>();
     private final IntOpenHashSet bufferObjects = new IntOpenHashSet();
     private final Queries queries = new Queries(SdlTimestamps::new, SdlOcclusionQueries::new);
@@ -49,8 +50,9 @@ public final class Subsystems implements AutoCloseable {
         return shaderPrograms;
     }
 
-    public ProgramResourceCache programResources() {
-        return programResources;
+    /** Julia's reflection of each linked upstream program. */
+    public LinkedPrograms linkedPrograms() {
+        return linkedPrograms;
     }
 
     public DrawTrace drawTrace() {
@@ -110,7 +112,7 @@ public final class Subsystems implements AutoCloseable {
         drawTrace.close();
         queries.close();
         bufferTextures.close();
-        programResources.clear();
+        linkedPrograms.clear();
         shaderPrograms.close();
         textureViews.close();
         textures.clear();
