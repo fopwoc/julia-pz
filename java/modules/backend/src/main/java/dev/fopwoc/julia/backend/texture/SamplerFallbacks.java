@@ -28,11 +28,12 @@ public final class SamplerFallbacks implements AutoCloseable {
     private static final int[] FORMATS = {
         SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
         SDL_GPU_TEXTUREFORMAT_R32G32B32A32_INT,
-        SDL_GPU_TEXTUREFORMAT_R32G32B32A32_UINT
+        SDL_GPU_TEXTUREFORMAT_R32G32B32A32_UINT,
+        SDL_GPU_TEXTUREFORMAT_D32_FLOAT
     };
     private final long[] textures = new long[TYPES.length * FORMATS.length];
 
-    public static int name(int target, int scalar) {
+    public static int name(int target, int scalar, boolean shadow) {
         int shape = switch (target) {
             case GL_TEXTURE_2D -> 0;
             case GL_TEXTURE_3D -> 1;
@@ -47,6 +48,10 @@ public final class SamplerFallbacks implements AutoCloseable {
             case SPVC_BASETYPE_UINT32 -> 2;
             default -> throw new UnsupportedOperationException("Incomplete sampler scalar: " + scalar);
         };
+        if (shadow) {
+            if (kind != 0 || target == GL_TEXTURE_3D) throw new IllegalArgumentException("Invalid shadow sampler type");
+            kind = 3;
+        }
         return FIRST - shape * FORMATS.length - kind;
     }
 
@@ -63,7 +68,7 @@ public final class SamplerFallbacks implements AutoCloseable {
 
     private static long create(int shape, int kind) {
         long device = SDLGPUGate.device().getDevice();
-        int layers = shape >= 3 ? 6 : 1, bytes = kind == 0 ? 4 : 16;
+        int layers = shape >= 3 ? 6 : 1, bytes = kind == 0 || kind == 3 ? 4 : 16;
         try (var stack = MemoryStack.stackPush()) {
             long texture = Sdl.require(
                     SDL_CreateGPUTexture(
@@ -71,12 +76,22 @@ public final class SamplerFallbacks implements AutoCloseable {
                             SDL_GPUTextureCreateInfo.calloc(stack)
                                     .type(TYPES[shape])
                                     .format(FORMATS[kind])
-                                    .usage(SDL_GPU_TEXTUREUSAGE_SAMPLER)
+                                    .usage(SDL_GPU_TEXTUREUSAGE_SAMPLER
+                                            | (kind == 3 ? SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET : 0))
                                     .width(1)
                                     .height(1)
                                     .layer_count_or_depth(layers)
                                     .num_levels(1)),
                     "Create incomplete sampler texture");
+            if (kind == 3) {
+                try {
+                    clearDepth(stack, device, texture, layers);
+                    return texture;
+                } catch (RuntimeException | Error failure) {
+                    SDL_ReleaseGPUTexture(device, texture);
+                    throw failure;
+                }
+            }
             long transfer = 0, commands = 0;
             try {
                 transfer = Sdl.require(
@@ -113,6 +128,28 @@ public final class SamplerFallbacks implements AutoCloseable {
             } finally {
                 if (transfer != 0) SDL_ReleaseGPUTransferBuffer(device, transfer);
             }
+        }
+    }
+
+    private static void clearDepth(MemoryStack stack, long device, long texture, int layers) {
+        long commands = Sdl.require(SDL_AcquireGPUCommandBuffer(device), "Acquire shadow placeholder commands");
+        try {
+            var depth = SDL_GPUDepthStencilTargetInfo.calloc(stack)
+                    .texture(texture)
+                    .clear_depth(0)
+                    .load_op(SDL_GPU_LOADOP_CLEAR)
+                    .store_op(SDL_GPU_STOREOP_STORE)
+                    .stencil_load_op(SDL_GPU_LOADOP_DONT_CARE)
+                    .stencil_store_op(SDL_GPU_STOREOP_DONT_CARE);
+            for (int layer = 0; layer < layers; layer++) {
+                depth.layer((byte) layer);
+                long pass = Sdl.require(SDL_BeginGPURenderPass(commands, null, depth), "Clear shadow placeholder");
+                SDL_EndGPURenderPass(pass);
+            }
+            if (!SDL_SubmitGPUCommandBuffer(commands)) throw Sdl.failure("Submit shadow placeholder clear");
+        } catch (RuntimeException | Error failure) {
+            SDL_CancelGPUCommandBuffer(commands);
+            throw failure;
         }
     }
 

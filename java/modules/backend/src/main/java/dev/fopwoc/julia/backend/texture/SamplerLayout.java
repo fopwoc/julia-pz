@@ -18,8 +18,10 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import org.lwjgl.system.MemoryStack;
@@ -35,6 +37,7 @@ public final class SamplerLayout {
     private final Map<String, Integer> names = new HashMap<>();
     private final Map<String, Integer> targets = new HashMap<>();
     private final Map<String, Integer> scalars = new HashMap<>();
+    private final Set<String> shadows = new HashSet<>();
     private final int[] unitTargets = new int[TextureBindings.UNIT_COUNT];
     private int generation = Integer.MIN_VALUE;
     private final int[] bufferTypes = new int[TextureBindings.UNIT_COUNT];
@@ -136,6 +139,14 @@ public final class SamplerLayout {
 
     public int slotScalar(ProgramObject program, int slot, boolean fragment) {
         return scalar(slots(program, fragment).names.get(slot));
+    }
+
+    public boolean slotShadow(ProgramObject program, int slot, boolean fragment) {
+        return shadow(slots(program, fragment).names.get(slot));
+    }
+
+    public boolean shadow(String name) {
+        return shadows.contains(baseName(name));
     }
 
     public int scalar(String name) {
@@ -246,6 +257,7 @@ public final class SamplerLayout {
                             throw new UnsupportedOperationException("Sampler dimension not implemented: " + dimension);
                     };
                     targets.put(resource.nameString(), target);
+                    if (spvc_type_get_image_is_depth(type)) shadows.add(resource.nameString());
                     int scalar = spvc_type_get_basetype(
                             spvc_compiler_get_type_handle(compiler, spvc_type_get_image_sampled_type(type)));
                     scalars.put(resource.nameString(), scalar);

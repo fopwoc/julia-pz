@@ -25,13 +25,18 @@ final class SamplerTargetChecks {
             uniform sampler3D emptyVolume;
             uniform sampler2DArray emptyLayers;
             uniform usampler2DArray emptyUnsigned;
+            uniform sampler2DShadow emptyShadow;
+            uniform sampler2DArrayShadow emptyShadowLayers;
             vec4 readValue(int i) {
                 if (i == 0) return textureLod(flatImage, vec2(.5), 0.);
                 if (i == 1) return textureLod(volume, vec3(.5), 0.);
                 if (i == 2) return textureLod(layers, vec3(.5,.5,0), 0.);
                 if (i == 3) return textureLod(emptyVolume, vec3(.5), 0.);
                 if (i == 4) return textureLod(emptyLayers, vec3(.5,.5,0), 0.);
-                return vec4(texelFetch(emptyUnsigned, ivec3(0), 0));
+                if (i == 5) return vec4(texelFetch(emptyUnsigned, ivec3(0), 0));
+                float shadow = i == 6 ? textureLod(emptyShadow, vec3(.5), 0.)
+                        : texture(emptyShadowLayers, vec4(.5,.5,0,.5));
+                return vec4(vec3(shadow),1);
             }
             """;
 
@@ -40,7 +45,10 @@ final class SamplerTargetChecks {
     static void run(Path output) throws IOException {
         int[] textures = {glGenTextures(), glGenTextures(), glGenTextures(), glGenTextures()};
         int[] targets = {GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_2D_ARRAY};
-        int fbo = glGenFramebuffers(), storage = glGenBuffers(), sampler = glGenSamplers();
+        int fbo = glGenFramebuffers(),
+                storage = glGenBuffers(),
+                sampler = glGenSamplers(),
+                shadowSampler = glGenSamplers();
         int graphics = program(false), compute = program(true);
         try (var stack = MemoryStack.stackPush()) {
             glActiveTexture(GL_TEXTURE5);
@@ -59,12 +67,22 @@ final class SamplerTargetChecks {
             }
             glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glSamplerParameteri(shadowSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glSamplerParameteri(shadowSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glSamplerParameteri(shadowSampler, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+            glSamplerParameteri(shadowSampler, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+            for (int unit : new int[] {8, 9}) {
+                glActiveTexture(GL_TEXTURE0 + unit);
+                glBindTexture(GL_TEXTURE_2D, 0);
+                glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+                glBindSampler(unit, shadowSampler);
+            }
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, textures[3]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 6, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0L);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 8, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0L);
             glBindFramebuffer(GL_FRAMEBUFFER, fbo);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[3], 0);
-            glViewport(0, 0, 6, 1);
+            glViewport(0, 0, 8, 1);
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_BLEND);
             glDisable(GL_SCISSOR_TEST);
@@ -72,25 +90,28 @@ final class SamplerTargetChecks {
             bind(graphics);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             byte[] pixels = ResourceReadback.layer(textures[3], 0);
-            for (int i = 0; i < 6; i++) for (int c = 0; c < 4; c++) verify(i, c, (pixels[i * 4 + c] & 255) / 255f);
+            for (int i = 0; i < 8; i++) for (int c = 0; c < 4; c++) verify(i, c, (pixels[i * 4 + c] & 255) / 255f);
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, storage);
-            glBufferData(GL_SHADER_STORAGE_BUFFER, 6 * 16, GL_DYNAMIC_COPY);
+            glBufferData(GL_SHADER_STORAGE_BUFFER, 8 * 16, GL_DYNAMIC_COPY);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, storage);
             bind(compute);
-            glDispatchCompute(6, 1, 1);
+            glDispatchCompute(8, 1, 1);
             glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
-            var values = stack.mallocFloat(24);
+            var values = stack.mallocFloat(32);
             glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, values);
-            for (int i = 0; i < 6; i++) for (int c = 0; c < 4; c++) verify(i, c, values.get(i * 4 + c));
+            for (int i = 0; i < 8; i++) for (int c = 0; c < 4; c++) verify(i, c, values.get(i * 4 + c));
             Files.writeString(
                     output.resolve("sampler-targets.txt"),
-                    "PASS\nchecks=graphics and compute,shared unit 2D/3D/array,unbound volume/array,unsigned array alpha\n");
+                    "PASS\nchecks=graphics and compute,shared unit 2D/3D/array,unbound volume/array,unsigned array alpha,unbound 2D/array shadow samplers\n");
         } finally {
             glUseProgram(0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
             glBindSampler(6, 0);
             glBindSampler(7, 0);
+            glBindSampler(8, 0);
+            glBindSampler(9, 0);
+            glDeleteSamplers(shadowSampler);
             glDeleteSamplers(sampler);
             glDeleteBuffers(storage);
             glDeleteFramebuffers(fbo);
@@ -112,8 +133,17 @@ final class SamplerTargetChecks {
 
     private static void bind(int program) {
         glUseProgram(program);
-        String[] names = {"flatImage", "volume", "layers", "emptyVolume", "emptyLayers", "emptyUnsigned"};
-        int[] units = {5, 5, 5, 6, 6, 7};
+        String[] names = {
+            "flatImage",
+            "volume",
+            "layers",
+            "emptyVolume",
+            "emptyLayers",
+            "emptyUnsigned",
+            "emptyShadow",
+            "emptyShadowLayers"
+        };
+        int[] units = {5, 5, 5, 6, 6, 7, 8, 9};
         for (int i = 0; i < names.length; i++) glUniform1i(glGetUniformLocation(program, names[i]), units[i]);
     }
 

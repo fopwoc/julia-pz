@@ -267,7 +267,12 @@ public final class BufferTextures implements AutoCloseable {
         int target = layout.slotTarget(program, slot, fragment);
         if (target == 0) return samplerBinding(state, unit);
         if (target == GL_TEXTURE_BUFFER) return bufferBinding(unit, layout.slotBufferType(program, slot, fragment));
-        return ordinaryBinding(state, unit, target, layout.slotScalar(program, slot, fragment));
+        return ordinaryBinding(
+                state,
+                unit,
+                target,
+                layout.slotScalar(program, slot, fragment),
+                layout.slotShadow(program, slot, fragment));
     }
 
     public int computeSamplerBinding(ContextState state, int unit, String name) {
@@ -277,12 +282,12 @@ public final class BufferTextures implements AutoCloseable {
         int target = layout.target(name);
         return target == GL_TEXTURE_BUFFER
                 ? bufferBinding(unit, layout.bufferType(name))
-                : ordinaryBinding(state, unit, target, layout.scalar(name));
+                : ordinaryBinding(state, unit, target, layout.scalar(name), layout.shadow(name));
     }
 
-    private int ordinaryBinding(ContextState state, int unit, int target, int scalar) {
+    private int ordinaryBinding(ContextState state, int unit, int target, int scalar, boolean shadow) {
         int name = bindings.get(state, unit, target);
-        return name == 0 ? SamplerFallbacks.name(target, scalar) : name;
+        return name == 0 ? SamplerFallbacks.name(target, scalar, shadow) : name;
     }
 
     // GL reads an unbound buffer texture without failing, so typed placeholders stand in for the missing view.
