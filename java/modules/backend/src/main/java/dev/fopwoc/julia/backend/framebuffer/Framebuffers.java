@@ -11,6 +11,7 @@ import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.AttachmentClear;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FboState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.PixelOps;
+import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.sdl.SdlSparseTargets;
@@ -29,9 +30,16 @@ public final class Framebuffers {
     }
 
     private final WeakHashMap<FboState, Attachments> attachments = new WeakHashMap<>();
+    // Every draw validates the bound framebuffer, which rarely changes between draws; skips the weak map lookup.
+    private FboState lastFbo;
+    private Attachments lastFields;
 
     private Attachments state(FboState fbo) {
-        return attachments.computeIfAbsent(fbo, ignored -> new Attachments());
+        if (fbo == lastFbo) return lastFields;
+        var fields = attachments.computeIfAbsent(fbo, ignored -> new Attachments());
+        lastFbo = fbo;
+        lastFields = fields;
+        return fields;
     }
 
     public FboState named(int name) {
@@ -231,43 +239,45 @@ public final class Framebuffers {
         if (target != GL_FRAMEBUFFER && target != GL_DRAW_FRAMEBUFFER && target != GL_READ_FRAMEBUFFER)
             throw new IllegalArgumentException("Invalid framebuffer status target");
         if (name == 0 || name == Upstream.context().defaultFboId) return GL_FRAMEBUFFER_COMPLETE;
-        var fbo = named(name);
+        return status(named(name));
+    }
+
+    private int status(FboState fbo) {
         var fields = state(fbo);
+        var resources = Upstream.resources();
         boolean present = false;
         for (var slice : fields.colors)
             if (slice != null) {
                 present = true;
-                if (!allocated(slice)
-                        || PixelOps.isDepthFormat(Upstream.resources()
-                                .getTextureMeta(slice.texture)
-                                .sdlFormat())) return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+                var meta = allocated(resources, slice);
+                if (meta == null || PixelOps.isDepthFormat(meta.sdlFormat()))
+                    return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
             }
         if (fields.depth != null) {
             present = true;
-            if (!allocated(fields.depth)
-                    || !PixelOps.isDepthFormat(Upstream.resources()
-                            .getTextureMeta(fields.depth.texture)
-                            .sdlFormat())) return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+            var meta = allocated(resources, fields.depth);
+            if (meta == null || !PixelOps.isDepthFormat(meta.sdlFormat())) return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
         }
         if (fields.stencil != null) {
             present = true;
-            if (!allocated(fields.stencil)
-                    || !PixelOps.isDepthStencilFormat(Upstream.resources()
-                            .getTextureMeta(fields.stencil.texture)
-                            .sdlFormat())) return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+            var meta = allocated(resources, fields.stencil);
+            if (meta == null || !PixelOps.isDepthStencilFormat(meta.sdlFormat()))
+                return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
         }
         return present ? GL_FRAMEBUFFER_COMPLETE : GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT;
     }
 
-    private static boolean allocated(Slice slice) {
-        var meta = Upstream.resources().getTextureMeta(slice.texture);
-        return meta != null
-                && Upstream.resources().getTextureHandle(slice.texture) != 0
+    /** The slice's texture metadata when its level and layer are allocated, otherwise {@code null}. */
+    private static ResourceManager.TextureMeta allocated(ResourceManager resources, Slice slice) {
+        var meta = resources.getTextureMeta(slice.texture);
+        boolean allocated = meta != null
+                && resources.getTextureHandle(slice.texture) != 0
                 && slice.level < meta.levels()
                 && slice.layer
                         < (meta.glTarget() == GL_TEXTURE_3D
                                 ? Math.max(1, meta.depth() >> Math.min(slice.level, 30))
                                 : meta.depth());
+        return allocated ? meta : null;
     }
 
     public boolean sliced(FboState fbo) {
@@ -328,7 +338,7 @@ public final class Framebuffers {
         if (PixelOps.isDepthStencilFormat(fbo.depthFormat) && (fields.depth == null || fields.stencil == null))
             throw new UnsupportedOperationException(
                     "Rendering a single aspect of a packed depth/stencil framebuffer attachment is not implemented");
-        int status = status(context.boundFboId, GL_DRAW_FRAMEBUFFER);
+        int status = status(fbo);
         if (status != GL_FRAMEBUFFER_COMPLETE)
             throw new IllegalStateException(
                     "Cannot render incomplete framebuffer: " + context.boundFboId + " status=" + status);

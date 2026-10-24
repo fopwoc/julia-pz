@@ -26,8 +26,20 @@ public final class TextureBindings {
 
     private final WeakHashMap<ContextState, Bindings> contexts = new WeakHashMap<>();
 
+    // Consulted per sampler slot on every draw; the context almost never changes, so skip the weak map.
+    private ContextState lastState;
+    private Bindings lastBindings;
+
     private Bindings entry(ContextState state) {
-        return contexts.computeIfAbsent(state, ignored -> new Bindings(state.boundTextures.length));
+        if (state == lastState) return lastBindings;
+        var bindings = contexts.get(state);
+        if (bindings == null) {
+            bindings = new Bindings(state.boundTextures.length);
+            contexts.put(state, bindings);
+        }
+        lastState = state;
+        lastBindings = bindings;
+        return bindings;
     }
 
     public void samplerOverride(ContextState state, boolean active) {

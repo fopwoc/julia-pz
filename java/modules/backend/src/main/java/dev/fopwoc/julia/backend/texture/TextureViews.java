@@ -236,8 +236,7 @@ public final class TextureViews implements AutoCloseable {
         }
     }
 
-    public long samplingHandle(int name) {
-        var resources = Upstream.resources();
+    public long samplingHandle(ResourceManager resources, int name) {
         long handle = resources.getTextureHandle(name);
         if (modes.getOrDefault(name, GL_DEPTH_COMPONENT) != GL_STENCIL_INDEX)
             return mips.handle(name, handle, resources.getTextureMeta(name), immutable.contains(name));

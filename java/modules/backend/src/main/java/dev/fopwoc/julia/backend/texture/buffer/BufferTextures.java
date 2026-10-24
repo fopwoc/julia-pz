@@ -67,6 +67,8 @@ public final class BufferTextures implements AutoCloseable {
     private final Int2ObjectOpenHashMap<View> views = new Int2ObjectOpenHashMap<>();
     private final IntOpenHashSet ordinaryTextures = new IntOpenHashSet();
     private final WeakHashMap<ProgramObject, SamplerLayout> layouts = new WeakHashMap<>();
+    private ProgramObject lastProgram;
+    private SamplerLayout lastLayout;
     private final int[] bound = new int[TextureBindings.UNIT_COUNT];
     private final long[] placeholders = new long[Placeholder.values().length];
     private long placeholderBuffer;
@@ -213,11 +215,14 @@ public final class BufferTextures implements AutoCloseable {
     }
 
     private SamplerLayout layout(ProgramObject program) {
-        var layout = layouts.get(program);
+        // Read per sampler slot on every draw; the bound program usually repeats, so skip the weak map.
+        var layout = program == lastProgram ? lastLayout : layouts.get(program);
         if (layout == null || !layout.matches(program)) {
             layout = new SamplerLayout(program);
             layouts.put(program, layout);
         }
+        lastProgram = program;
+        lastLayout = layout;
         return layout;
     }
 
@@ -388,6 +393,8 @@ public final class BufferTextures implements AutoCloseable {
         for (var view : views.values()) clear(view);
         views.clear();
         layouts.clear();
+        lastProgram = null;
+        lastLayout = null;
         ordinaryTextures.clear();
     }
 }

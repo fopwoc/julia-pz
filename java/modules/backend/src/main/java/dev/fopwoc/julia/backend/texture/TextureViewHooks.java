@@ -29,14 +29,16 @@ public final class TextureViewHooks {
     }
 
     public static void prepare(ContextState state) {
-        Subsystems.current().bufferTextures().prepare(state);
-        Subsystems.current().textureViews().prepare(state);
+        var subsystems = Subsystems.current();
+        subsystems.bufferTextures().prepare(state);
+        subsystems.textureViews().prepare(state);
     }
 
     public static long samplingHandle(ResourceManager resources, int name) {
-        var buffers = Subsystems.current().bufferTextures();
+        var subsystems = Subsystems.current();
+        var buffers = subsystems.bufferTextures();
         return buffers.contains(name)
                 ? buffers.samplingHandle(name)
-                : Subsystems.current().textureViews().samplingHandle(name);
+                : subsystems.textureViews().samplingHandle(resources, name);
     }
 }
