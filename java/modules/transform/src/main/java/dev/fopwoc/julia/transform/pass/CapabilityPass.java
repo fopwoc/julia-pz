@@ -1,6 +1,8 @@
 package dev.fopwoc.julia.transform.pass;
 
 import dev.fopwoc.julia.transform.Endpoint;
+import java.lang.classfile.ClassFile;
+import java.lang.classfile.constantpool.Utf8Entry;
 import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
@@ -15,7 +17,13 @@ import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 
-/** Converts local boolean capability reads to an immutable JDK Set, including stack-map/local types. */
+/**
+ * Converts boolean capability reads to an immutable JDK Set, including stack-map/local types.
+ *
+ * <p>A capability object may cross fields and methods of the same package: every class of a mod that mentions the
+ * type is prepared, so both sides of such a boundary are remapped together. Anything else that declares the type, such
+ * as LWJGL, the JDK or the game, would still expect the native object and stays rejected.
+ */
 public final class CapabilityPass {
     private static final String OWNER = Endpoint.CAPABILITY_BRIDGE.owner();
     private static final String CAPS = "org/lwjgl/opengl/GLCapabilities";
@@ -23,12 +31,15 @@ public final class CapabilityPass {
 
     private CapabilityPass() {}
 
+    /** Whether a class names the capability type anywhere, even only in its own field or method signatures. */
+    public static boolean mentions(byte[] bytes) {
+        for (var entry : ClassFile.of().parse(bytes).constantPool())
+            if (entry instanceof Utf8Entry text && text.stringValue().contains(CAPS)) return true;
+        return false;
+    }
+
     public static ClassNode adapt(ClassNode original) {
-        // Native capability objects in an API/storage boundary need a separate migration, not a local rewrite.
-        if (original.fields.stream().anyMatch(f -> f.desc.contains(DESCRIPTOR))
-                || original.methods.stream().anyMatch(m -> m.desc.contains(DESCRIPTOR))) {
-            throw new IllegalArgumentException("Capability object in a declared field or method signature");
-        }
+        String pkg = pkg(original.name);
         // Work on a copy so rejection never leaves a partially adapted class behind.
         var node = new ClassNode();
         original.accept(node);
@@ -42,7 +53,9 @@ public final class CapabilityPass {
                         call.owner = OWNER;
                         call.name = "current";
                         call.desc = "()Ljava/util/Set;";
-                    } else if (call.owner.equals(CAPS) || call.desc.contains(DESCRIPTOR)) {
+                    } else if (call.owner.equals(CAPS)
+                            || call.desc.contains(DESCRIPTOR)
+                                    && !pkg(call.owner).equals(pkg)) {
                         throw new IllegalArgumentException(
                                 "Capability object crosses a method boundary: " + call.owner + "." + call.name);
                     }
@@ -67,7 +80,8 @@ public final class CapabilityPass {
                                 Opcodes.INVOKEINTERFACE, "java/util/Set", "contains", "(Ljava/lang/Object;)Z", true));
                         method.instructions.insertBefore(field, query);
                         method.instructions.remove(field);
-                    } else if (field.desc.contains(DESCRIPTOR)) {
+                    } else if (field.desc.contains(DESCRIPTOR)
+                            && !pkg(field.owner).equals(pkg)) {
                         throw new IllegalArgumentException("Capability object crosses a field boundary");
                     }
                 } else if (instruction instanceof LdcInsnNode constant) {
@@ -91,6 +105,10 @@ public final class CapabilityPass {
             }
         }));
         return mapped;
+    }
+
+    private static String pkg(String internalName) {
+        return internalName.substring(0, Math.max(0, internalName.lastIndexOf('/')));
     }
 
     private static void checkConstant(Object value) {

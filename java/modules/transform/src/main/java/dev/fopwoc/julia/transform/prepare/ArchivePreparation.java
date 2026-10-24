@@ -2,6 +2,7 @@ package dev.fopwoc.julia.transform.prepare;
 
 import dev.fopwoc.julia.audit.scan.GraphicsArchiveScanner;
 import dev.fopwoc.julia.audit.scan.GraphicsClassScanner;
+import dev.fopwoc.julia.transform.pass.CapabilityPass;
 import dev.fopwoc.julia.transform.pass.FramePass;
 import dev.fopwoc.julia.utils.io.ClassArchive;
 import dev.fopwoc.julia.utils.io.Sha256;
@@ -40,9 +41,11 @@ public final class ArchivePreparation {
                 // a game consumer; the live transformer still rejects it if loaded in this JVM.
                 if (entry.equals("me/zed_0xff/zombie_buddy/frontend/ImguiApprovalMain.class")
                         || entry.startsWith("me/zed_0xff/zombie_buddy/frontend/ImguiApprovalMain$")) return;
+                // A mod class that only stores a capability object must be remapped with the classes reading it.
                 if (!entry.equals(RENDER_THREAD_ENTRY)
                         && !entry.equals(LUA_EXPOSER + ".class")
-                        && graphics.scan(bytes).isEmpty()) return;
+                        && graphics.scan(bytes).isEmpty()
+                        && !(deferred && CapabilityPass.mentions(bytes))) return;
                 entries.add(new ArchivePlan.Entry(
                         archive,
                         Sha256.of(bytes),

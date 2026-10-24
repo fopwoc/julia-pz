@@ -102,6 +102,14 @@ class UnsupportedCallPassTest implements Opcodes {
         method.visitInsn(IRETURN);
         method.visitMaxs(1, 1);
         method.visitEnd();
+        // Handing the object to another package keeps it native; a same-package store would be remapped instead.
+        var share = writer.visitMethod(ACC_PUBLIC | ACC_STATIC, "share", "(" + descriptor + ")V", null, null);
+        share.visitCode();
+        share.visitVarInsn(ALOAD, 0);
+        share.visitMethodInsn(INVOKESTATIC, "other/Api", "keep", "(" + descriptor + ")V", false);
+        share.visitInsn(RETURN);
+        share.visitMaxs(1, 1);
+        share.visitEnd();
         var type = prepare(writer.toByteArray());
         var read = type.getDeclaredMethods();
         var target = java.util.Arrays.stream(read)

@@ -12,9 +12,12 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 class CapabilityPassTest {
+    private static final String CAPS = "Lorg/lwjgl/opengl/GLCapabilities;";
+
     @Test
     void queriesBackendSnapshotAndVerifiesRemappedLocalsAcrossBranches() throws Exception {
         byte[] original;
@@ -63,14 +66,37 @@ class CapabilityPassTest {
     }
 
     @Test
-    void refusesCapabilityObjectsEscapingThroughDeclaredFields() {
+    void remapsCapabilityObjectsStoredWithinThePackage() {
+        var node = fixture();
+        node.fields.add(new FieldNode(Opcodes.ACC_PRIVATE, "cached", CAPS, null, null));
+        var method = new MethodNode(Opcodes.ACC_STATIC, "keep", "(" + CAPS + ")V", null, null);
+        method.instructions.add(new MethodInsnNode(
+                Opcodes.INVOKESTATIC, "fixture/Profile", "of", "(" + CAPS + ")Lfixture/Profile;", false));
+        node.methods.add(method);
+        var adapted = CapabilityPass.adapt(node);
+        assertEquals("Ljava/util/Set;", adapted.fields.getFirst().desc);
+        var remapped = adapted.methods.getFirst();
+        assertEquals("(Ljava/util/Set;)V", remapped.desc);
+        assertEquals("(Ljava/util/Set;)Lfixture/Profile;", ((MethodInsnNode) remapped.instructions.getFirst()).desc);
+    }
+
+    @Test
+    void refusesCapabilityObjectsCrossingIntoOtherPackages() {
+        var node = fixture();
+        var method = new MethodNode(Opcodes.ACC_STATIC, "install", "()V", null, null);
+        method.instructions.add(
+                new MethodInsnNode(Opcodes.INVOKESTATIC, "org/lwjgl/opengl/GL", "setCapabilities", "(" + CAPS + ")V"));
+        node.methods.add(method);
+        assertThrows(IllegalArgumentException.class, () -> CapabilityPass.adapt(node));
+    }
+
+    private static ClassNode fixture() {
         var node = new ClassNode();
         node.version = Opcodes.V25;
         node.access = Opcodes.ACC_PUBLIC;
         node.name = "fixture/Capabilities";
         node.superName = "java/lang/Object";
-        node.fields.add(new FieldNode(Opcodes.ACC_PRIVATE, "cached", "Lorg/lwjgl/opengl/GLCapabilities;", null, null));
-        assertThrows(IllegalArgumentException.class, () -> CapabilityPass.adapt(node));
+        return node;
     }
 
     @Test
