@@ -81,7 +81,7 @@ public final class RenderDispatch {
     }
 
     private static boolean owns(RenderSession session) {
-        return session.usableHere();
+        return session.ownedHere();
     }
 
     private static void beforeCall(RenderSession session, Site site) {

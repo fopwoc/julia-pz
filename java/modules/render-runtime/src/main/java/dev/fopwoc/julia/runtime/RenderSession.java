@@ -92,9 +92,9 @@ public final class RenderSession implements AutoCloseable {
         return method;
     }
 
-    /** The linked call-site guard: this thread owns the session and it can still render. */
-    boolean usableHere() {
-        return Thread.currentThread() == owner && (state == State.READY || state == State.FRAME);
+    /** The linked call-site guard. A failed or closed session unlinks its sites, so ownership is all it checks. */
+    boolean ownedHere() {
+        return Thread.currentThread() == owner;
     }
 
     void beforeCall() {
@@ -138,6 +138,7 @@ public final class RenderSession implements AutoCloseable {
         FatalGraphics.failure("Render frame failed", failure);
         boolean frameOpen = state == State.FRAME;
         state = State.FAILED;
+        unbindSites();
         if (frameOpen) {
             try {
                 frames.abort();
@@ -145,6 +146,12 @@ public final class RenderSession implements AutoCloseable {
                 if (cleanup != failure) failure.addSuppressed(cleanup);
             }
         }
+    }
+
+    /** Sends linked call sites back through resolution, which reports this session's state; also lets the runtime unload. */
+    private void unbindSites() {
+        for (var site : bound) site.unbind();
+        bound.clear();
     }
 
     static Throwable abort(Throwable failure) {
@@ -185,9 +192,7 @@ public final class RenderSession implements AutoCloseable {
         } finally {
             state = State.CLOSED;
             methods.clear();
-            // Call sites outlive sessions; drop their targets so the closed runtime's class loader can unload.
-            for (var site : bound) site.unbind();
-            bound.clear();
+            unbindSites();
             if (recent == this) recent = null;
             CURRENT.remove();
         }

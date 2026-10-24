@@ -146,6 +146,33 @@ class RenderSessionTest {
     }
 
     @Test
+    void linkedCallSiteStopsAfterFrameFailure() throws Throwable {
+        var type = MethodType.methodType(long.class);
+        var site = RenderDispatch.bootstrap(MethodHandles.lookup(), "draw", type, "test/Backend");
+        var session = RenderSession.open(
+                (owner, name, actualType) -> MethodHandles.constant(long.class, 1L), new RenderSession.Frames() {
+                    public void begin() {
+                        throw new IllegalArgumentException("begin");
+                    }
+
+                    public void present() {}
+
+                    public void abort() {}
+
+                    public void close() {}
+                });
+        try {
+            assertEquals(1L, (long) site.dynamicInvoker().invokeExact());
+            assertThrows(RuntimeException.class, FrameHooks::begin);
+            assertThrows(IllegalStateException.class, () -> {
+                long ignored = (long) site.dynamicInvoker().invokeExact();
+            });
+        } finally {
+            session.close();
+        }
+    }
+
+    @Test
     void doesNotAdaptMismatchedTargetTypesSilently() throws Throwable {
         var session = RenderSession.open(
                 (owner, name, type) -> MethodHandles.constant(int.class, 1), frames(new ArrayList<>()));
