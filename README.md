@@ -7,8 +7,7 @@ Julia translates Project Zomboid's OpenGL rendering to the platform's native gra
 nothing on disk or in saves is modified, and Julia can be added or removed at any time.
 
 Julia targets **Project Zomboid Build 42** and is **experimental**. It doesn't cover the whole OpenGL specification
-yet, so some mods may stop with a report. Multiplayer is untested. Bug reports and contributions are welcome in
-[issues](../../issues).
+yet, so some mods may stop with a report. Multiplayer is untested. Bug reports and contributions are welcome.
 
 > [!NOTE]
 > This project contains AI-generated code. See [AI_USAGE.md](AI_USAGE.md) for details.
@@ -85,7 +84,7 @@ These GL features stop the game with a report rather than rendering incorrectly:
 Julia is a Java agent that starts with the game. It never patches game files on disk.
 
 1. Get `julia-agent.jar`: subscribe to the Workshop item and take it from its `libs/` folder, or download
-   `julia-<version>-agent.jar` from the [releases](../../releases) page and save it as `julia-agent.jar`. On Windows,
+   `julia-<version>-agent.jar` from the releases page and save it as `julia-agent.jar`. On Windows,
    also take `julia.dll` from the same `libs/` folder, or `julia-<version>-windows-loader.dll` saved as `julia.dll`.
 2. Optional: check that the jar was built by this repository's release workflow, with the
    [GitHub CLI](https://cli.github.com):
@@ -155,7 +154,7 @@ own agent, loaded first, Julia also translates ZombieBuddy's UI and every Java m
 stopped game.
 
 **The game stops when I use mod X.** That is on purpose: Julia stops when it hits something it cannot render
-correctly. Open an [issue](../../issues) with the newest `fatal-error.txt`; usually it is a GL feature Julia does not
+correctly. Open an issue with the newest `fatal-error.txt`; usually it is a GL feature Julia does not
 cover yet.
 
 ## How it works
