@@ -1,5 +1,7 @@
 package dev.fopwoc.julia.backend.bridge;
 
+import static org.lwjgl.opengl.GL20.GL_CURRENT_PROGRAM;
+
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -46,6 +48,64 @@ public final class UniformBridge {
                 release(buffer);
             }
         }
+    }
+
+    // Program uniforms update a program without binding it; GL keeps the caller's current program.
+    public static void glProgramUniform1f(int program, int location, float x) {
+        int previous = use(program);
+        try {
+            GLStateManager.glUniform1f(location, x);
+        } finally {
+            restore(program, previous);
+        }
+    }
+
+    public static void glProgramUniform2f(int program, int location, float x, float y) {
+        int previous = use(program);
+        try {
+            GLStateManager.glUniform2f(location, x, y);
+        } finally {
+            restore(program, previous);
+        }
+    }
+
+    public static void glProgramUniform4f(int program, int location, float x, float y, float z, float w) {
+        int previous = use(program);
+        try {
+            GLStateManager.glUniform4f(location, x, y, z, w);
+        } finally {
+            restore(program, previous);
+        }
+    }
+
+    public static void glProgramUniform1i(int program, int location, int x) {
+        int previous = use(program);
+        try {
+            GLStateManager.glUniform1i(location, x);
+        } finally {
+            restore(program, previous);
+        }
+    }
+
+    public static void glProgramUniform4fv(int program, int location, float[] values) {
+        int previous = use(program);
+        try {
+            GLStateManager.glUniform4(location, values);
+        } finally {
+            restore(program, previous);
+        }
+    }
+
+    private static int use(int program) {
+        if (program == 0) throw new IllegalArgumentException("Program uniform target must be a program");
+        // GLSM's binding is what the caller observes and what it restores against.
+        int previous = GLStateManager.glGetInteger(GL_CURRENT_PROGRAM);
+        if (previous != program) GLStateManager.glUseProgram(program);
+        return previous;
+    }
+
+    private static void restore(int program, int previous) {
+        if (previous != program) GLStateManager.glUseProgram(previous);
     }
 
     private static FloatBuffer stage(MemoryStack stack, float[] values, int count) {

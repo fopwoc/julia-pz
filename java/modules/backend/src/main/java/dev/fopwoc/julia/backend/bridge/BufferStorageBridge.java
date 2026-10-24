@@ -84,6 +84,19 @@ public final class BufferStorageBridge {
         }
     }
 
+    /** DSA parameter queries read through a temporary copy-read binding, as the named storage path writes. */
+    public static int glGetNamedBufferParameteri(int buffer, int parameter) {
+        if (buffer <= 0) throw new IllegalArgumentException("Named buffer query requires a buffer object");
+        var context = Upstream.context();
+        int previous = context.boundCopyReadBuffer;
+        try {
+            GLStateManager.glBindBuffer(GL_COPY_READ_BUFFER, buffer);
+            return GLStateManager.glGetBufferParameter(GL_COPY_READ_BUFFER, parameter);
+        } finally {
+            GLStateManager.glBindBuffer(GL_COPY_READ_BUFFER, previous);
+        }
+    }
+
     static void validateFlags(int flags) {
         boolean unknown = (flags & ~KNOWN_FLAGS) != 0;
         boolean persistentWithoutMapping =

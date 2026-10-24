@@ -18,6 +18,7 @@ public enum Endpoint {
     STATE_MANAGER("com/gtnewhorizons/angelica/glsm/GLStateManager", true),
     DEBUG_SHIM("com/gtnewhorizons/angelica/sdlgpu/compat/AwareGLDebugShim", true),
     DEPTH_RANGE_BRIDGE("dev/fopwoc/julia/backend/bridge/DepthRangeBridge", false),
+    VIEWPORT_BRIDGE("dev/fopwoc/julia/backend/bridge/ViewportBridge", false),
     DRAW_RANGE_BRIDGE("dev/fopwoc/julia/backend/bridge/DrawRangeBridge", false),
     DEBUG_CALLBACK_BRIDGE("dev/fopwoc/julia/backend/bridge/DebugCallbackBridge", false),
     PROGRAM_RESOURCE_BRIDGE("dev/fopwoc/julia/backend/bridge/ProgramResourceBridge", false),

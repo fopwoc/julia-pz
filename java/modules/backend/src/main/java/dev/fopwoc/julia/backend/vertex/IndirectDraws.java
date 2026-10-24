@@ -38,6 +38,11 @@ public final class IndirectDraws {
         }
     }
 
+    /** One indexed command; the multi-draw path already validates and draws it GPU-resident. */
+    public static void glDrawElementsIndirect(int mode, int type, long offset) {
+        GLStateManager.glMultiDrawElementsIndirect(mode, type, offset, 1, 0);
+    }
+
     private static void draw(ContextState state, int mode, long buffer, long offset, int count, int stride) {
         if (state.rasterizerDiscard || state.boundProgramObj != null && state.boundProgramObj.vertexWriteReplay != null)
             throw new UnsupportedOperationException("Indirect draws with vertex side effects are not implemented");

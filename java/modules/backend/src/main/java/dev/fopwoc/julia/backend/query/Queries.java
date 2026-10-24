@@ -1,5 +1,7 @@
 package dev.fopwoc.julia.backend.query;
 
+import static org.lwjgl.opengl.GL15.GL_CURRENT_QUERY;
+import static org.lwjgl.opengl.GL15.GL_QUERY_COUNTER_BITS;
 import static org.lwjgl.opengl.GL15.GL_QUERY_RESULT;
 import static org.lwjgl.opengl.GL15.GL_QUERY_RESULT_AVAILABLE;
 import static org.lwjgl.opengl.GL15.GL_SAMPLES_PASSED;
@@ -59,6 +61,21 @@ public final class Queries implements AutoCloseable {
             throw new IllegalArgumentException("Cannot delete an active query");
         var query = queries.remove(name);
         if (query != null) release(query);
+    }
+
+    /** {@code glGetQueryiv}: the active query for a target, or the bits its results carry. */
+    public int parameter(int target, int parameter) {
+        boolean timer = target == GL_TIME_ELAPSED || target == GL_TIMESTAMP;
+        if (!timer && !occlusion(target)) throw new IllegalArgumentException("Invalid query target: " + target);
+        return switch (parameter) {
+            case GL_CURRENT_QUERY -> {
+                int name = target == GL_TIME_ELAPSED ? activeTimer : target == GL_TIMESTAMP ? 0 : activeOcclusion;
+                yield name != 0 && queries.get(name).target == target ? name : 0;
+            }
+            // Timer and sample counts are 64-bit GPU values; any-samples results are booleans.
+            case GL_QUERY_COUNTER_BITS -> timer || target == GL_SAMPLES_PASSED ? 64 : 1;
+            default -> throw new IllegalArgumentException("Invalid query parameter: " + parameter);
+        };
     }
 
     public void timestamp(int name, int target) {

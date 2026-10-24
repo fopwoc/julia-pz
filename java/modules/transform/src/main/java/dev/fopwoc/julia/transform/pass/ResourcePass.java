@@ -12,12 +12,36 @@ import org.objectweb.asm.tree.MethodInsnNode;
 
 /** Only the exact observed resource overloads enter the bounded bridge implementations. */
 public final class ResourcePass {
-    // Core functions keep their name in every later GL class (GL45 inherits GL32.glFenceSync), so one canonical
-    // CORE key matches any GLnn or GLnnC owner; extension and GLSM owners stay exact.
-    private static final String CORE = "GL.";
-    private static final String LWJGL = "org/lwjgl/opengl/";
+    // CORE keys match the function under any GLnn or GLnnC owner; extension and GLSM owners stay exact.
+    private static final String CORE = CoreOwners.core("");
+    private static final String LWJGL = CoreOwners.LWJGL;
     private static final String GLSM = Endpoint.STATE_MANAGER.owner() + ".";
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
+            Map.entry(CORE + "glViewportIndexedf(IFFFF)V", Endpoint.VIEWPORT_BRIDGE),
+            Map.entry(CORE + "glScissorIndexed(IIIII)V", Endpoint.VIEWPORT_BRIDGE),
+            Map.entry(CORE + "glDepthRangeIndexed(IDD)V", Endpoint.VIEWPORT_BRIDGE),
+            Map.entry(CORE + "glGetFloati_v(II[F)V", Endpoint.VIEWPORT_BRIDGE),
+            Map.entry(CORE + "glGetDoublei_v(II[D)V", Endpoint.VIEWPORT_BRIDGE),
+            Map.entry(CORE + "glProgramUniform1f(IIF)V", Endpoint.UNIFORM_BRIDGE),
+            Map.entry(CORE + "glProgramUniform2f(IIFF)V", Endpoint.UNIFORM_BRIDGE),
+            Map.entry(CORE + "glProgramUniform4f(IIFFFF)V", Endpoint.UNIFORM_BRIDGE),
+            Map.entry(CORE + "glProgramUniform1i(III)V", Endpoint.UNIFORM_BRIDGE),
+            Map.entry(CORE + "glProgramUniform4fv(II[F)V", Endpoint.UNIFORM_BRIDGE),
+            Map.entry(CORE + "glGetQueryi(II)I", Endpoint.QUERY_BRIDGE),
+            Map.entry(CORE + "glGetNamedBufferParameteri(II)I", Endpoint.BUFFER_STORAGE_BRIDGE),
+            Map.entry(CORE + "glGetVertexAttribi(II)I", Endpoint.VERTEX_BINDING_BRIDGE),
+            Map.entry(CORE + "glGetVertexAttribPointer(II)J", Endpoint.VERTEX_BINDING_BRIDGE),
+            Map.entry(CORE + "glDrawElementsIndirect(IIJ)V", Endpoint.INDIRECT_DRAWS),
+            Map.entry(GLSM + "glGetIntegeri_v(II[I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(GLSM + "glGetAttachedShaders(I[I[I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(
+                    GLSM + "glGetActiveAttrib(IIILjava/nio/IntBuffer;Ljava/nio/IntBuffer;)Ljava/lang/String;",
+                    Endpoint.PROGRAM_RESOURCE_BRIDGE),
+            Map.entry(GLSM + "glTexImage2D(IIIIIIII[F)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(GLSM + "glTexImage2D(IIIIIIII[I)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(GLSM + "glTexImage3D(IIIIIIIII[F)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(GLSM + "glTexSubImage3D(IIIIIIIIIILjava/nio/FloatBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(GLSM + "glGetTexImage(IIIILjava/nio/FloatBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
             Map.entry(CORE + "glEnablei(II)V", Endpoint.BLEND_BRIDGE),
             Map.entry(CORE + "glDisablei(II)V", Endpoint.BLEND_BRIDGE),
             Map.entry(CORE + "glIsEnabledi(II)Z", Endpoint.BLEND_BRIDGE),
@@ -158,7 +182,7 @@ public final class ResourcePass {
         for (var method : node.methods) {
             for (var instruction : method.instructions) {
                 if (instruction instanceof MethodInsnNode call && call.getOpcode() == Opcodes.INVOKESTATIC) {
-                    var route = ROUTES.get(key(call.owner, call.name, call.desc));
+                    var route = ROUTES.get(CoreOwners.key(call.owner, call.name, call.desc));
                     if (route != null) call.owner = route.owner();
                 } else if (instruction instanceof LdcInsnNode constant) {
                     constant.cst = constant(constant.cst);
@@ -170,23 +194,9 @@ public final class ResourcePass {
         }
     }
 
-    static String key(String owner, String name, String descriptor) {
-        return (core(owner) ? CORE : owner + ".") + name + descriptor;
-    }
-
-    /** {@code org/lwjgl/opengl/GL} followed by a version number and an optional core-profile {@code C}. */
-    private static boolean core(String owner) {
-        int start = LWJGL.length() + 2;
-        if (!owner.startsWith(LWJGL + "GL")) return false;
-        int end = owner.endsWith("C") ? owner.length() - 1 : owner.length();
-        if (end <= start) return false;
-        for (int i = start; i < end; i++) if (!Character.isDigit(owner.charAt(i))) return false;
-        return true;
-    }
-
     private static Object constant(Object value) {
         if (value instanceof Handle handle && handle.getTag() == Opcodes.H_INVOKESTATIC) {
-            var route = ROUTES.get(key(handle.getOwner(), handle.getName(), handle.getDesc()));
+            var route = ROUTES.get(CoreOwners.key(handle.getOwner(), handle.getName(), handle.getDesc()));
             if (route != null)
                 return new Handle(handle.getTag(), route.owner(), handle.getName(), handle.getDesc(), false);
         }

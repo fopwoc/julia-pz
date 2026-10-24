@@ -27,7 +27,8 @@ public final class UniformAccessPass {
             for (var instruction : method.instructions) {
                 if (!(instruction instanceof MethodInsnNode call) || call.getOpcode() != Opcodes.INVOKESTATIC) continue;
                 String signature = call.name + call.desc;
-                if (call.owner.equals("org/lwjgl/opengl/GL43") && signature.equals("glUniform1iv(I[I)V")) {
+                boolean core = CoreOwners.is(call.owner);
+                if (core && signature.equals("glUniform1iv(I[I)V")) {
                     call.owner = Endpoint.UNIFORM_UPLOAD_BRIDGE.owner();
                 } else if (Endpoint.STATE_MANAGER.is(call.owner) && call.name.equals("glGetUniform")) {
                     String name = switch (call.desc) {
@@ -39,8 +40,7 @@ public final class UniformAccessPass {
                         call.owner = query;
                         call.name = name;
                     }
-                } else if ((call.owner.equals("org/lwjgl/opengl/GL20") || call.owner.equals("org/lwjgl/opengl/GL43"))
-                        && NATIVE_QUERIES.contains(signature)) {
+                } else if (core && NATIVE_QUERIES.contains(signature)) {
                     call.owner = query;
                 }
             }

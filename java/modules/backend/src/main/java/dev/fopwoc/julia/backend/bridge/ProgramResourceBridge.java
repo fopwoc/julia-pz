@@ -2,6 +2,7 @@ package dev.fopwoc.julia.backend.bridge;
 
 import static org.lwjgl.opengl.GL43.*;
 
+import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.shader.ProgramResources;
@@ -9,10 +10,22 @@ import dev.fopwoc.julia.backend.shader.ResourceOutput;
 import dev.fopwoc.julia.backend.shader.UniformResources;
 import java.nio.IntBuffer;
 import java.util.Objects;
+import org.lwjgl.system.MemoryStack;
 
 /** Program interface queries use reflected layouts and active stage usage, without native OpenGL access. */
 public final class ProgramResourceBridge {
     private ProgramResourceBridge() {}
+
+    /** LWJGL 3 splits GLSM's packed size/type output into two buffers. */
+    public static String glGetActiveAttrib(int program, int index, int capacity, IntBuffer size, IntBuffer type) {
+        try (var stack = MemoryStack.stackPush()) {
+            var sizeType = stack.mallocInt(2);
+            String name = GLStateManager.glGetActiveAttrib(program, index, capacity, sizeType);
+            size.put(size.position(), sizeType.get(0));
+            type.put(type.position(), sizeType.get(1));
+            return name;
+        }
+    }
 
     public static int glGetProgramInterfacei(int program, int api, int property) {
         if (api == GL_UNIFORM && property == GL_MAX_NAME_LENGTH) {

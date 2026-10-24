@@ -11,6 +11,7 @@ import static org.lwjgl.opengl.GL31.GL_MAX_TEXTURE_BUFFER_SIZE;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BINDING_BUFFER;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
 import static org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER_BINDING;
+import static org.lwjgl.opengl.GL41.GL_MAX_VIEWPORTS;
 import static org.lwjgl.opengl.GL41.GL_NUM_PROGRAM_BINARY_FORMATS;
 import static org.lwjgl.opengl.GL43.GL_MAX_VERTEX_ATTRIB_BINDINGS;
 import static org.lwjgl.opengl.GL43.GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT;
@@ -59,6 +60,8 @@ public final class HostedBackend extends ShaderLayer {
             case GL_UNPACK_SKIP_IMAGES -> subsystems().volumeUnpack().skipImages;
             case GL_UNPACK_SWAP_BYTES -> subsystems().volumeUnpack().swapBytes ? GL_TRUE : GL_FALSE;
             case GL_MAX_VERTEX_ATTRIB_BINDINGS -> ContextState.MAX_VERTEX_ATTRIBS;
+            // SDL GPU has one viewport and scissor per pass; see ViewportBridge.
+            case GL_MAX_VIEWPORTS -> 1;
             case GL_MAX_TEXTURE_BUFFER_SIZE -> subsystems().bufferTextures().limit();
             case GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT ->
                 subsystems().bufferTextures().alignment();

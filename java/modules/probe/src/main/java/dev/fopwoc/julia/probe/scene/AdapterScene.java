@@ -119,6 +119,7 @@ public final class AdapterScene {
             SparseFramebufferChecks.run(output);
             LayerViewChecks.run(output);
             ProgramInterfaceChecks.run(output);
+            OverloadChecks.run(output);
             ShortTextureChecks.run(output);
             FloatTextureChecks.run(output);
             DefaultTargetChecks.run(output);
