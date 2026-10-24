@@ -25,6 +25,8 @@ public final class TextureTable {
         // null means the GL default base and maximum levels.
         TextureMipRange mip;
         TextureViewRange range;
+        // Last sampling handle and the storage generation it was resolved at; see TextureViews.samplingHandle.
+        long sampling, samplingStamp;
         private BufferTextureView buffer;
 
         private Texture() {}

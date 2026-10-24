@@ -50,6 +50,7 @@ public final class TextureViews implements AutoCloseable {
 
     public void immutable(int name) {
         textures.getOrCreate(name).immutable = true;
+        TextureStorage.changed();
     }
 
     private static boolean immutable(TextureTable.Texture texture) {
@@ -114,6 +115,7 @@ public final class TextureViews implements AutoCloseable {
         destination.immutable = true;
         if (!destination.view) viewTextures++;
         destination.view = true;
+        TextureStorage.changed();
     }
 
     public static void validate(
@@ -207,6 +209,7 @@ public final class TextureViews implements AutoCloseable {
         boolean stencilMode = value == GL_STENCIL_INDEX;
         if (texture.stencil != stencilMode) stencilTextures += stencilMode ? 1 : -1;
         texture.stencil = stencilMode;
+        TextureStorage.changed();
         Upstream.context().samplerBindGen++;
         return true;
     }
@@ -292,10 +295,23 @@ public final class TextureViews implements AutoCloseable {
         }
     }
 
+    /**
+     * Runs for every sampled texture on every draw. The result depends only on texture storage and Julia's own sampling
+     * state, both of which bump {@link TextureStorage}, so a record remembers it until the next change.
+     */
     public long samplingHandle(ResourceManager resources, int name) {
-        long handle = resources.getTextureHandle(name);
         var texture = textures.get(name);
-        if (!stencil(texture)) return mips.handle(resources, name, texture, handle);
+        long generation = TextureStorage.generation();
+        if (texture != null && texture.samplingStamp == generation) return texture.sampling;
+        long handle = resources.getTextureHandle(name);
+        if (!stencil(texture)) {
+            long sampling = mips.handle(resources, name, texture, handle);
+            if (texture != null) {
+                texture.sampling = sampling;
+                texture.samplingStamp = generation;
+            }
+            return sampling;
+        }
         var sampling = stencil.get(handle);
         if (sampling == null) throw new IllegalStateException("Stencil view was not prepared before sampling");
         return sampling.texture();

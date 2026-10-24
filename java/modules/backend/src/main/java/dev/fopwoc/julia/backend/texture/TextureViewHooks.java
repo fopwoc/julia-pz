@@ -16,6 +16,11 @@ public final class TextureViewHooks {
         Upstream.forgetTextureName(name);
     }
 
+    /** Upstream wrote its texture handle or metadata maps; see {@code TextureStoragePass}. */
+    public static void storageChanged() {
+        TextureStorage.changed();
+    }
+
     public static boolean referenced(ResourceManager resources, long handle) {
         return Upstream.textureReferenced(resources, handle);
     }

@@ -15,6 +15,7 @@ import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.sdl.SdlSparseTargets;
+import dev.fopwoc.julia.backend.texture.TextureStorage;
 import java.util.Arrays;
 import java.util.WeakHashMap;
 import org.lwjgl.sdl.SDL_GPUColorTargetInfo;
@@ -27,6 +28,8 @@ public final class Framebuffers {
     private static final class Attachments {
         final Slice[] colors = new Slice[ContextState.MAX_COLOR_ATTACHMENTS];
         Slice depth, stencil;
+        // Texture storage generation at which the last draw found these attachments complete; 0 when unchecked.
+        long complete;
     }
 
     private final WeakHashMap<FboState, Attachments> attachments = new WeakHashMap<>();
@@ -195,6 +198,7 @@ public final class Framebuffers {
     }
 
     private void changed(int name, FboState fbo) {
+        state(fbo).complete = 0;
         fbo.targetsDirty = true;
         fbo.cachedFormatsDirty = true;
         fbo.cachedTargetsValid = false;
@@ -335,6 +339,9 @@ public final class Framebuffers {
         if (context.boundFboId == 0 || context.boundFboId == context.defaultFboId) return;
         var fbo = named(context.boundFboId);
         var fields = state(fbo);
+        // Completeness changes only with attachments or texture storage, so repeated draws skip the per-slice lookups.
+        long generation = TextureStorage.generation();
+        if (fields.complete == generation) return;
         if (PixelOps.isDepthStencilFormat(fbo.depthFormat) && (fields.depth == null || fields.stencil == null))
             throw new UnsupportedOperationException(
                     "Rendering a single aspect of a packed depth/stencil framebuffer attachment is not implemented");
@@ -342,6 +349,7 @@ public final class Framebuffers {
         if (status != GL_FRAMEBUFFER_COMPLETE)
             throw new IllegalStateException(
                     "Cannot render incomplete framebuffer: " + context.boundFboId + " status=" + status);
+        fields.complete = generation;
     }
 
     public void validateRead(int format) {

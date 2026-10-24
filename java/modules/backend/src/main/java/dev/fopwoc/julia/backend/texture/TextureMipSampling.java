@@ -38,6 +38,7 @@ final class TextureMipSampling implements AutoCloseable {
             // Queued draws must consume the previous image range before a texture parameter changes.
             Upstream.flushTextureReferences();
             texture.mip = next;
+            TextureStorage.changed();
             Upstream.textureMipParameter(name, parameter, value);
             Upstream.context().samplerBindGen++;
         }
@@ -82,6 +83,7 @@ final class TextureMipSampling implements AutoCloseable {
     void release(long source) {
         var cached = views.remove(source);
         if (cached == null) return;
+        TextureStorage.changed();
         long device = SDLGPUGate.device().getDevice();
         for (long handle : cached.values()) SDL_ReleaseGPUTexture(device, handle);
     }

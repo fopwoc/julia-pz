@@ -20,6 +20,7 @@ public final class UpstreamPatches {
             new TextureUploadOrderPass(),
             new TextureFormatPass(),
             new TextureViewPass(),
+            new TextureStoragePass(),
             new BufferTexturePass(),
             new SamplerBindingPass(),
             new SamplerResourcePass(),

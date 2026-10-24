@@ -15,6 +15,7 @@ import com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineApplier;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FBOClearTracker;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
+import dev.fopwoc.julia.backend.texture.TextureStorage;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -226,6 +227,7 @@ public final class Upstream {
             metas.put(name, metas.get(original));
         } finally {
             lock.unlock();
+            TextureStorage.changed();
         }
     }
 
@@ -242,6 +244,7 @@ public final class Upstream {
             resources.trackTextureHandle(handle);
         } finally {
             lock.unlock();
+            TextureStorage.changed();
         }
     }
 
@@ -267,6 +270,7 @@ public final class Upstream {
             while (iterator.hasNext()) if (!seen.add(iterator.next().getLongValue())) iterator.remove();
         } finally {
             lock.unlock();
+            TextureStorage.changed();
         }
     }
 
