@@ -287,6 +287,11 @@ For focused mip-alpha, atlas-indexing and fragment-discard checks, build `:probe
 `modules/probe/build/install/probe/bin/probe --sampling <output-dir>` with `-Djulia.gpu=vulkan` in `JAVA_OPTS` when
 selecting Vulkan explicitly.
 
+Vulkan checks should also run with an installed `VK_LAYER_KHRONOS_validation` layer enabled through
+`VK_INSTANCE_LAYERS`. Enable synchronization checks with
+`VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT`; ordinary validation does not cover
+all memory hazards. Any validation error is a failed check even if the pixel comparisons pass.
+
 ### Offline audits
 
 These read JAR bytecode and never load game classes:
