@@ -9,6 +9,7 @@ import static org.lwjgl.opengl.GL12.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
+import static org.lwjgl.opengl.GL33.GL_SAMPLER_BINDING;
 import static org.lwjgl.opengl.GL43.GL_DEPTH_STENCIL_TEXTURE_MODE;
 
 import dev.fopwoc.julia.backend.Upstream;
@@ -22,6 +23,16 @@ import java.nio.IntBuffer;
 
 /** Logical per-target texture bindings, views, buffer textures, and upload paths SDL needs adjusted. */
 public abstract class TextureLayer extends FramebufferLayer {
+    // Not indexed in GL, but drivers answer it per unit and PZ3D saves every unit's sampler this way.
+    @Override
+    public int getIntegerIndexed(int parameter, int index) {
+        if (parameter != GL_SAMPLER_BINDING) return super.getIntegerIndexed(parameter, index);
+        var samplers = Upstream.context().boundSamplerObjects;
+        if (index < 0 || index >= samplers.length)
+            throw new IllegalArgumentException("Sampler unit out of range: " + index);
+        return samplers[index];
+    }
+
     @Override
     public void generateTextureMipmap(int name) {
         subsystems().textureObjects().prepareMipmaps(name);

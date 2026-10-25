@@ -24,6 +24,7 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.lwjgl.opengl.GL32;
+import org.lwjgl.opengl.GL33;
 import org.lwjgl.opengl.GL40;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.system.MemoryStack;
@@ -65,7 +66,7 @@ final class ModPathChecks {
                 output.resolve("mod-paths.txt"),
                 "PASS\nchecks=tessellation compile failure,generic buffer binding queries,border wrap as edge clamp,border colour,unsigned uniforms,"
                         + "multi-draw base vertex,full-level sub-image readback,zero integer clears,"
-                        + "indexed 64-bit buffer ranges,whole storage-buffer bindings,saved-state queries,back stencil reference and masks,indexed blend state,indexed scissor box\n");
+                        + "indexed 64-bit buffer ranges,whole storage-buffer bindings,saved-state queries,back stencil reference and masks,indexed blend state,indexed scissor box,per-unit sampler bindings\n");
     }
 
     // WinterFX tries tessellated snow first and falls back when its program does not build.
@@ -324,6 +325,13 @@ final class ModPathChecks {
         glBlendFunc(GL_ONE, GL_ZERO);
         glBlendEquation(GL_FUNC_ADD);
         if (!blend) throw new IllegalStateException("Indexed blend state query differs");
+        int sampler = GL33.glGenSamplers();
+        GL33.glBindSampler(2, sampler);
+        boolean samplers =
+                glGetIntegeri(GL33.GL_SAMPLER_BINDING, 2) == sampler && glGetIntegeri(GL33.GL_SAMPLER_BINDING, 1) == 0;
+        GL33.glBindSampler(2, 0);
+        GL33.glDeleteSamplers(sampler);
+        if (!samplers) throw new IllegalStateException("Per-unit sampler binding query differs");
         int[] box = new int[4];
         glScissor(1, 2, 3, 4);
         glGetIntegeri_v(GL_SCISSOR_BOX, 0, box);
