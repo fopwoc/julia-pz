@@ -53,6 +53,8 @@ static SDL_GPUTexture *JULIA_VulkanCreateBufferTexture(
         formats[0] = VK_FORMAT_R32_SFLOAT; formats[1] = VK_FORMAT_R32_SINT; formats[2] = VK_FORMAT_R32_UINT; break;
     case VK_FORMAT_R32G32_SFLOAT: case VK_FORMAT_R32G32_SINT: case VK_FORMAT_R32G32_UINT:
         formats[0] = VK_FORMAT_R32G32_SFLOAT; formats[1] = VK_FORMAT_R32G32_SINT; formats[2] = VK_FORMAT_R32G32_UINT; break;
+    case VK_FORMAT_R16_SINT: case VK_FORMAT_R16_UINT:
+        formats[0] = VK_FORMAT_R16_SFLOAT; formats[1] = VK_FORMAT_R16_SINT; formats[2] = VK_FORMAT_R16_UINT; break;
     case VK_FORMAT_R16G16B16A16_UINT:
         formats[0] = VK_FORMAT_R16G16B16A16_SFLOAT; formats[1] = VK_FORMAT_R16G16B16A16_SINT; formats[2] = VK_FORMAT_R16G16B16A16_UINT; break;
     default:

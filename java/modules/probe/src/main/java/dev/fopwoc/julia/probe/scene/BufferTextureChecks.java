@@ -53,6 +53,9 @@ final class BufferTextureChecks {
                 for (int components = 0; components < 3; components++)
                     check(vertex, target, formats[kind][components], 1 << components, kind);
             unsignedShorts(vertex, target);
+            // PZ3D's road tables are single-channel 16-bit integers.
+            singleShorts(vertex, target, GL_R16UI, "usamplerBuffer", "uint", new int[] {0, 40000, 65535, 7});
+            singleShorts(vertex, target, GL_R16I, "isamplerBuffer", "int", new int[] {0, -2, 32767, -32768});
             large(vertex, target);
             compute();
             ordering(vertex, target, false);
@@ -65,7 +68,7 @@ final class BufferTextureChecks {
                     "PASS\nverified_pixels=3264\nverified_compute_words=4\nlimit_texels="
                             + glGetInteger(GL_MAX_TEXTURE_BUFFER_SIZE) + "\noffset_alignment="
                             + glGetInteger(GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT)
-                            + "\nchecks=ten formats,unsigned 16-bit channels,vertex/fragment/compute,reflection,ranges,updates,reallocation,deletion,pending draws,separate bindings,shared sampler units,empty and sub-texel stores,million texels\n");
+                            + "\nchecks=twelve formats,unsigned 16-bit channels,single 16-bit channels,vertex/fragment/compute,reflection,ranges,updates,reallocation,deletion,pending draws,separate bindings,shared sampler units,empty and sub-texel stores,million texels\n");
         } finally {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_BUFFER, 0);
@@ -232,6 +235,52 @@ final class BufferTextureChecks {
                 throw new IllegalStateException("Full unsigned-short view has the wrong texel count");
             glUniform1i(index, alignment / 8 + 1);
             draw(target, 51, 102, 153);
+        } finally {
+            MemoryUtil.memFree(data);
+            glUseProgram(0);
+            glBindTexture(GL_TEXTURE_BUFFER, 0);
+            glBindBuffer(GL_TEXTURE_BUFFER, 0);
+            glDeleteTextures(texture);
+            glDeleteBuffers(buffer);
+            glDeleteProgram(program);
+            glDeleteShader(fragment);
+        }
+    }
+
+    private static void singleShorts(int vertex, int target, int format, String sampler, String scalar, int[] values) {
+        int fragment = glCreateShader(GL_FRAGMENT_SHADER), program = glCreateProgram();
+        int buffer = glGenBuffers(), texture = glGenTextures();
+        int alignment = glGetInteger(GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT);
+        var data = MemoryUtil.memAlloc(alignment + values.length * 2).order(ByteOrder.nativeOrder());
+        try {
+            glShaderSource(
+                    fragment,
+                    "#version 330 core\nuniform " + sampler + " inputData;\nuniform int index;\nuniform int expected;\n"
+                            + "out vec4 color;\nvoid main() {\n    " + scalar
+                            + " value = texelFetch(inputData, index).r;\n"
+                            + "    color = value == " + scalar + "(expected) ? vec4(.2,.4,.6,1) : vec4(0,0,0,1);\n}\n");
+            compile(fragment);
+            glAttachShader(program, vertex);
+            glAttachShader(program, fragment);
+            glLinkProgram(program);
+            if (glGetProgrami(program, GL_LINK_STATUS) == GL_FALSE)
+                throw new IllegalStateException(glGetProgramInfoLog(program));
+            glUseProgram(program);
+            glUniform1i(glGetUniformLocation(program, "inputData"), 0);
+            for (int i = 0; i < data.capacity(); i++) data.put(i, (byte) 0x7b);
+            for (int i = 0; i < values.length; i++) data.putShort(alignment + i * 2, (short) values[i]);
+            glBindBuffer(GL_TEXTURE_BUFFER, buffer);
+            glBufferData(GL_TEXTURE_BUFFER, data, GL_STATIC_DRAW);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_BUFFER, texture);
+            GL43.glTexBufferRange(GL_TEXTURE_BUFFER, format, buffer, alignment, values.length * 2L);
+            if (glGetTexLevelParameteri(GL_TEXTURE_BUFFER, 0, GL_TEXTURE_WIDTH) != values.length)
+                throw new IllegalStateException("Single-channel 16-bit buffer texture lost its 2-byte texel layout");
+            for (int i = 0; i < values.length; i++) {
+                glUniform1i(glGetUniformLocation(program, "index"), i);
+                glUniform1i(glGetUniformLocation(program, "expected"), values[i]);
+                draw(target, 51, 102, 153);
+            }
         } finally {
             MemoryUtil.memFree(data);
             glUseProgram(0);
