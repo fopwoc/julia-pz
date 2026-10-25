@@ -1,5 +1,8 @@
 # Julia
 
+[![CI](https://github.com/fopwoc/julia-pz/actions/workflows/ci.yml/badge.svg)](https://github.com/fopwoc/julia-pz/actions/workflows/ci.yml)
+[![Steam Workshop](https://img.shields.io/badge/Workshop-384F6F?logo=steam)](https://steamcommunity.com/sharedfiles/filedetails/?id=3825737766)
+
 <img src="common/poster.png" alt="Julia" width="160" align="right">
 
 Julia translates Project Zomboid's OpenGL rendering to the platform's native graphics API: **Metal** on macOS and
