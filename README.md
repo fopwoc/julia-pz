@@ -58,18 +58,20 @@ extensions, implemented per API.
 | Occlusion queries (`GL_SAMPLES_PASSED`, `GL_ANY_SAMPLES_PASSED`) | ✅ | ✅ | 🚧 |
 | Fences (`glFenceSync`, `glClientWaitSync`) | ✅ | ✅ | 🚧 |
 
-### Game and mods
+### Mods I managed to run
 
-These gameplay results are from macOS with Metal, Linux with Vulkan, and Windows with Vulkan under Proton.
+Tested in game on macOS with Metal, Linux with Vulkan, and Windows with Vulkan under Proton, unless a note says
+otherwise.
 
-| | Status | Notes |
+| Mod | Status | Notes |
 | --- | --- | --- |
-| Vanilla Build 42 | ✅ | Menu, loading, world, map, character previews |
-| [ZombieBuddy](https://github.com/zed-0xff/ZombieBuddy) | ✅ | Optional; Julia translates the Java mods it approves |
-| [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528) | ✅ | All presets run, including high and extreme |
-| [PZ3D](https://steamcommunity.com/sharedfiles/filedetails/?id=3807334881) | 🧪 | Shadow, buffer and query paths covered by the probe suite |
-| [WinterFX](https://steamcommunity.com/sharedfiles/filedetails/?id=3819972196) | 🧪 | Indexed blending and program uniforms; snow falls back from tessellation |
-| [ViewPoint Immersive Weathers](https://steamcommunity.com/sharedfiles/filedetails/?id=3822754688) | 🧪 | Fences, named buffer queries and texture staging covered by the probe suite |
+| Vanilla Build 42 | Works | Menu, loading, world, map, character previews |
+| [ZombieBuddy](https://github.com/zed-0xff/ZombieBuddy) | Works | Optional; Julia translates the Java mods it approves |
+| [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528) | Works | All presets run, including high and extreme |
+| [Grassier Grass](https://steamcommunity.com/sharedfiles/filedetails/?id=3818853354) | Works | GPU-generated grass, checked on Linux (Vulkan) and macOS (Metal) |
+| [WinterFX](https://steamcommunity.com/sharedfiles/filedetails/?id=3819972196) | Works | Snow checked on macOS; it uses the mesh path because tessellation isn't supported |
+| [ViewPoint Immersive Weathers](https://steamcommunity.com/sharedfiles/filedetails/?id=3822754688) | Not tested yet | Its fence, buffer-query and texture-staging paths pass the probe suite |
+| [PZ3D](https://steamcommunity.com/sharedfiles/filedetails/?id=3807334881) | Broken | Reaches world load, then needs geometry shaders (cube shadows, rain, lightning, fog), which SDL GPU lacks |
 
 ### Known limits
 
@@ -77,7 +79,8 @@ These GL features stop the game with a report rather than rendering incorrectly:
 
 - Rendering to a whole array or 3D texture at once, and reading back or blitting framebuffers that target one slice.
 - Texture views that change format, or views of cube and 3D textures.
-- Buffer textures in formats other than R/RG/RGBA 32-bit and RGBA16UI, and image load/store on buffer textures.
+- Buffer textures in formats other than R/RG/RGBA 32-bit, R16I/R16UI and RGBA16UI, and image load/store on buffer
+  textures.
 - More than 32 sampled resources in one graphics stage, or more than 16 in a compute shader.
 - Uniform blocks, struct uniforms and atomic counters in uniform queries.
 - Indirect draws from client memory pointers.
@@ -87,6 +90,9 @@ These GL features stop the game with a report rather than rendering incorrectly:
 
 SDL GPU has no border colour, so `GL_CLAMP_TO_BORDER` and legacy `GL_CLAMP` clamp to the edge texel instead. This is
 the one approximation; Julia logs a warning the first time it happens.
+
+Geometry shaders are not supported yet and are not caught early either: SDL GPU has no geometry stage and Angelica
+links such programs without it. On Metal the first draw then fails pipeline creation; on Vulkan it may draw incorrectly.
 
 ## Install
 
@@ -117,7 +123,7 @@ from the same `libs/` folder, or `julia-<version>-windows-loader.dll` saved as `
    | OS | Julia alone | With ZombieBuddy |
    | --- | --- | --- |
    | macOS | `-XstartOnFirstThread -javaagent:julia-agent.jar=activate --` | `-XstartOnFirstThread -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --` |
-   | Linux | `-javaagent:julia-agent.jar=activate --` | `-javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --` |
+   | Linux | `%command% -javaagent:julia-agent.jar=activate --` | `%command% -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --` |
    | Windows | `-agentlib:julia=activate --` | `-agentlib:julia=activate -agentlib:zbNative --` |
 
    Julia's agent must come before ZombieBuddy's, and the final `--` must stay. Use Steam launch options rather than
