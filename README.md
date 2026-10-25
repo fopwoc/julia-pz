@@ -58,19 +58,13 @@ extensions, implemented per API.
 | Occlusion queries (`GL_SAMPLES_PASSED`, `GL_ANY_SAMPLES_PASSED`) | ✅ | ✅ | 🚧 |
 | Fences (`glFenceSync`, `glClientWaitSync`) | ✅ | ✅ | 🚧 |
 
-### Mods I managed to run
-
-Tested in game on macOS with Metal, Linux with Vulkan, and Windows with Vulkan under Proton, unless a note says
-otherwise.
+### Compatibility list
 
 | Mod | Status | Notes |
 | --- | --- | --- |
-| Vanilla Build 42 | Works | Menu, loading, world, map, character previews |
-| [ZombieBuddy](https://github.com/zed-0xff/ZombieBuddy) | Works | Optional; Julia translates the Java mods it approves |
-| [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528) | Works | All presets run, including high and extreme |
-| [Grassier Grass](https://steamcommunity.com/sharedfiles/filedetails/?id=3818853354) | Works | GPU-generated grass, checked on Linux (Vulkan) and macOS (Metal) |
-| [WinterFX](https://steamcommunity.com/sharedfiles/filedetails/?id=3819972196) | Works | Snow checked on macOS; it uses the mesh path because tessellation isn't supported |
-| [ViewPoint Immersive Weathers](https://steamcommunity.com/sharedfiles/filedetails/?id=3822754688) | Not tested yet | Its fence, buffer-query and texture-staging paths pass the probe suite |
+| [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528) | Works | All presets run, including high and extreme, some minor far LODs rendering issues |
+| [Grassier Grass](https://steamcommunity.com/sharedfiles/filedetails/?id=3818853354) | Works | Probably all good |
+| [WinterFX](https://steamcommunity.com/sharedfiles/filedetails/?id=3819972196) | Works | it uses the mesh path because tessellation isn't supported |
 | [PZ3D](https://steamcommunity.com/sharedfiles/filedetails/?id=3807334881) | Broken | Reaches world load, then needs geometry shaders (cube shadows, rain, lightning, fog), which SDL GPU lacks |
 
 ### Known limits
