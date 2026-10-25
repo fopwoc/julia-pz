@@ -21,6 +21,10 @@ public final class ResourceArrayBridge {
     }
 
     public static void glGetIntegeri_v(int parameter, int index, int[] values) {
+        if (ViewportBridge.answersIntegers(parameter)) {
+            ViewportBridge.glGetIntegeri_v(parameter, index, values);
+            return;
+        }
         try (var stack = MemoryStack.stackPush()) {
             var buffer = stack.mallocInt(values.length);
             GLStateManager.glGetIntegeri(parameter, index, buffer);

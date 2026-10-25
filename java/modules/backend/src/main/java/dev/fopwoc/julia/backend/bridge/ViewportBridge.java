@@ -41,6 +41,17 @@ public final class ViewportBridge {
         System.arraycopy(state, 0, values, 0, Math.min(values.length, state.length));
     }
 
+    /** GLSM's indexed integer query stores one value; viewport and scissor boxes need all four. */
+    public static boolean answersIntegers(int parameter) {
+        return parameter == GL_VIEWPORT || parameter == GL_SCISSOR_BOX;
+    }
+
+    public static void glGetIntegeri_v(int parameter, int index, int[] values) {
+        requireFirst(index);
+        double[] state = indexed(parameter);
+        for (int i = 0; i < Math.min(values.length, state.length); i++) values[i] = (int) state[i];
+    }
+
     // Upstream's scalar queries do not cover viewport state, so the SDL context answers directly.
     private static double[] indexed(int parameter) {
         var state = Upstream.context();

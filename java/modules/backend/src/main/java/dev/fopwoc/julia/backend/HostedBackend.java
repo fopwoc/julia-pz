@@ -31,6 +31,7 @@ import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER_BINDING;
 import static org.lwjgl.opengl.GL43.GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT;
 
+import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
@@ -90,6 +91,10 @@ public final class HostedBackend extends ShaderLayer {
             case GL_STENCIL_BACK_FAIL -> glStencilOp(Upstream.context().pipeline.stencilBackFailOp);
             case GL_STENCIL_BACK_PASS_DEPTH_FAIL -> glStencilOp(Upstream.context().pipeline.stencilBackDepthFailOp);
             case GL_STENCIL_BACK_PASS_DEPTH_PASS -> glStencilOp(Upstream.context().pipeline.stencilBackPassOp);
+            // SDL has one reference and mask pair for both faces; GLSM still tracks GL's separate back values.
+            case GL_STENCIL_BACK_REF -> GLStateManager.ctx().stencilState.getRefBack();
+            case GL_STENCIL_BACK_VALUE_MASK -> GLStateManager.ctx().stencilState.getValueMaskBack();
+            case GL_STENCIL_BACK_WRITEMASK -> GLStateManager.ctx().stencilState.getWriteMaskBack();
             case GL_DRAW_BUFFER0,
                     GL_DRAW_BUFFER1,
                     GL_DRAW_BUFFER2,
@@ -160,6 +165,9 @@ public final class HostedBackend extends ShaderLayer {
                     GL_STENCIL_BACK_FAIL,
                     GL_STENCIL_BACK_PASS_DEPTH_FAIL,
                     GL_STENCIL_BACK_PASS_DEPTH_PASS,
+                    GL_STENCIL_BACK_REF,
+                    GL_STENCIL_BACK_VALUE_MASK,
+                    GL_STENCIL_BACK_WRITEMASK,
                     GL_DRAW_BUFFER0,
                     GL_DRAW_BUFFER1,
                     GL_DRAW_BUFFER2,

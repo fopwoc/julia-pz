@@ -2,6 +2,9 @@ package dev.fopwoc.julia.backend.layer;
 
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL12.*;
+import static org.lwjgl.opengl.GL14.*;
+import static org.lwjgl.opengl.GL20.GL_BLEND_EQUATION_ALPHA;
+import static org.lwjgl.opengl.GL20.GL_BLEND_EQUATION_RGB;
 import static org.lwjgl.opengl.GL30.*;
 
 import dev.fopwoc.julia.backend.Upstream;
@@ -15,9 +18,16 @@ import org.lwjgl.system.MemoryUtil;
 public abstract class FramebufferLayer extends BufferLayer {
     @Override
     public int getIntegerIndexed(int parameter, int index) {
-        return parameter == GL_BLEND || parameter == GL_SCISSOR_TEST
-                ? (BlendBridge.glIsEnabledi(parameter, index) ? GL_TRUE : GL_FALSE)
-                : super.getIntegerIndexed(parameter, index);
+        return switch (parameter) {
+            case GL_BLEND, GL_SCISSOR_TEST -> BlendBridge.glIsEnabledi(parameter, index) ? GL_TRUE : GL_FALSE;
+            case GL_BLEND_SRC_RGB,
+                    GL_BLEND_DST_RGB,
+                    GL_BLEND_SRC_ALPHA,
+                    GL_BLEND_DST_ALPHA,
+                    GL_BLEND_EQUATION_RGB,
+                    GL_BLEND_EQUATION_ALPHA -> BlendBridge.blendState(parameter, index);
+            default -> super.getIntegerIndexed(parameter, index);
+        };
     }
 
     @Override

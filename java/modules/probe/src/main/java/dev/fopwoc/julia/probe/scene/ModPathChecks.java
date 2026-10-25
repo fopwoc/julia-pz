@@ -5,6 +5,7 @@ import static org.lwjgl.opengl.GL12.GL_ALIASED_LINE_WIDTH_RANGE;
 import static org.lwjgl.opengl.GL12.GL_PACK_IMAGE_HEIGHT;
 import static org.lwjgl.opengl.GL12.GL_PACK_SKIP_IMAGES;
 import static org.lwjgl.opengl.GL13.GL_CLAMP_TO_BORDER;
+import static org.lwjgl.opengl.GL14.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL21.GL_PIXEL_PACK_BUFFER_BINDING;
@@ -23,6 +24,7 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.lwjgl.opengl.GL32;
+import org.lwjgl.opengl.GL40;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.system.MemoryStack;
 
@@ -63,7 +65,7 @@ final class ModPathChecks {
                 output.resolve("mod-paths.txt"),
                 "PASS\nchecks=tessellation compile failure,generic buffer binding queries,border wrap as edge clamp,border colour,unsigned uniforms,"
                         + "multi-draw base vertex,full-level sub-image readback,zero integer clears,"
-                        + "indexed 64-bit buffer ranges,whole storage-buffer bindings,saved-state queries\n");
+                        + "indexed 64-bit buffer ranges,whole storage-buffer bindings,saved-state queries,back stencil reference and masks,indexed blend state,indexed scissor box\n");
     }
 
     // WinterFX tries tessellated snow first and falls back when its program does not build.
@@ -299,9 +301,34 @@ final class ModPathChecks {
                 && glGetInteger(GL_STENCIL_BACK_PASS_DEPTH_FAIL) == GL_INCR
                 && glGetInteger(GL_STENCIL_BACK_PASS_DEPTH_PASS) == GL_REPLACE
                 && glGetInteger(GL_STENCIL_BACK_FUNC) == GL_LEQUAL;
+        // PZ3D saves the whole back-face stencil state, including its reference and masks.
+        glStencilFuncSeparate(GL_BACK, GL_LEQUAL, 5, 0x3f);
+        glStencilMaskSeparate(GL_BACK, 0x0f);
+        stencil &= glGetInteger(GL_STENCIL_BACK_REF) == 5
+                && glGetInteger(GL_STENCIL_BACK_VALUE_MASK) == 0x3f
+                && glGetInteger(GL_STENCIL_BACK_WRITEMASK) == 0x0f;
         glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_KEEP);
         glStencilFuncSeparate(GL_BACK, GL_ALWAYS, 0, 0xff);
+        glStencilMaskSeparate(GL_BACK, 0xff);
         if (!stencil) throw new IllegalStateException("Back stencil state query differs");
+        // PZ3D also saves every draw buffer's blend state and the indexed scissor box.
+        GL40.glBlendFuncSeparatei(1, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+        GL40.glBlendEquationSeparatei(1, GL_FUNC_ADD, GL_MAX);
+        boolean blend = glGetIntegeri(GL_BLEND_SRC_RGB, 1) == GL_SRC_ALPHA
+                && glGetIntegeri(GL_BLEND_DST_RGB, 1) == GL_ONE_MINUS_SRC_ALPHA
+                && glGetIntegeri(GL_BLEND_SRC_ALPHA, 1) == GL_ONE
+                && glGetIntegeri(GL_BLEND_DST_ALPHA, 1) == GL_ZERO
+                && glGetIntegeri(GL_BLEND_EQUATION_RGB, 1) == GL_FUNC_ADD
+                && glGetIntegeri(GL_BLEND_EQUATION_ALPHA, 1) == GL_MAX
+                && glGetIntegeri(GL_BLEND_EQUATION_ALPHA, 0) == GL_FUNC_ADD;
+        glBlendFunc(GL_ONE, GL_ZERO);
+        glBlendEquation(GL_FUNC_ADD);
+        if (!blend) throw new IllegalStateException("Indexed blend state query differs");
+        int[] box = new int[4];
+        glScissor(1, 2, 3, 4);
+        glGetIntegeri_v(GL_SCISSOR_BOX, 0, box);
+        if (box[0] != 1 || box[1] != 2 || box[2] != 3 || box[3] != 4)
+            throw new IllegalStateException("Indexed scissor box query differs");
         int renderbuffer = glGenRenderbuffers();
         glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
         int bound = glGetInteger(GL_RENDERBUFFER_BINDING);
