@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL32;
 import org.lwjgl.opengl.GL33;
 import org.lwjgl.opengl.GL40;
@@ -62,11 +63,12 @@ final class ModPathChecks {
         integerClear();
         bufferRanges();
         stateQueries();
+        floatToUnorm();
         Files.writeString(
                 output.resolve("mod-paths.txt"),
                 "PASS\nchecks=tessellation compile failure,generic buffer binding queries,border wrap as edge clamp,border colour,unsigned uniforms,"
                         + "multi-draw base vertex,full-level sub-image readback,zero integer clears,"
-                        + "indexed 64-bit buffer ranges,whole storage-buffer bindings,saved-state queries,back stencil reference and masks,indexed blend state,indexed scissor box,per-unit sampler bindings\n");
+                        + "indexed 64-bit buffer ranges,whole storage-buffer bindings,saved-state queries,float uploads into normalized arrays,back stencil reference and masks,indexed blend state,indexed scissor box,per-unit sampler bindings\n");
     }
 
     // WinterFX tries tessellated snow first and falls back when its program does not build.
@@ -275,6 +277,26 @@ final class ModPathChecks {
     }
 
     // PZ3D, WinterFX and GrassierGrass save this state before their passes and restore it after.
+    // PZ3D fills RGBA8 array textures from float tables; GL clamps and rounds each component on upload.
+    private static void floatToUnorm() {
+        int texture = glGenTextures();
+        try {
+            glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+            GL12.glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 2, 1, 1, 0, GL_RGBA, GL_FLOAT, new float[] {
+                0, .5f, 1, 2, -1, .25f, Float.NaN, 1
+            });
+            byte[] pixels = ResourceReadback.layer(texture, 0);
+            int[] expected = {0, 128, 255, 255, 0, 64, 0, 255};
+            for (int i = 0; i < expected.length; i++)
+                if ((pixels[i] & 255) != expected[i])
+                    throw new IllegalStateException("Float upload into RGBA8 byte " + i + " got " + (pixels[i] & 255)
+                            + " expected " + expected[i]);
+        } finally {
+            glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+            glDeleteTextures(texture);
+        }
+    }
+
     private static void stateQueries() {
         glPolygonOffset(2, 3);
         float factor = glGetFloat(GL_POLYGON_OFFSET_FACTOR), units = glGetFloat(GL_POLYGON_OFFSET_UNITS);

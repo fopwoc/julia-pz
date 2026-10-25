@@ -54,7 +54,12 @@ public final class NamedTextureUploads {
             throw new IllegalArgumentException("Named upload region outside allocated storage");
         var transfer = TextureUploadFormat.transfer(meta.glFormat());
         boolean bgra = transfer.format() == GL_RGBA && format == GL_BGRA && type == GL_UNSIGNED_BYTE;
-        if ((!bgra && format != transfer.format()) || type != transfer.type())
+        // GL clamps float client data into normalized 8-bit storage; PZ3D fills RGBA8 arrays from float tables.
+        boolean unorm = format == transfer.format()
+                && type == GL_FLOAT
+                && transfer.type() == GL_UNSIGNED_BYTE
+                && meta.glFormat() != GL_RGB8;
+        if ((!bgra && format != transfer.format()) || (type != transfer.type() && !unorm))
             throw new UnsupportedOperationException("Named texture upload conversion not implemented: storage="
                     + meta.glFormat() + " format=" + format + " type=" + type);
         if (width == 0 || height == 0 || depth == 0) return;
@@ -64,11 +69,14 @@ public final class NamedTextureUploads {
         if (data == null || !data.isDirect())
             throw new IllegalArgumentException("Named upload requires direct client data");
         var unpack = Subsystems.current().volumeUnpack();
+        if (unorm && unpack.swapBytes)
+            throw new UnsupportedOperationException("Byte-swapped float conversion to normalized storage");
+        int clientBytes = unorm ? transfer.bytes() * Float.BYTES : transfer.bytes();
         UnpackLayout layout = UnpackLayout.of(
                 width,
                 height,
                 depth,
-                transfer.bytes(),
+                clientBytes,
                 state.pixelStore,
                 volume ? unpack.imageHeight : 0,
                 volume ? unpack.skipImages : 0);
@@ -98,6 +106,16 @@ public final class NamedTextureUploads {
                                 + layer * layout.imageStride()
                                 + row * layout.rowStride());
                         int destination = layer * sliceBytes + row * rowBytes;
+                        if (unorm) {
+                            for (int i = 0; i < rowBytes; i++) {
+                                float value = MemoryUtil.memGetFloat(
+                                        MemoryUtil.memAddress(data, source) + (long) i * Float.BYTES);
+                                // NaN compares false on both sides and lands at zero, as GL allows.
+                                float clamped = value > 0 ? Math.min(value, 1) : 0;
+                                mapped.put(destination + i, (byte) Math.round(clamped * 255));
+                            }
+                            continue;
+                        }
                         if (!bgra && !rgb8 && !rgb32 && !unpack.swapBytes) {
                             MemoryUtil.memCopy(
                                     MemoryUtil.memAddress(data, source),
