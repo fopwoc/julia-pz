@@ -58,4 +58,23 @@ class RendererPackagingTest {
             }
         }
     }
+
+    @Test
+    void shipsNoGuavaClassesOrReferences() throws Exception {
+        try (var agent = new ZipFile(System.getProperty("agent.jar"))) {
+            for (var library : agent.stream()
+                    .filter(entry -> entry.getName().endsWith(".jar"))
+                    .toList()) {
+                try (var jar = new JarInputStream(agent.getInputStream(library))) {
+                    for (var entry = jar.getNextJarEntry(); entry != null; entry = jar.getNextJarEntry()) {
+                        if (!entry.getName().endsWith(".class")) continue;
+                        String location = library.getName() + "!/" + entry.getName();
+                        assertFalse(entry.getName().startsWith("com/google/common/"), location);
+                        String constants = new String(jar.readAllBytes(), StandardCharsets.ISO_8859_1);
+                        assertFalse(constants.contains("com/google/common/"), location);
+                    }
+                }
+            }
+        }
+    }
 }

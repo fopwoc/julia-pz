@@ -22,7 +22,6 @@ dependencies {
         exclude(group = "com.github.zafarkhaja")
         exclude(group = "com.google.code.findbugs")
     }
-    implementation(libs.guava)
     api(libs.fastutil)
     api(libs.joml) { exclude(group = "org.jetbrains.kotlin") }
     implementation(libs.log4j.api)

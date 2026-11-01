@@ -16,7 +16,7 @@ indirect sampler tables and sparse color targets).
 The CMake source archive is pinned by SHA-256; the original SDL source remains under its zlib license
 (`licenses/SDL.txt`). The extensions and SDL ownership/cycling changes are clearly marked as Julia code and are not upstream SDL APIs.
 
-Other runtime dependencies (LWJGL, ASM, Guava, Log4j, …) carry their notices inside their own JARs.
+Other runtime dependencies (LWJGL, ASM, Log4j, …) carry their notices inside their own JARs.
 
 ## LGPL v3 compliance
 

@@ -26,7 +26,6 @@ dependencies {
     api(libs.joml) { exclude(group = "org.jetbrains.kotlin") }
     implementation(libs.asm.tree)
     implementation(libs.log4j.api)
-    implementation(libs.guava)
     implementation(libs.commons.lang3)
     compileOnly(rendererLibs.annotations)
     compileOnly(libs.jsr305)
