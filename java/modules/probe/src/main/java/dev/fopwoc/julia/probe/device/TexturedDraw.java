@@ -3,7 +3,7 @@ package dev.fopwoc.julia.probe.device;
 import static org.lwjgl.sdl.SDLGPU.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.device.Device;
-import dev.fopwoc.julia.backend.utils.Sdl;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import java.io.IOException;
 import org.lwjgl.sdl.SDL_GPUColorTargetDescription;
 import org.lwjgl.sdl.SDL_GPUColorTargetInfo;

@@ -219,7 +219,7 @@ sequenceDiagram
 - **Shaders.** Angelica compiles the game's GLSL to SPIR-V and translates it to the native shading language.
 - **Patched SDL.** Julia ships its own SDL 3 build, `SDL3Julia`. Stock SDL GPU lacks some GL features the game and
   mods use, so Julia adds them as native extensions compiled inside SDL's backend for each GPU API. Java calls them
-  through `backend.sdl`; the patches live in `native/sdl/`.
+  through bindings in the renderer; the patches live in the Angelica fork, `third_party/angelica/sdl-gpu/native/`.
 - **Window.** The game keeps its GLFW window. Julia wraps the native handle (Cocoa, Win32, X11 or Wayland) in an SDL
   window and restores everything it changed when it detaches.
 - **Failure.** An exception inside a frame aborts the GPU frame first, so a half-recorded frame is never presented.
@@ -279,7 +279,8 @@ for example `linux/x64/libSDL3Julia.so` or `windows/x64/SDL3Julia.dll`.
 For a complete distribution, run `./tools/build-universal.sh` from the repository root on macOS with Docker
 running. It builds Mac ARM64 and x64 libraries with the Apple SDK, then Linux x64 and Windows x64 libraries in a
 staged container, runs the JVM checks, packages the same `java/modules/agent/build/libs/julia-agent.jar`, and stages
-a copy as `libs/julia-agent.jar`. Container outputs and incremental build caches remain under `native/sdl/build/`.
+a copy as `libs/julia-agent.jar`. Container outputs and the universal build trees remain under `native/build/`; the host build's SDL tree is in
+`java/modules/sdl-gpu/build/sdl/`.
 
 When supplying prebuilt libraries yourself, use `:agent:universalJar` with `-PjuliaNatives=<dir>` to reject an
 incomplete distribution. Ordinary `:agent:jar` remains available for host-only development builds.
@@ -337,7 +338,8 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `java/modules/render-runtime` | JDK-only types shared across the isolation boundary |
 | `java/modules/probe` | GPU probes and offline audit CLI |
 | `java/modules/workshop` | Packages the Lua companion mod |
-| `native/sdl` | SDL patches: `common/` for every API, one folder per GPU API (`metal/` and `vulkan/`) |
+| `native` | Container build for the Linux and Windows natives, and the Windows `-agentlib` loader |
+| `third_party/angelica/sdl-gpu/native` | SDL patches: `common/` for every API, one folder per GPU API (`metal/`, `vulkan/`) |
 
 ### Flags
 

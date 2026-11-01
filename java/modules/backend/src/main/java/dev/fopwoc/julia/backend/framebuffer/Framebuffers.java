@@ -6,6 +6,7 @@ import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.sdl.SDLGPU.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
+import com.gtnewhorizons.angelica.sdlgpu.extension.SdlSparseTargets;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.AttachmentClear;
@@ -14,7 +15,6 @@ import com.gtnewhorizons.angelica.sdlgpu.resource.PixelOps;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.sdl.SdlSparseTargets;
 import dev.fopwoc.julia.backend.texture.TextureStorage;
 import java.util.Arrays;
 import java.util.WeakHashMap;

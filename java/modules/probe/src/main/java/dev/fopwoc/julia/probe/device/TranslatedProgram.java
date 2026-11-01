@@ -6,7 +6,7 @@ import static org.lwjgl.sdl.SDLGPU.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.device.Device;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
-import dev.fopwoc.julia.backend.utils.Sdl;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 

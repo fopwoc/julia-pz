@@ -15,7 +15,7 @@ fi
 command -v cmake >/dev/null || { echo 'Missing build tool: cmake' >&2; exit 1; }
 natives=$1
 shift
-build="$root/native/sdl/build/universal"
+build="$root/native/build/universal"
 
 for target in "$@"; do
     case $target in
@@ -24,7 +24,7 @@ for target in "$@"; do
         *) echo "Unknown macOS architecture: $target" >&2; exit 1 ;;
     esac
     directory="$build/macos-$target"
-    cmake -S "$root/native/sdl" -B "$directory" -DCMAKE_BUILD_TYPE=Release \
+    cmake -S "$root/third_party/angelica/sdl-gpu/native" -B "$directory" -DCMAKE_BUILD_TYPE=Release \
         "-DCMAKE_OSX_ARCHITECTURES=$architecture" \
         "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=$directory/lib" -DSDL_HIDAPI_LIBUSB=OFF
     cmake --build "$directory" --target SDL3-shared --config Release --parallel 8

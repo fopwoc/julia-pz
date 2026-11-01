@@ -46,7 +46,8 @@
   non-GL helpers elsewhere.
 - OS specifics stay behind `Platform`, `ForeignWindow`, and `BorrowedWindow`, with implementations in per-OS packages
   such as `window.macos`. GPU-API specifics stay behind `GpuBackend` (Metal, Vulkan, Direct3D 12). Native SDL
-  extensions are bound once (in `backend.sdl` until they move to the fork) and export the same C symbols for every GPU
+  extensions are bound once (in the fork's `sdlgpu.extension`; the bindings still tied to Julia types stay in
+  `backend.sdl` until their domains move) and export the same C symbols for every GPU
   backend that implements them.
 - After changing service registration, loader prefixes, package names, or endpoint strings, run
   `./gradlew :probe:suiteProbe`. Unit tests do not cover the isolated loader path.

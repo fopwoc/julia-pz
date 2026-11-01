@@ -4,10 +4,10 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.util.spvc.Spvc.*;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
+import com.gtnewhorizons.angelica.sdlgpu.extension.SdlVertexInputs;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineCache;
 import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.sdl.SdlVertexInputs;
 import java.util.WeakHashMap;
 import org.lwjgl.sdl.SDL_GPUGraphicsPipelineCreateInfo;
 

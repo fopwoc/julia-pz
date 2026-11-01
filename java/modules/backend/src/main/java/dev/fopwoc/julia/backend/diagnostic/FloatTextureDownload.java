@@ -3,8 +3,8 @@ package dev.fopwoc.julia.backend.diagnostic;
 import static org.lwjgl.sdl.SDLGPU.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.utils.Sdl;
 import java.nio.ByteBuffer;
 import org.lwjgl.sdl.SDL_GPUTextureRegion;
 import org.lwjgl.sdl.SDL_GPUTextureTransferInfo;

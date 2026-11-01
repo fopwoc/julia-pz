@@ -8,10 +8,11 @@ if [[ $(uname -s) != Darwin ]]; then
 fi
 command -v docker >/dev/null || { echo 'Missing build tool: docker' >&2; exit 1; }
 docker info >/dev/null
-natives="$root/native/sdl/build/universal/natives"
+natives="$root/native/build/universal/natives"
 mkdir -p "$natives"
 
 docker buildx build --platform linux/amd64 \
+    --build-context "sdl=$root/third_party/angelica/sdl-gpu/native" \
     --output "type=local,dest=$natives" "$root/native"
 "$root/tools/build-natives-macos.sh" "$natives" arm64 x64
 

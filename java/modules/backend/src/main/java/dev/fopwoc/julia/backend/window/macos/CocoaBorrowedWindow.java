@@ -5,7 +5,7 @@ import static org.lwjgl.sdl.SDLProperties.SDL_SetPointerProperty;
 import static org.lwjgl.sdl.SDLVideo.SDL_PROP_WINDOW_CREATE_COCOA_WINDOW_POINTER;
 import static org.lwjgl.sdl.SDLVideo.SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN;
 
-import dev.fopwoc.julia.backend.utils.Sdl;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.window.BorrowedWindow;
 import dev.fopwoc.julia.backend.window.SdlBorrowedWindow;
 

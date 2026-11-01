@@ -37,5 +37,5 @@ tasks.test {
 tasks.register("universalJar") {
     group = "build"
     description = "Build the single agent JAR with every supported platform's native library."
-    dependsOn(":backend:verifyUniversalNatives", tasks.jar)
+    dependsOn(":sdl-gpu:verifyUniversalNatives", tasks.jar)
 }

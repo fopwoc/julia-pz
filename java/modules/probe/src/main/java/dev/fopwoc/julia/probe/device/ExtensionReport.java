@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.probe.device;
 
-import dev.fopwoc.julia.backend.utils.Sdl;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

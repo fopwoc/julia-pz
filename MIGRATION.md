@@ -31,8 +31,8 @@ Details live in `third_party/angelica/AGENTS.md`. In short:
 | `backend.framebuffer`, `query`, `sync`, `vertex`, `buffer` | `sdl-gpu` matching domain packages | |
 | `backend.diagnostic` | `sdl-gpu` `diagnostic` | `DrawTracePass` becomes a hook |
 | `backend.compat` | `CompatShaderInput` → `glsm`; `ReportedState` → `sdl-gpu`; `TessellatorState` deleted with the LWJGL2 namespace | |
-| `backend.sdl` (Java bindings) | `sdl-gpu` | Together with the native code below |
-| `native/sdl` (CMake patches and SDL GPU extensions) | Fork, owned, next to `sdl-gpu` | The SDL build tasks move from Julia's `backend` build to its `sdl-gpu` build. `native/agentlib` stays in Julia |
+| `backend.sdl` (Java bindings) | `sdl-gpu` `extension` | Four moved in 1b; the rest move with their domains |
+| `native/sdl` (CMake patches and SDL GPU extensions) | `sdl-gpu/native` in the fork | Done in 1b. `native/agentlib` and the Dockerfile stay in Julia |
 | `transform.load.LegacyNamespacePass`, glsm stubs, `Lwjgl3ify-Aware` marker, lwjgl3ify dependency | Deleted | `glsm` compiles against LWJGL3 |
 | `backend.bridge` (32 entry points) | `sdl-gpu` owned `bridge` package | `Endpoint` keeps naming them by string. Simple one-to-one mappings may become `GLSMRedirector` entries |
 | `WindowQueryPass`, `window.HostWindow` | A host-window API on `Device`; `HostWindow` stays in Julia and implements it | |
@@ -74,14 +74,24 @@ Left over:
 - **Redirector tables.** LWJGL2-only mappings (`GLU`, `Project`, `Util`, LWJGL2-signature extensions) are dead under
   LWJGL3 but harmless; prune them when the bridges move.
 
-### 1b. Native SDL into the fork
+### 1b. Native SDL into the fork (done)
 
-Every file in `native/sdl` adds a GL feature SDL GPU lacks (queries, texture and buffer views, sparse targets, sampler
+The CMake sources moved to `third_party/angelica/sdl-gpu/native`. Julia's `sdl-gpu` module builds them into
+`java/modules/sdl-gpu/build/sdl` and packs the library into its jar; `NativeTarget` in `buildSrc` serves both that
+and the LWJGL natives in `backend`. The Docker build takes the sources as the named context `sdl`, and the universal
+build trees live in `native/build/`. `SdlExtension`, `SdlSparseTargets`, `SdlTextureViews`, `SdlVertexInputs`, and
+the `Sdl` failure helper are in the fork (`sdlgpu.extension`, `sdlgpu.util`).
+
+Left over: `SdlBufferTextures`, `SdlTimestamps`, and `SdlOcclusionQueries` implement Julia's driver interfaces and
+call `Upstream`, so they move with their domains in phase 3. `SdlDeveloperHud` loads natives through Julia's
+`Platform` and stays with the host.
+
+Every file in the native build adds a GL feature SDL GPU lacks (queries, texture and buffer views, sparse targets, sampler
 arrays and capacity, vertex divisors, wider uniform windows), fixes Vulkan usage and layout rules for GL's untyped
 resources, or keeps SDL loadable in Steam's runtime (`xkbcommon_baseline`). None of it works around how vanilla
-Angelica integrates, so it all moves as renderer code, with its Java bindings (`backend.sdl`).
+Angelica integrates, so it all moves as renderer code.
 
-While moving, check whether these four can be handled in Java instead of by patching SDL:
+Not yet checked: whether these four can be handled in Java instead of by patching SDL:
 
 - `uniform_ranges`: push large default-block uniforms through a storage buffer.
 - `buffer_storage`: create buffers with every usage they may take on.

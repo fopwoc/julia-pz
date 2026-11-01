@@ -4,8 +4,8 @@ import static org.lwjgl.sdl.SDLGPU.*;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
 import com.gtnewhorizons.angelica.sdlgpu.device.Device;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.platform.Platform;
-import dev.fopwoc.julia.backend.utils.Sdl;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.ByteBuffer;

@@ -15,13 +15,18 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
       # The same pinned toolchain image the local universal build uses (glibc 2.31 and MinGW).
       - name: Build SDL for Linux and Windows
-        run: docker buildx build --platform linux/amd64 --output type=local,dest=natives native
+        run: >-
+          docker buildx build --platform linux/amd64
+          --build-context sdl=third_party/angelica/sdl-gpu/native
+          --output type=local,dest=natives native
 
       - name: Upload natives
         uses: actions/upload-artifact@v7
@@ -58,10 +63,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: natives-linux-windows
-          path: native/sdl/build/universal/natives
+          path: native/build/universal/natives
 
       - name: Build macOS x64 natives
-        run: tools/build-natives-macos.sh "$GITHUB_WORKSPACE/native/sdl/build/universal/natives" x64
+        run: tools/build-natives-macos.sh "$GITHUB_WORKSPACE/native/build/universal/natives" x64
 
       - name: Check and build the universal agent
         working-directory: java
@@ -70,13 +75,13 @@ jobs:
           check
           :agent:universalJar
           :workshop:modZip
-          "-PjuliaNatives=$GITHUB_WORKSPACE/native/sdl/build/universal/natives"
+          "-PjuliaNatives=$GITHUB_WORKSPACE/native/build/universal/natives"
 
       - name: Package the Workshop folder
         run: |
           mkdir -p dist
           cp java/modules/agent/build/libs/julia-agent.jar dist/julia-agent.jar
-          cp native/sdl/build/universal/natives/windows/x64/julia.dll dist/julia.dll
+          cp native/build/universal/natives/windows/x64/julia.dll dist/julia.dll
           cp java/modules/workshop/build/distributions/Julia.zip dist/julia-mod.zip
           tools/package-workshop.sh dist/julia-agent.jar dist/julia.dll dist/julia-workshop.zip
           unzip -p dist/julia-agent.jar META-INF/MANIFEST.MF | grep Implementation-Version

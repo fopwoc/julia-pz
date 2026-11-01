@@ -1,9 +1,10 @@
 package dev.fopwoc.julia.backend.sdl;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
+import com.gtnewhorizons.angelica.sdlgpu.extension.SdlExtension;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.query.TimestampDriver;
-import dev.fopwoc.julia.backend.utils.Sdl;
 import org.lwjgl.system.JNI;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;

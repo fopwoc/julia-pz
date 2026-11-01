@@ -3,7 +3,7 @@ package dev.fopwoc.julia.backend.window.linux;
 import static org.lwjgl.sdl.SDLProperties.*;
 import static org.lwjgl.sdl.SDLVideo.*;
 
-import dev.fopwoc.julia.backend.utils.Sdl;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.window.BorrowedWindow;
 import dev.fopwoc.julia.backend.window.SdlBorrowedWindow;
 import dev.fopwoc.julia.runtime.ForeignWindow;

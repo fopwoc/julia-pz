@@ -6,8 +6,8 @@ import static org.lwjgl.sdl.SDLGPU.SDL_WaitForGPUIdle;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.frame.OffscreenTarget;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.utils.Sdl;
 import org.lwjglx.opengl.Display;
 
 /** Changes the logical default framebuffer without changing the borrowed native window. */

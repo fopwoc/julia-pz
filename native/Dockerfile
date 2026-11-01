@@ -13,7 +13,8 @@ RUN printf '%s\n' \
     libudev-dev libdbus-1-dev libasound2-dev libpulse-dev \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install --no-cache-dir cmake==4.4.4
-COPY sdl /src/sdl
+# The renderer's SDL sources live in the Angelica fork; callers pass them as the named build context "sdl".
+COPY --from=sdl . /src/sdl
 
 FROM toolchain AS linux
 RUN apt-get update && apt-get install -y --no-install-recommends libxss-dev libxtst-dev \

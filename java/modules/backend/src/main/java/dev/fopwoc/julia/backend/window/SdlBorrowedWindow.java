@@ -3,9 +3,9 @@ package dev.fopwoc.julia.backend.window;
 import static org.lwjgl.sdl.SDLProperties.*;
 import static org.lwjgl.sdl.SDLVideo.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.gpu.GpuBackend;
 import dev.fopwoc.julia.backend.platform.Platform;
-import dev.fopwoc.julia.backend.utils.Sdl;
 import java.util.function.IntConsumer;
 
 /** Owns only SDL's wrapper; the imported native window remains owned by GLFW. */

@@ -9,7 +9,7 @@ import static org.lwjgl.sdl.SDLGPU.*;
 import static org.lwjgl.util.spvc.Spvc.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.utils.Sdl;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import java.nio.ByteOrder;
 import org.lwjgl.sdl.*;
 import org.lwjgl.system.MemoryStack;

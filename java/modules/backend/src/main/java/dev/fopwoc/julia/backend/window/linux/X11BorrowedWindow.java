@@ -3,7 +3,7 @@ package dev.fopwoc.julia.backend.window.linux;
 import static org.lwjgl.sdl.SDLProperties.SDL_SetNumberProperty;
 import static org.lwjgl.sdl.SDLVideo.SDL_PROP_WINDOW_CREATE_X11_WINDOW_NUMBER;
 
-import dev.fopwoc.julia.backend.utils.Sdl;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.window.BorrowedWindow;
 import dev.fopwoc.julia.backend.window.SdlBorrowedWindow;
 

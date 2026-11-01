@@ -1,8 +1,8 @@
 package dev.fopwoc.julia.backend.runtime;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendOptions;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.platform.Platform;
-import dev.fopwoc.julia.backend.utils.Sdl;
 import dev.fopwoc.julia.runtime.ForeignWindow;
 import org.lwjgl.sdl.SDLHints;
 import org.lwjgl.sdl.SDLInit;

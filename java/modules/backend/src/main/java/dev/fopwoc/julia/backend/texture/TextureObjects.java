@@ -10,9 +10,9 @@ import static org.lwjgl.sdl.SDLGPU.*;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
+import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.utils.Sdl;
 
 /** Object identity and immutable allocation without modifying active units or texture bindings. */
 public final class TextureObjects {

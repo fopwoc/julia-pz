@@ -3,8 +3,8 @@ package dev.fopwoc.julia.backend.shader.metal;
 import static org.lwjgl.util.spvc.Spv.*;
 import static org.lwjgl.util.spvc.Spvc.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.extension.SdlExtension;
 import com.gtnewhorizons.angelica.sdlgpu.shader.cross.CrossCompileCache.Output;
-import dev.fopwoc.julia.backend.sdl.SdlExtension;
 import dev.fopwoc.julia.backend.shader.SamplerResources;
 import java.nio.ByteBuffer;
 import org.lwjgl.opengl.GL20;

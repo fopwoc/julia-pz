@@ -7,9 +7,9 @@ import static org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY;
 import static org.lwjgl.sdl.SDLGPU.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
+import com.gtnewhorizons.angelica.sdlgpu.extension.SdlTextureViews;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.sdl.SdlTextureViews;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import java.util.HashMap;
 import java.util.Map;
