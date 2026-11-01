@@ -44,7 +44,7 @@ The tree does not need to pass tests between steps; phase 6 restores tests and `
   Minecraft/launcher repository filters are removed; nested renderer initialization has an explicit error message.
 - `Endpoint` no longer stores the unused `upstream` flag; GLSM membership and the shared JDK-only boundary stay explicit.
 - Verified compilation of main and test sources offline, the host logging provider's JAR resources, and the cleaned
-  runtime dependency graph. CPU regression results are recorded below; native probes remain deferred.
+  runtime dependency graph. CPU and native regression results are recorded below.
 
 ### 6. Restore
 
@@ -58,11 +58,19 @@ The tree does not need to pass tests between steps; phase 6 restores tests and `
   Each valid case uses two real `RuntimeLoader` instances and checks the isolated provider, arbitrary Log4j names,
   library and owned `System.Logger` output, parameter formatting, fatal/error messages and exceptions, and stable
   namespace handlers. The JVM-global root logger and unrelated game loggers retain their configuration.
-- **CPU status:** all 232 tests pass with zero failures or skips. No native GPU probes or game launches were run.
+- **GPU restore fixes:** capabilities are installed before GLSM pre-initialization, including offscreen startup.
+  GTNHLib's direct-buffer factory uses LWJGL's supported wrapper instead of a Java 8 private constructor. Layered
+  framebuffer attachments reach the slice implementation; invalid named attachments preserve framebuffer bindings.
+  Indexed enable/disable validation lives at the backend boundary so direct GLSM calls cannot bypass it.
+- **Metal uniform fix:** SDL's 32 KiB pool could not hold 48 KiB uploads. Metal now uses a larger pool and rejects
+  uploads beyond the 64 KiB block limit before copying. The existing large-uniform and rollover checks pass.
+- **GPU status:** the complete windowless suite passes on local Metal / Apple M4 Max, including the raw device and
+  isolated LWJGL-to-GLSM path. Linux/Vulkan and visual gameplay are not validated by this run.
+- **CPU status:** all 233 tests pass with zero failures or skips; the complete `check` task passes.
 - Native probe (only when the user asks, it opens no window): `./gradlew :probe:suiteProbe`. It covers the isolated
   loader path that unit tests don't, which changed in every phase.
 - Check `GLStateManager.capabilities`: it comes from LWJGL3's thread-local `GL.getCapabilities()`, so GLSM must
-  initialize on the thread that ran the backend's `init()`.
+  initialize on the thread that ran the backend's `onPostWindowCreate()`.
 - Then hand visual and gameplay checks to the user.
 
 ### Optional, later
