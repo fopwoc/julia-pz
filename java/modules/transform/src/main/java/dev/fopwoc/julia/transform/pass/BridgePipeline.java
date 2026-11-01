@@ -1,12 +1,13 @@
 package dev.fopwoc.julia.transform.pass;
 
+import com.gtnewhorizons.angelica.glsm.redirect.lwjgl3.Lwjgl3Redirects;
 import java.util.function.Consumer;
 import org.objectweb.asm.tree.ClassNode;
 
 /**
- * Julia's compatibility passes, applied after upstream GLSM redirection and before typed dispatch.
+ * Renderer GL routing followed by Julia's host and isolation adaptations, before typed dispatch.
  *
- * <p>The order matters: aliases may target overloads that later passes route to bridges.
+ * <p>Renderer aliases and overloads are resolved before loader-specific adaptations.
  */
 public final class BridgePipeline {
     private BridgePipeline() {}
@@ -21,13 +22,9 @@ public final class BridgePipeline {
         } catch (IllegalArgumentException failure) {
             blockers.accept("CAPABILITY_BOUNDARY " + failure.getMessage());
         }
-        VanillaAliasPass.adapt(node);
-        UniformOverloadPass.adapt(node);
-        UniformAccessPass.adapt(node);
-        ResourcePass.adapt(node);
+        Lwjgl3Redirects.apply(node);
         PointerBufferPass.adapt(node);
         DebugCallbackPass.adapt(node);
-        TextureAllocationPass.adapt(node);
         ImGuiPass.adapt(node);
         ImGuiScalePass.adapt(node);
         try {

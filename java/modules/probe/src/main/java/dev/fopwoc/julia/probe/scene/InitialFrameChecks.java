@@ -7,7 +7,7 @@ import static org.lwjgl.opengl.GL30.glBindFramebuffer;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.Upstream;
-import dev.fopwoc.julia.backend.runtime.InitialFrame;
+import com.gtnewhorizons.angelica.sdlgpu.frame.InitialFrame;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 
 /** A startup frame must be black and remain valid while subsequent frames contain no draws. */

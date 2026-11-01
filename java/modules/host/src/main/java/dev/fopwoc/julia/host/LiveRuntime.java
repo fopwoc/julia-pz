@@ -20,11 +20,11 @@ final class LiveRuntime implements AutoCloseable, RenderSession.Frames {
     private RenderSession session;
     private boolean recording;
 
-    private LiveRuntime(ClassLoader host, RuntimeLoader prepared) throws ReflectiveOperationException {
+    private LiveRuntime(ClassLoader host) throws ReflectiveOperationException {
         display = new GameDisplay(host);
         previousPresenter = System.getProperty(PRESENTER);
         System.setProperty(PRESENTER, "true");
-        loader = prepared != null ? prepared : newLoader();
+        loader = newLoader();
         var engine = Class.forName("dev.fopwoc.julia.backend.runtime.GameRuntime", false, loader);
         beforeCall = engine.getMethod("beforeCall");
         begin = engine.getMethod("begin");
@@ -39,23 +39,8 @@ final class LiveRuntime implements AutoCloseable, RenderSession.Frames {
         return new RuntimeLoader(libraries.getURLs(), libraries, "");
     }
 
-    /** Metal chooses HUD instrumentation at its first device, before PZ's GL context exists. */
-    static RuntimeLoader prepareDeveloperHud() throws Exception {
-        if (!Boolean.getBoolean("julia.metalHud")) return null;
-        var loader = newLoader();
-        try {
-            Class.forName("dev.fopwoc.julia.backend.sdl.SdlDeveloperHud", true, loader)
-                    .getMethod("prepareIfRequested")
-                    .invoke(null);
-            return loader;
-        } catch (Exception | Error failure) {
-            loader.close();
-            throw failure;
-        }
-    }
-
-    static LiveRuntime open(ClassLoader host, Path output, RuntimeLoader prepared) throws Exception {
-        var runtime = new LiveRuntime(host, prepared);
+    static LiveRuntime open(ClassLoader host, Path output) throws Exception {
+        var runtime = new LiveRuntime(host);
         try {
             runtime.session = RenderSession.open(new IsolatedTargets(runtime.loader, Endpoint.owners()), runtime);
             var engine = Class.forName("dev.fopwoc.julia.backend.runtime.GameRuntime", true, runtime.loader);

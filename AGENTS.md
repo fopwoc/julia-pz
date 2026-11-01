@@ -34,7 +34,11 @@
 - New renderer code and fixes go into fork source, never into Julia. The fork never references `dev.fopwoc.julia`;
   Julia configures it through fork APIs.
 - Julia never rewrites renderer or GTNHLib bytecode. Change their behavior in fork source.
-- Julia's `backend` module is host code only: runtime, window borrowing, platform selection, logging integration, and the developer HUD.
+- Renderer GL routing and its endpoint names live in the fork's `glsm.redirect.lwjgl3`; Julia invokes
+  `Lwjgl3Redirects` before its host/isolation adaptations. `Endpoint` adds the shared Julia targets.
+- Default framebuffer resizing, initial black presentation, and GPU command teardown live in the fork's `sdlgpu.frame`.
+  Julia decides when to start/present/resize/abort; it does not manipulate framebuffer or command-buffer internals.
+- Julia's `backend` module is host code only: runtime, window borrowing, platform selection, and logging integration.
   Static entry points that rewritten game code calls live in the fork's `sdlgpu.bridge`; `Endpoint` names them.
 - Use comments for non-obvious reasoning only. Javadoc a class when its role or invariant isn't evident from its name.
 - Tests cover behavior that can regress silently. Don't test trivial mappings.
@@ -49,9 +53,8 @@
   non-GL helpers elsewhere.
 - OS specifics stay behind `Platform`, `ForeignWindow`, and `BorrowedWindow`, with implementations in per-OS packages
   such as `window.macos`. GPU-API specifics stay behind `GpuBackend` (Metal, Vulkan, Direct3D 12). Native SDL
-  extensions are bound once (in the fork's `sdlgpu.extension`; the bindings still tied to Julia types stay in
-  `backend.sdl` until their domains move) and export the same C symbols for every GPU
-  backend that implements them.
+  extensions are bound once in the fork's `sdlgpu.extension` and export the same C symbols for every GPU backend
+  that implements them.
 - After changing service registration, loader prefixes, package names, or endpoint strings, run
   `./gradlew :probe:suiteProbe`. Unit tests do not cover the isolated loader path.
 

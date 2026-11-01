@@ -183,7 +183,7 @@ involved.
 ```mermaid
 flowchart TD
     start(["Game starts with the Julia agent"]) --> scan["Scan the game and approved mods for graphics calls"]
-    scan --> prepare["Prepare each graphics class in memory:<br/>redirect GL to Angelica, apply Julia's bridges,<br/>route backend calls through typed invokedynamic"]
+    scan --> prepare["Prepare each graphics class in memory:<br/>redirect GL to Angelica, adapt the host boundary,<br/>route backend calls through typed invokedynamic"]
     prepare --> gate{"Every class ready,<br/>exactly one frame owner?"}
     gate -- yes --> runtime["Start the isolated runtime:<br/>Julia's own LWJGL, SDL3 and Angelica,<br/>GPU device, borrowed game window"]
     runtime --> load["Game classes load already rewritten"]
@@ -334,8 +334,8 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `java/modules/glsm`, `java/modules/sdl-gpu` | Local build descriptors for the fork, without publishing plugins |
 | `java/modules/agent` | The `-javaagent` entry point and startup audit |
 | `java/modules/host` | Isolated class loader and live runtime startup |
-| `java/modules/transform` | Bytecode passes for game and mod code, and pinned patches to Angelica |
-| `java/modules/backend` | Julia's GL backend over Angelica: GL layers, subsystems, OS and GPU-API seams |
+| `java/modules/transform` | Host and isolation adaptations for game/mod code; invokes the fork’s GL routing |
+| `java/modules/backend` | Host runtime lifecycle, platform/window borrowing, and renderer logging integration |
 | `java/modules/render-runtime` | JDK-only types shared across the isolation boundary |
 | `java/modules/probe` | GPU probes and offline audit CLI |
 | `java/modules/workshop` | Packages the Lua companion mod |
@@ -352,7 +352,6 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `-agentlib:julia=<options>` | Launch options, Windows | Same as `-javaagent:julia-agent.jar=<options>`; needs `julia.dll` beside the jar |
 | `-Djulia.drawTrace=true` | Launch options or probe JVM | Bounded CPU draw-state snapshots and compiler inputs beside renderer/probe reports; no GPU readbacks |
 | `-Djulia.gpu=metal\|vulkan` | Launch options or probe JVM | Override the platform's default SDL GPU driver |
-| `-Djulia.metalHud=true` | Launch options, macOS | Show Apple's Metal Performance HUD over the game (current process only; restart required) |
 | `LOG_LEVEL=debug\|info\|warn\|error` | Environment | Julia and renderer log detail on stderr; default `error` |
 | `-PjuliaNatives=<dir>` | Gradle | Pack other hosts' SDL builds (`<os>/<arch>/<library>`) into the agent jar |
 | `-Djulia.probe.width=<px>`, `-Djulia.probe.height=<px>` | Probe JVM | Offscreen size of the adapter probe; default 32 × 32 |

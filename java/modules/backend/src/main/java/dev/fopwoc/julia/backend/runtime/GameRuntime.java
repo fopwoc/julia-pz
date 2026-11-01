@@ -1,15 +1,15 @@
 package dev.fopwoc.julia.backend.runtime;
 
-import static org.lwjgl.sdl.SDLGPU.SDL_CancelGPUCommandBuffer;
-import static org.lwjgl.sdl.SDLGPU.SDL_WaitForGPUIdle;
 import static org.lwjgl.sdl.SDLVideo.SDL_GetWindowSize;
 import static org.lwjgl.sdl.SDLVideo.SDL_GetWindowSizeInPixels;
 
 import com.gtnewhorizons.angelica.glsm.profiling.DebugCounters;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 import com.gtnewhorizons.angelica.sdlgpu.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.frame.DefaultTarget;
+import com.gtnewhorizons.angelica.sdlgpu.frame.FrameCommands;
+import com.gtnewhorizons.angelica.sdlgpu.frame.InitialFrame;
 import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.platform.Platform;
 import dev.fopwoc.julia.backend.window.BorrowedWindow;
@@ -106,18 +106,7 @@ public final class GameRuntime {
 
     public static void abort() {
         if (current == null || current.session == null) return;
-        var backend = (SDLGPURenderBackend) current.session.backend();
-        backend.endComputeDispatchBatch();
-        var frames = Upstream.frames();
-        var frame = frames.frame();
-        frames.endRenderPassIfActive(frame);
-        frames.endCopyPassIfActive();
-        if (frame.commandBuffer != 0) {
-            long command = frame.commandBuffer;
-            frame.commandBuffer = 0;
-            Sdl.require(SDL_CancelGPUCommandBuffer(command), "Cancel aborted game frame");
-        }
-        frame.frameActive = false;
+        FrameCommands.abortFrame();
     }
 
     public static void close() {
@@ -126,8 +115,7 @@ public final class GameRuntime {
         Throwable failure = null;
         try {
             if (runtime.session != null) {
-                abort();
-                Sdl.require(SDL_WaitForGPUIdle(runtime.session.device().getDevice()), "Drain game renderer");
+                FrameCommands.abortAndDrain();
             }
         } catch (RuntimeException | Error error) {
             failure = error;

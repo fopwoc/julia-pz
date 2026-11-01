@@ -1,5 +1,6 @@
 package dev.fopwoc.julia.transform.pass;
 
+import com.gtnewhorizons.angelica.glsm.redirect.lwjgl3.CoreOwners;
 import dev.fopwoc.julia.transform.Endpoint;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;

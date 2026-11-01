@@ -5,7 +5,7 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.Upstream;
-import dev.fopwoc.julia.backend.runtime.DefaultTarget;
+import com.gtnewhorizons.angelica.sdlgpu.frame.DefaultTarget;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.io.IOException;
 import java.nio.file.Files;
