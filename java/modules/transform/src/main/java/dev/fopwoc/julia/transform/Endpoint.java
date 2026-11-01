@@ -50,8 +50,6 @@ public enum Endpoint {
     UNIFORM_UPLOAD_BRIDGE("dev/fopwoc/julia/backend/bridge/UniformUploadBridge", false),
     CAPABILITY_BRIDGE("dev/fopwoc/julia/runtime/CapabilitySnapshot", false),
     COLOR_MASK_BRIDGE("dev/fopwoc/julia/backend/bridge/ColorMaskBridge", false),
-    COLOR_MASK_HOOKS("dev/fopwoc/julia/backend/framebuffer/ColorMaskHooks", false),
-    BLEND_EQUATION_HOOKS("dev/fopwoc/julia/backend/framebuffer/BlendEquationHooks", false),
     BLEND_BRIDGE("com/gtnewhorizons/angelica/sdlgpu/bridge/BlendBridge", false),
     FRAMEBUFFER_CLEAR_BRIDGE("com/gtnewhorizons/angelica/sdlgpu/bridge/FramebufferClearBridge", false),
     FRAMEBUFFER_BRIDGE("dev/fopwoc/julia/backend/bridge/FramebufferBridge", false),

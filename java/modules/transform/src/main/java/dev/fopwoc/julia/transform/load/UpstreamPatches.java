@@ -12,8 +12,6 @@ import org.objectweb.asm.tree.ClassNode;
 public final class UpstreamPatches {
     static final List<UpstreamPatch> ORDER = List.of(
             new FramebufferPass(),
-            new ColorMaskPass(),
-            new BlendEquationPass(),
             new TextureViewPass(),
             new BufferTexturePass(),
             new SamplerBindingPass(),
