@@ -25,7 +25,7 @@ The tree does not need to pass tests between steps; phase 6 restores tests and `
 - **Julia `backend`** is host code only: `runtime`, `window` (per-OS borrowing, `HostWindow` implements the fork's
   `WindowSource`), `platform`, and `sdl.SdlDeveloperHud`. Julia rewrites no renderer or library bytecode anymore.
 - **CPU verification:** fork-owned regressions live in `third_party/angelica/renderer-tests`, a separate project in
-  Julia's build. Its 27 test classes pass 66 tests; Julia's retained host and integration unit tests pass 160 tests.
+  Julia's build. Its 27 test classes pass 66 tests; Julia's retained host and integration unit tests pass 166 tests.
   Upstream test trees are not wired into this suite. All build outputs remain under `java/modules/renderer-tests/build`.
 - **Not verified:** `suiteProbe` has not run since phase 1, there has been no game run, and CI has not yet run the
   nested-submodule checkout or the Docker `sdl` build context. Each former bytecode patch was converted
@@ -44,7 +44,7 @@ The tree does not need to pass tests between steps; phase 6 restores tests and `
   Minecraft/launcher repository filters are removed; nested renderer initialization has an explicit error message.
 - `Endpoint` no longer stores the unused `upstream` flag; GLSM membership and the shared JDK-only boundary stay explicit.
 - Verified compilation of main and test sources offline, the host logging provider's JAR resources, and the cleaned
-  runtime dependency graph. Tests and native probes remain deferred.
+  runtime dependency graph. CPU regression results are recorded below; native probes remain deferred.
 
 ### 6. Restore
 
@@ -52,10 +52,13 @@ The tree does not need to pass tests between steps; phase 6 restores tests and `
   into the fork's separate `renderer-tests` project. Package names follow the renderer classes. Upstream tests remain
   in their original trees and are not mixed into this suite.
 - **Done:** `./gradlew :renderer-tests:test --offline` and Julia's `./gradlew test --offline --no-build-cache` pass
-  (66 renderer tests plus 160 Julia tests, no skipped tests). Renderer tests use CPU shader tools and memory natives,
+  (66 renderer tests plus 166 Julia tests, no skipped tests). Renderer tests use CPU shader tools and memory natives,
   never a device/window. Agent packaging contains no renderer-tests artifact.
-- Add logging regressions for provider selection in the isolated loader, arbitrary Log4j names, `LOG_LEVEL`,
-  formatted messages and exceptions, and duplicate-free JUL setup across loaders. Keep unrelated JUL logging unchanged.
+- **Done:** six fresh-JVM logging regressions cover debug/info/warn/error, the unset default, and invalid `LOG_LEVEL`.
+  Each valid case uses two real `RuntimeLoader` instances and checks the isolated provider, arbitrary Log4j names,
+  library and owned `System.Logger` output, parameter formatting, fatal/error messages and exceptions, and stable
+  namespace handlers. The JVM-global root logger and unrelated game loggers retain their configuration.
+- **CPU status:** all 232 tests pass with zero failures or skips. No native GPU probes or game launches were run.
 - Native probe (only when the user asks, it opens no window): `./gradlew :probe:suiteProbe`. It covers the isolated
   loader path that unit tests don't, which changed in every phase.
 - Check `GLStateManager.capabilities`: it comes from LWJGL3's thread-local `GL.getCapabilities()`, so GLSM must
