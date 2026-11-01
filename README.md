@@ -315,8 +315,9 @@ working tree. `python3 -m unittest discover -s tools/tests` verifies the distrib
 Development tools live under `java/tooling`, separate from shipped modules. The standalone profiler observes PZ's
 completed render steps with native OpenGL or Julia, records warmup/capture windows, and exports frame intervals and
 CPU render-step wall durations. Its direct runner copies a prepared profile into a fresh run directory and can print
-a launch plan without starting anything. Debug mode is optional. It currently uses manually prepared scenes;
-automatic teleport/camera control is not implemented. See [profiling instructions](java/tooling/profiling/README.md).
+a launch plan without starting anything. Its benchmark command loads a copied save, optionally positions the player,
+warms up, records, exits, and repeats OpenGL/Julia comparisons in alternating order. Debug mode is optional; scripted
+camera routes remain future work. See [profiling instructions](java/tooling/profiling/README.md).
 Tooling source is included in the complete source archive, but excluded from Workshop packages and the production agent.
 
 ### GPU probes

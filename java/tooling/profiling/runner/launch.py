@@ -25,7 +25,7 @@ class LaunchPlan:
                 "profile": str(self.run / "profile"), "template": str(self.template) if self.template else None,
                 "renderer": self.renderer, "debug": self.debug}
 
-    def launch(self) -> int:
+    def prepare(self) -> None:
         self.run.mkdir(parents=True, exist_ok=False)
         profile = self.run / "profile"
         if self.template:
@@ -33,6 +33,8 @@ class LaunchPlan:
         else:
             profile.mkdir()
         (self.run / "launch.json").write_text(json.dumps(self.describe(), indent=2) + "\n")
+    def launch(self) -> int:
+        self.prepare()
         with (self.run / "game-output.log").open("w") as output:
             return subprocess.call(self.command, cwd=self.game, stdout=output, stderr=subprocess.STDOUT)
 

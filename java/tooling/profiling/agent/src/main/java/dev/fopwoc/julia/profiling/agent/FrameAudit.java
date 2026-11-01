@@ -17,16 +17,20 @@ public final class FrameAudit {
         try (var source = new ZipFile(path.toFile());
                 var resources =
                         new URLClassLoader(new URL[] {path.toUri().toURL()}, FrameAudit.class.getClassLoader())) {
-            byte[] original;
-            try (var input = source.getInputStream(source.getEntry(FrameInstrumentation.TARGET + ".class"))) {
-                original = input.readAllBytes();
+            for (String target : new String[] {FrameInstrumentation.TARGET, LoadingInstrumentation.TARGET}) {
+                byte[] original;
+                try (var input = source.getInputStream(source.getEntry(target + ".class"))) {
+                    original = input.readAllBytes();
+                }
+                var transformed = target.equals(FrameInstrumentation.TARGET)
+                        ? FrameInstrumentation.instrument(original, resources)
+                        : LoadingInstrumentation.instrument(original, resources);
+                var errors = ClassFile.of(ClassFile.ClassHierarchyResolverOption.of(
+                                ClassHierarchyResolver.ofResourceParsing(resources)))
+                        .verify(transformed);
+                if (!errors.isEmpty()) throw new IllegalStateException(errors.toString());
+                System.out.println("PASS: " + target + " bytecode verified; no game classes initialized");
             }
-            var transformed = FrameInstrumentation.instrument(original, resources);
-            var errors = ClassFile.of(ClassFile.ClassHierarchyResolverOption.of(
-                            ClassHierarchyResolver.ofResourceParsing(resources)))
-                    .verify(transformed);
-            if (!errors.isEmpty()) throw new IllegalStateException(errors.toString());
-            System.out.println("PASS: render-step observer bytecode verified; no game classes initialized");
         }
     }
 }

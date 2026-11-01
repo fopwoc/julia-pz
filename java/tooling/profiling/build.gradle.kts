@@ -13,7 +13,7 @@ val toolingZip = tasks.register<Zip>("toolingZip") {
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true
     into("profiling-tools") {
-        from(projectDir) { include("profile.py", "runner/*.py", "README.md") }
+        from(projectDir) { include("profile.py", "runner/*.py", "scenario/*.lua", "README.md") }
         from(observer) { into("lib") }
         from(core) { into("lib") }
         from(rootProject.file("../LICENSE"))

@@ -64,10 +64,55 @@ subsequent completed frames are sampled. Results flush on the controller thread 
 shutdown preserve partial results as `STOPPED`; buffer exhaustion produces `OVERFLOW`. Neither is a valid full run.
 An observer installation/control error is reported in `status.txt` and stderr; no renderer recovery is attempted.
 
-Scene positioning, camera motion, time/weather control, auto-loading saves, and repeated-run orchestration are not yet
-automated. Start with two manually prepared fixtures: a stationary dense forest and a stationary urban intersection.
-Use copies of the same save, view, resolution, mods, weather and graphics settings. Record streaming/first-visit runs
-separately from warmed stationary views. Match FPS limits and VSync; capped results do not show maximum throughput.
+## Automated comparisons
+
+Prepare a single-player profile with an existing living character, accepted startup dialogs, the desired graphics
+settings and mods, and a stationary test view. Both renderers must support that fixture. Write a scenario JSON:
+
+```json
+{
+  "name": "forest",
+  "save": "Sandbox/benchmark-save",
+  "warmup": 20,
+  "duration": 60
+}
+```
+
+`save` is relative to the profile's `Saves/` folder. Optional `position: [x, y, z]` teleports the player after loading;
+`direction: "SE"` sets their facing, and `hour: 12` sets the initial time of day. Omit them to preserve the saved state.
+Facing is not a first-person camera angle. This first adapter supports stationary vanilla scenes; camera routes,
+ViewPoint controls, scripted weather and deterministic simulation replay are not implemented. Weather, zombies,
+streaming and simulation can still vary: use a suitable prepared save and inspect repeated results.
+
+Inspect the whole batch without launching or writing anything:
+
+```sh
+python3 java/tooling/profiling/profile.py benchmark-plan \
+  --game '/path/to/ProjectZomboid' --run /tmp/forest-comparison \
+  --profile-template /path/to/prepared-test-profile --scenario /path/to/forest.json \
+  --repetitions 3
+```
+
+Replace **`benchmark-plan` with `benchmark`** to explicitly launch the batch. It creates a fresh profile copy for every
+run, alternates OpenGL/Julia order between repetitions, and performs:
+
+1. Enable a development-only Lua companion in the copied default/save mod lists.
+2. Load the selected save through PZ's normal save validation and mod-reset path.
+3. Continue the loading screen when its original loading checks permit it, without simulated input.
+4. Position the player, wait for a loaded current square, then arm the observer's warmup and recording.
+5. Require a complete nonempty capture, request normal game exit, and proceed to the next fresh copy.
+
+The companion and loading-screen hook are enabled only for benchmark runs. Ordinary `launch`/`record` stays passive.
+No `-debug` flag is required for this adapter. An unresolved dialog, missing/dead character, invalid hook, crash, frozen
+renderer or timeout fails the batch; no later repetition is launched. `--startup-timeout` defaults to 180 seconds.
+On error or Ctrl-C the runner terminates only the process it created. Use this while no other PZ session is active.
+It does not create saves, approve Java mods, or modify installed game files. Prepare those prerequisites manually.
+
+The batch writes `benchmark.json`, `results.json`, a final `status.txt`, and one `comparison-NN.md` for each completed
+pair. Per-run `scenario.json`, `scene-ready.txt`, `loading-hook.txt` and `profile/Lua/profile-scene.txt` record the scene
+contract and its handshake. Original templates are never changed, and all captures remain available after a failure.
+Match FPS limits and VSync; capped results do not show maximum throughput. Treat first-visit streaming and warmed
+stationary measurements as separate scenarios.
 
 ## Results
 
@@ -101,4 +146,8 @@ python3 -m unittest discover -s java/tooling/profiling/tests
 ```
 
 The agent integration test runs a synthetic JVM fixture, not PZ. The direct-launch tests mock process execution.
-No tests launch the game or a graphics window. Actual in-game collection still needs a manual test.
+The scenario adapter also has a Lua fixture with mocked game APIs (install `lua` to run it); batch tests use synthetic
+processes, never PZ. `FrameAudit` verifies both frame and loading hooks against the installed archive without loading
+game classes. The adapter follows the installed game's `MainScreen.continueLatestSave` path and public
+[PZ Lua file APIs](https://projectzomboid.com/modding/zombie/Lua/LuaManager.GlobalObject.html).
+No tests launch the game or a graphics window. Automated in-game collection still needs its first manual smoke test.

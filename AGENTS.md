@@ -22,7 +22,9 @@
   under `java/tooling/profiling`, with the Python runner beside them. Production projects must never depend on tooling.
   The Workshop excludes `java/tooling`; the complete source archive retains it. Profiling hooks observe completed
   render steps, never GL behavior; CPU wall durations are not GPU timestamps. Direct launch runs only on explicit
-  user request. `profile.py plan` and `FrameAudit` are safe offline checks.
+  user request. `profile.py plan`, `benchmark-plan` and `FrameAudit` are safe offline checks. The opt-in benchmark
+  companion lives only in copied profiles; its loading-screen continuation hook must preserve the original loading
+  checks. Keep scenario control independent of renderer code. Batch failures stop subsequent runs.
 - Agent and probe packaging uses `buildSrc/packaging` to reduce Fastutil by static dependency closure, including nested
   classes. Compilation retains the full API. Audit new reflective Fastutil usage explicitly. `:buildSrc:test` covers
   closure behavior; run it when changing this packaging logic.

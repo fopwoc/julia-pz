@@ -4,6 +4,7 @@ import dev.fopwoc.julia.utils.logging.LogConfiguration;
 import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.ProtectionDomain;
 
@@ -17,9 +18,11 @@ public final class ProfilerAgent {
         LogConfiguration.configure();
         if (arguments == null || arguments.isBlank())
             throw new IllegalArgumentException("Supply a fresh profiling run directory");
+        boolean automated = Files.isRegularFile(Path.of(arguments).resolve("scenario.json"));
         for (Class<?> loaded : instrumentation.getAllLoadedClasses())
-            if (loaded.getName().equals(FrameInstrumentation.TARGET.replace('/', '.')))
-                throw new IllegalStateException("Frame owner loaded before profiler installation");
+            if (loaded.getName().equals(FrameInstrumentation.TARGET.replace('/', '.'))
+                    || automated && loaded.getName().equals(LoadingInstrumentation.TARGET.replace('/', '.')))
+                throw new IllegalStateException("Profiling target loaded before observer installation");
         var controller = new CaptureController(Path.of(arguments));
         // Retransformation-capable observers follow the incapable transformers used by Julia's prepared classes.
         instrumentation.addTransformer(
@@ -27,18 +30,27 @@ public final class ProfilerAgent {
                     @Override
                     public byte[] transform(
                             ClassLoader loader, String name, Class<?> type, ProtectionDomain domain, byte[] bytes) {
-                        if (!FrameInstrumentation.TARGET.equals(name)) return null;
+                        boolean loading = automated && LoadingInstrumentation.TARGET.equals(name);
+                        if (!loading && !FrameInstrumentation.TARGET.equals(name)) return null;
                         try {
+                            if (loading) {
+                                var instrumented = LoadingInstrumentation.instrument(bytes, loader);
+                                Files.writeString(Path.of(arguments).resolve("loading-hook.txt"), "READY\n");
+                                return instrumented;
+                            }
                             var instrumented = FrameInstrumentation.instrument(bytes, loader);
                             controller.frameOwnerReady();
                             return instrumented;
                         } catch (RuntimeException | IOException failure) {
                             LOG.log(
                                     System.Logger.Level.ERROR,
-                                    "Frame observer could not be installed; measurement is invalid",
+                                    "Profiling hook could not be installed; measurement is invalid",
                                     failure);
                             try {
                                 controller.status("ERROR " + failure);
+                                if (loading)
+                                    Files.writeString(
+                                            Path.of(arguments).resolve("loading-hook.txt"), "ERROR " + failure);
                             } catch (IOException report) {
                                 failure.addSuppressed(report);
                             }
