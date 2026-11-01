@@ -18,8 +18,6 @@
   extensions. Both forks target LWJGL3 only, with no lwjgl3ify or Minecraft classes. Julia owns the host side: agent,
   isolated loader, game and mod bytecode passes, window borrowing, startup, and the Workshop package. Fork rules (merge
   model, tracked and owned files, hook list) live in `third_party/angelica/AGENTS.md`.
-- Migration in progress: Julia's renderer code is moving into the fork per `MIGRATION.md`. Until it finishes, the tree
-  may not compile and tests may fail; don't restore either unless a step asks for it.
 - Keep game binaries, saves, Workshop files, extracted proprietary sources, and local machine paths out of Git.
 
 ## Code style
