@@ -5,7 +5,7 @@ import static org.lwjgl.opengl.GL11.GL_SCISSOR_BOX;
 import static org.lwjgl.opengl.GL11.GL_VIEWPORT;
 
 import com.gtnewhorizons.angelica.glsm.GLSMRasterizer;
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 
 /**
  * Indexed viewport state over SDL GPU's single viewport. Julia reports {@code GL_MAX_VIEWPORTS} as 1, so index 0 is

@@ -1,8 +1,9 @@
 package dev.fopwoc.julia.backend.texture;
 
 import com.gtnewhorizons.angelica.glsm.GLSMTextures;
-import dev.fopwoc.julia.backend.Subsystems;
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.texture.TextureBindings;
 
 /** Pinned GLSM integration keeps its operation cache aligned without changing any logical binding. */
 public final class TextureBindingHooks {

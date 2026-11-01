@@ -4,7 +4,7 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL32.*;
 
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import dev.fopwoc.julia.probe.adapter.FencedReadback;
 import java.io.IOException;
 import java.nio.ByteBuffer;

@@ -2,10 +2,10 @@ package dev.fopwoc.julia.backend.bridge;
 
 import static org.lwjgl.util.spvc.Spvc.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.shader.SamplerResources;
 import com.gtnewhorizons.angelica.sdlgpu.shader.cross.CrossCompileCache.Output;
 import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.gpu.GpuBackend;
-import dev.fopwoc.julia.backend.shader.SamplerResources;
 import dev.fopwoc.julia.runtime.FatalGraphics;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

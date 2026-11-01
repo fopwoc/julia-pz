@@ -5,7 +5,7 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.nio.ByteBuffer;
 import java.util.Arrays;

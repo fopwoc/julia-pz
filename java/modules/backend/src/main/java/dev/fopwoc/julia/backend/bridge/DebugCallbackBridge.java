@@ -1,7 +1,7 @@
 package dev.fopwoc.julia.backend.bridge;
 
 import com.gtnewhorizons.angelica.glsm.GLSMDraws;
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import dev.fopwoc.julia.runtime.DebugCallback;
 import java.lang.invoke.MethodHandle;
 

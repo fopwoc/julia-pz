@@ -5,9 +5,9 @@ import static org.lwjgl.sdl.SDLGPU.SDL_DrawGPUPrimitivesIndirect;
 
 import com.gtnewhorizons.angelica.glsm.GLSMDraws;
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FormatMap;
-import dev.fopwoc.julia.backend.Upstream;
 
 /** Commands stay GPU-resident; padded command streams use one native indirect call per record. */
 public final class IndirectDraws {

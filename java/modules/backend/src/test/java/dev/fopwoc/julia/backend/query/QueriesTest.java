@@ -5,6 +5,9 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.GL_PRIMITIVES_GENERATED;
 import static org.lwjgl.opengl.GL33.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.query.OcclusionDriver;
+import com.gtnewhorizons.angelica.sdlgpu.query.Queries;
+import com.gtnewhorizons.angelica.sdlgpu.query.TimestampDriver;
 import java.util.ArrayList;
 import java.util.HashMap;
 import org.junit.jupiter.api.Test;

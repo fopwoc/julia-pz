@@ -10,7 +10,7 @@ import static org.lwjgl.opengl.GL33.*;
 import static org.lwjgl.opengl.GL42.*;
 import static org.lwjgl.opengl.GL43.*;
 
-import dev.fopwoc.julia.backend.diagnostic.BufferCapture;
+import com.gtnewhorizons.angelica.sdlgpu.diagnostic.BufferCapture;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.io.IOException;
 import java.nio.ByteBuffer;

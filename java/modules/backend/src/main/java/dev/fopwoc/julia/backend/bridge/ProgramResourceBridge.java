@@ -3,11 +3,11 @@ package dev.fopwoc.julia.backend.bridge;
 import static org.lwjgl.opengl.GL43.*;
 
 import com.gtnewhorizons.angelica.glsm.GLSMPrograms;
-import dev.fopwoc.julia.backend.Subsystems;
-import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.shader.ProgramResources;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.shader.ProgramResources;
+import com.gtnewhorizons.angelica.sdlgpu.shader.UniformResources;
 import dev.fopwoc.julia.backend.shader.ResourceOutput;
-import dev.fopwoc.julia.backend.shader.UniformResources;
 import java.nio.IntBuffer;
 import java.util.Objects;
 import org.lwjgl.system.MemoryStack;

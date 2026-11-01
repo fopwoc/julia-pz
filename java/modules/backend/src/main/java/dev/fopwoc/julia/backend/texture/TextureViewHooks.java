@@ -1,10 +1,12 @@
 package dev.fopwoc.julia.backend.texture;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
-import dev.fopwoc.julia.backend.Subsystems;
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.texture.SamplerFallbacks;
+import com.gtnewhorizons.angelica.sdlgpu.texture.TextureStorage;
 
 /** Version-pinned internal hooks; all arguments already belong to the isolated runtime. */
 public final class TextureViewHooks {

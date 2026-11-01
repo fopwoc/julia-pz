@@ -2,7 +2,7 @@ package dev.fopwoc.julia.probe.scene;
 
 import static org.lwjgl.opengl.GL11.*;
 
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.nio.ByteBuffer;
 import org.lwjgl.sdl.SDLGPU;

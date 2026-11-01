@@ -10,7 +10,7 @@ import static org.lwjgl.sdl.SDLGPU.SDL_WaitForGPUIdle;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import org.lwjgl.sdl.SDL_GPUTextureRegion;
 import org.lwjgl.sdl.SDL_GPUTextureTransferInfo;
 import org.lwjgl.sdl.SDL_GPUTransferBufferCreateInfo;

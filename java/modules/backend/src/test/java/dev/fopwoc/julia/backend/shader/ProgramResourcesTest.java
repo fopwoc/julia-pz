@@ -3,6 +3,9 @@ package dev.fopwoc.julia.backend.shader;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.lwjgl.opengl.GL43.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.shader.ProgramResources;
+import com.gtnewhorizons.angelica.sdlgpu.shader.ResourceVariable;
+import com.gtnewhorizons.angelica.sdlgpu.shader.StorageBlock;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

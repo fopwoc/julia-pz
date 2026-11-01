@@ -9,9 +9,9 @@ import static org.lwjgl.opengl.GL43.GL_VERTEX_ATTRIB_BINDING;
 import static org.lwjgl.opengl.GL43.GL_VERTEX_ATTRIB_RELATIVE_OFFSET;
 
 import com.gtnewhorizons.angelica.glsm.GLSMVertexInput;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
-import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.vertex.VertexInputs;
+import com.gtnewhorizons.angelica.sdlgpu.vertex.VertexInputs;
 
 /** Divisor routing plus attribute-state queries answered from the bound vertex array. */
 public final class VertexBindingBridge {

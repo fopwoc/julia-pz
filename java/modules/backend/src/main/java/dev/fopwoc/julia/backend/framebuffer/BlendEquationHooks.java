@@ -1,8 +1,8 @@
 package dev.fopwoc.julia.backend.framebuffer;
 
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.Hashing;
-import dev.fopwoc.julia.backend.Subsystems;
 
 /** Pinned pipeline blend-op lookup and GLSM cache invalidation while per-output equations differ. */
 public final class BlendEquationHooks {

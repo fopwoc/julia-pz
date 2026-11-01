@@ -1,8 +1,8 @@
 package dev.fopwoc.julia.backend.texture.buffer;
 
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
-import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.texture.TextureViewHooks;
 import org.lwjgl.util.spvc.Spvc;
 

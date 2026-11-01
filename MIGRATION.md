@@ -22,9 +22,9 @@ Details live in `third_party/angelica/AGENTS.md`. In short:
 | Julia today | Destination | Notes |
 | --- | --- | --- |
 | `transform.load`: 13 `UpstreamPatch` passes, `UpstreamPatches`, `UpstreamPatchesTest` | Source hooks in tracked fork files, one commit per pass | Then delete the infrastructure. Keep `Anchors` only if game passes still use it |
-| `backend.Upstream` (private-state reflection) | Deleted | Becomes package-private access from owned code in the same package |
-| `backend.layer` chain + `HostedBackend` | `sdl-gpu`, owned subclass of `SDLGPURenderBackend` | Domain split stays; the class stays out of the hot upstream file |
-| `Subsystems` | `sdl-gpu`, owned, held by the backend | `current()` keeps its owning-thread check |
+| `backend.Upstream` (private-state reflection) | `sdlgpu.Upstream`, reflection-free | Done in phase 2; reads widened upstream members |
+| `backend.layer` chain + `HostedBackend` | `sdlgpu.layer`, `sdlgpu.HostedBackend` | Done in phase 2 |
+| `Subsystems` | `sdlgpu.Subsystems` | Done in phase 2; `current()` keeps its owning-thread check |
 | `*Hooks` (7 classes) | Folded into the owned domain class the hook calls | The fork calls them directly |
 | `backend.shader` (+ `metal`, `vulkan`) | `sdl-gpu` `shader` | SPIR-V reflection, linked programs, sampler resources |
 | `backend.texture`, `texture.buffer` | `sdl-gpu` `resource` / `sampler` | |
@@ -98,12 +98,18 @@ Not yet checked: whether these four can be handled in Java instead of by patchin
 - `image_layouts`: track image usage in the renderer.
 - `integer_samplers`: bind a nearest sampler for integer formats.
 
-### 2. Backend core into `sdl-gpu`
+### 2. Backend core into `sdl-gpu` (done)
 
-Move `Subsystems`, the layer chain, and `HostedBackend` into `sdl-gpu` as owned files. Replace each `Upstream` handle
-with direct access, widening upstream members from `private` to package-private where needed. The `*Hooks` classes
-stay in Julia for now and reach `Subsystems` across the module boundary, so the remaining bytecode patches keep
-working.
+`HostedBackend`, `Subsystems`, `Upstream`, the layer chain, and everything they reach moved into `sdl-gpu`: 78
+classes. Julia's `backend.<domain>` became `sdlgpu.<domain>` (`backend.sdl` became `sdlgpu.extension`). That
+covers most of `shader`, `texture`, `framebuffer`, `query`, `sync`, `vertex`, and `buffer`, all of `diagnostic`,
+and four bridges (`BlendBridge`, `FramebufferClearBridge`, `BufferTransferBridge`, `TextureReadbackBridge`).
+`Upstream` keeps its API but reads widened upstream members instead of using reflection. `HostedBackend` is the
+fork's only registered `RenderBackend`; glsm's stale `Lwjgl2GLRenderBackend` registration is gone. The six unit tests
+of moved classes now sit in the fork's `sdl-gpu/src/test`, which Julia's build doesn't compile yet.
+
+Still in Julia: the seven `*Hooks` classes and the classes only they or the passes use. They reach the fork across
+the module boundary, so the remaining bytecode patches keep working.
 
 ### 3. Domains, one commit each
 

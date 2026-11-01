@@ -6,10 +6,10 @@ import static org.lwjgl.opengl.GL12.GL_TEXTURE_3D;
 import static org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY;
 
 import com.gtnewhorizons.angelica.glsm.GLSMTextures;
-import dev.fopwoc.julia.backend.Subsystems;
-import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.texture.NamedTextureUploads;
-import dev.fopwoc.julia.backend.texture.TextureWrap;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.texture.NamedTextureUploads;
+import com.gtnewhorizons.angelica.sdlgpu.texture.TextureWrap;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;

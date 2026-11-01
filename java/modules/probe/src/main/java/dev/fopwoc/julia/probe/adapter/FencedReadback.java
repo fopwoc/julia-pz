@@ -3,7 +3,7 @@ package dev.fopwoc.julia.probe.adapter;
 import static org.lwjgl.sdl.SDLGPU.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import org.lwjgl.sdl.SDL_GPUTextureRegion;
 import org.lwjgl.sdl.SDL_GPUTextureTransferInfo;
 import org.lwjgl.sdl.SDL_GPUTransferBufferCreateInfo;

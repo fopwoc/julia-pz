@@ -2,6 +2,7 @@ package dev.fopwoc.julia.backend.shader;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.shader.MatrixUniformUploads;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.UniformMemberInfo;
 import java.nio.FloatBuffer;

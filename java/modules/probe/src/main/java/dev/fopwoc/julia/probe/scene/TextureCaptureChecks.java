@@ -7,7 +7,7 @@ import static org.lwjgl.opengl.GL21.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL42.glTexStorage2D;
 
-import dev.fopwoc.julia.backend.diagnostic.TextureCapture;
+import com.gtnewhorizons.angelica.sdlgpu.diagnostic.TextureCapture;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

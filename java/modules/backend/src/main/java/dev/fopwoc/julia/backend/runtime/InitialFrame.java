@@ -3,7 +3,7 @@ package dev.fopwoc.julia.backend.runtime;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 
 import com.gtnewhorizons.angelica.glsm.backend.RenderBackend;
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 
 /** Presents black before game assets load, consuming the active initialization frame. */
 public final class InitialFrame {

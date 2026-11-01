@@ -3,13 +3,13 @@ package dev.fopwoc.julia.backend.framebuffer;
 import static org.lwjgl.sdl.SDLGPU.SDL_BeginGPURenderPass;
 import static org.lwjgl.sdl.SDLGPU.SDL_GPU_TEXTUREFORMAT_INVALID;
 
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import com.gtnewhorizons.angelica.sdlgpu.extension.SdlSparseTargets;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FboState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
-import dev.fopwoc.julia.backend.Subsystems;
-import dev.fopwoc.julia.backend.Upstream;
 import org.lwjgl.sdl.SDL_GPUColorTargetInfo;
 import org.lwjgl.sdl.SDL_GPUDepthStencilTargetInfo;
 

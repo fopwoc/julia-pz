@@ -5,8 +5,8 @@ import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER_START;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER_SIZE;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER_START;
 
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
-import dev.fopwoc.julia.backend.Upstream;
 
 /** Indexed buffer-binding ranges, as callers save and restore them around their own bindings. */
 public final class BufferBindingBridge {

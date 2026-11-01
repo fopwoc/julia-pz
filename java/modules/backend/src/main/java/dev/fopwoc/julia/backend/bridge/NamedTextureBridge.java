@@ -1,8 +1,8 @@
 package dev.fopwoc.julia.backend.bridge;
 
-import dev.fopwoc.julia.backend.Subsystems;
-import dev.fopwoc.julia.backend.texture.NamedTextureUploads;
-import dev.fopwoc.julia.backend.texture.TextureObjects;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.texture.NamedTextureUploads;
+import com.gtnewhorizons.angelica.sdlgpu.texture.TextureObjects;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;

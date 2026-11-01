@@ -3,8 +3,8 @@ package dev.fopwoc.julia.backend.bridge;
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
 
 import com.gtnewhorizons.angelica.glsm.GLSMTextures;
-import dev.fopwoc.julia.backend.Subsystems;
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 
 /** Keeps buffer-texture bindings separate from the upstream single ordinary texture binding per unit. */
 public final class BufferTextureBridge {

@@ -2,6 +2,7 @@ package dev.fopwoc.julia.backend.vertex;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.vertex.VertexInputs;
 import org.junit.jupiter.api.Test;
 
 class VertexInputsTest {

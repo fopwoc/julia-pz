@@ -19,7 +19,7 @@ import static org.lwjgl.opengl.GL44.GL_MAP_PERSISTENT_BIT;
 
 import com.gtnewhorizons.angelica.glsm.GLSMBuffers;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 

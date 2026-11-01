@@ -1,9 +1,9 @@
 package dev.fopwoc.julia.backend.bridge;
 
 import com.gtnewhorizons.angelica.glsm.GLSMPrograms;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.shader.SamplerUniforms;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
-import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.shader.SamplerUniforms;
 import java.nio.IntBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.spvc.Spvc;

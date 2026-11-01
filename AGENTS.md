@@ -28,8 +28,8 @@
   Default level is `error`; `LOG_LEVEL` overrides it. Keep error logs detailed and normal output compact.
 - New renderer code and fixes go into fork source, never into Julia. The fork never references `dev.fopwoc.julia`;
   Julia configures it through fork APIs.
-- `UpstreamPatch` rewrites, `Upstream` reflection, `*Hooks` classes, and `backend.layer` are migration debt: don't add
-  to them; port them into the fork. Until they are gone, `UpstreamPatchesTest` fails when a patch stops changing the
+- `UpstreamPatch` rewrites and `*Hooks` classes are migration debt: don't add to them; port them into the fork. The
+  hosted backend, its layers, `Subsystems`, and `Upstream` already live in `sdl-gpu`. Until they are gone, `UpstreamPatchesTest` fails when a patch stops changing the
   pinned renderer.
 - Bridges hold static entry points that rewritten game code calls; layers change how GL work runs on SDL GPU. Keep the
   two apart, wherever they live.

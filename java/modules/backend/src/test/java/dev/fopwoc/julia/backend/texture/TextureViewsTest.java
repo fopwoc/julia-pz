@@ -6,6 +6,8 @@ import static org.lwjgl.opengl.GL12.*;
 import static org.lwjgl.opengl.GL30.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
+import com.gtnewhorizons.angelica.sdlgpu.texture.TextureViewRange;
+import com.gtnewhorizons.angelica.sdlgpu.texture.TextureViews;
 import org.junit.jupiter.api.Test;
 
 class TextureViewsTest {

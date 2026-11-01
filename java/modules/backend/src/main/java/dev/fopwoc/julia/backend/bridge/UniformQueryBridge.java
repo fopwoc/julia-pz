@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.backend.bridge;
 
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 

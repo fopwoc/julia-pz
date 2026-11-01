@@ -4,10 +4,10 @@ import static org.lwjgl.sdl.SDLGPU.SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 import static org.lwjgl.sdl.SDLGPU.SDL_WaitForGPUIdle;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import com.gtnewhorizons.angelica.sdlgpu.frame.OffscreenTarget;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
-import dev.fopwoc.julia.backend.Upstream;
 import org.lwjglx.opengl.Display;
 
 /** Changes the logical default framebuffer without changing the borrowed native window. */

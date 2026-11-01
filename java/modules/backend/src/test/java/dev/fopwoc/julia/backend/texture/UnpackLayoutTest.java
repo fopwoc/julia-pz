@@ -3,6 +3,7 @@ package dev.fopwoc.julia.backend.texture;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState.PixelStoreState;
+import com.gtnewhorizons.angelica.sdlgpu.texture.UnpackLayout;
 import org.junit.jupiter.api.Test;
 
 class UnpackLayoutTest {

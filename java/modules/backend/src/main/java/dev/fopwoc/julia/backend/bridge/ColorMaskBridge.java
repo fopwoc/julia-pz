@@ -3,7 +3,7 @@ package dev.fopwoc.julia.backend.bridge;
 import static org.lwjgl.opengl.GL11.GL_COLOR_WRITEMASK;
 
 import com.gtnewhorizons.angelica.glsm.GLSMQueries;
-import dev.fopwoc.julia.backend.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 import java.nio.ByteBuffer;
 
 /** Indexed color-mask entry points use output slots, independent of attachment routing. */

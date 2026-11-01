@@ -1,8 +1,8 @@
 package dev.fopwoc.julia.backend.framebuffer;
 
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 import com.gtnewhorizons.angelica.sdlgpu.pipeline.Hashing;
-import dev.fopwoc.julia.backend.Subsystems;
 
 /** Pinned graphics-pipeline mask lookup and global GLSM cache invalidation after indexed changes. */
 public final class ColorMaskHooks {

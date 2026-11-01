@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL43.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.shader.StorageBlock;
+import com.gtnewhorizons.angelica.sdlgpu.shader.UniformResources;
+import com.gtnewhorizons.angelica.sdlgpu.shader.UniformVariable;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

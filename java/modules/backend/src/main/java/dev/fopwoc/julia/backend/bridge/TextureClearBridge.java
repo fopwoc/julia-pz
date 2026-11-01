@@ -9,7 +9,7 @@ import static org.lwjgl.sdl.SDLGPU.SDL_UnmapGPUTransferBuffer;
 import static org.lwjgl.sdl.SDLGPU.SDL_UploadToGPUTexture;
 
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import org.lwjgl.sdl.SDL_GPUTextureRegion;
 import org.lwjgl.sdl.SDL_GPUTextureTransferInfo;
 import org.lwjgl.system.MemoryStack;

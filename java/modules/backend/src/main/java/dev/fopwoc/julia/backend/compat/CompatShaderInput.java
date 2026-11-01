@@ -2,7 +2,7 @@ package dev.fopwoc.julia.backend.compat;
 
 import com.gtnewhorizons.angelica.glsm.CompatShaderTransformer;
 import com.gtnewhorizons.angelica.glsm.GlslTransformUtils;
-import dev.fopwoc.julia.backend.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 import java.util.regex.Pattern;
 
 /** Resolves conditional GLSL before the upstream syntax-tree compatibility rewrite. */

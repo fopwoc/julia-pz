@@ -16,7 +16,7 @@ import static org.lwjgl.opengl.GL40.GL_PATCH_VERTICES;
 import static org.lwjgl.opengl.GL40.GL_TESS_CONTROL_SHADER;
 import static org.lwjgl.opengl.GL43.*;
 
-import dev.fopwoc.julia.backend.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.io.IOException;
 import java.nio.ByteBuffer;

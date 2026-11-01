@@ -2,8 +2,8 @@ package dev.fopwoc.julia.backend.bridge;
 
 import static org.lwjgl.sdl.SDLGPU.SDL_CopyGPUTextureToTexture;
 
+import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
-import dev.fopwoc.julia.backend.Upstream;
 import org.lwjgl.sdl.SDL_GPUTextureLocation;
 import org.lwjgl.system.MemoryStack;
 

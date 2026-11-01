@@ -1,7 +1,7 @@
 package dev.fopwoc.julia.transform.load;
 
-import static dev.fopwoc.julia.backend.shader.SamplerResources.LIMIT;
-import static dev.fopwoc.julia.backend.texture.TextureBindings.UNIT_COUNT;
+import static com.gtnewhorizons.angelica.sdlgpu.shader.SamplerResources.LIMIT;
+import static com.gtnewhorizons.angelica.sdlgpu.texture.TextureBindings.UNIT_COUNT;
 import static org.lwjgl.opengl.GL20.GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
 import static org.lwjgl.opengl.GL20.GL_MAX_TEXTURE_IMAGE_UNITS;
 

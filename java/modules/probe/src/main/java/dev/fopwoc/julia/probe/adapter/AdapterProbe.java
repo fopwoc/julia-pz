@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.probe.adapter;
 
-import dev.fopwoc.julia.backend.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 import dev.fopwoc.julia.backend.runtime.GlsmSession;
 import dev.fopwoc.julia.backend.runtime.HostedVideo;
 import dev.fopwoc.julia.probe.scene.AdapterScene;

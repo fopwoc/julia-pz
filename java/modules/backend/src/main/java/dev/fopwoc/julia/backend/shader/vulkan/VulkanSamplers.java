@@ -9,10 +9,10 @@ import static org.lwjgl.util.spvc.Spv.SpvDecorationBinding;
 import static org.lwjgl.util.spvc.Spv.SpvDimBuffer;
 import static org.lwjgl.util.spvc.Spvc.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.shader.SamplerResources;
 import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.shader.InstanceIndexSpirv;
 import dev.fopwoc.julia.backend.shader.NonUniformSamplerSpirv;
-import dev.fopwoc.julia.backend.shader.SamplerResources;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.lwjgl.opengl.GL20;

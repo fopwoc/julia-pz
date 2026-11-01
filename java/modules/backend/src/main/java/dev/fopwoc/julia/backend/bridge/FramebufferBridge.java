@@ -1,7 +1,7 @@
 package dev.fopwoc.julia.backend.bridge;
 
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
-import dev.fopwoc.julia.backend.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 import java.nio.IntBuffer;
 
 /** Named operations address explicit objects and preserve both logical framebuffer bindings. */

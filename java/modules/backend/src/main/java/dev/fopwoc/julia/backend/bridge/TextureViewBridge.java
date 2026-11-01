@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.backend.bridge;
 
-import dev.fopwoc.julia.backend.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 
 public final class TextureViewBridge {
     private TextureViewBridge() {}

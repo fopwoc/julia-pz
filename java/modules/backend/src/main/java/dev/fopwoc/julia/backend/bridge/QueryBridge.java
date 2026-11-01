@@ -1,7 +1,7 @@
 package dev.fopwoc.julia.backend.bridge;
 
 import com.gtnewhorizons.angelica.glsm.GLSMQueries;
-import dev.fopwoc.julia.backend.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 
 /** LWJGL array and signed query overloads backed by the hosted GPU timer implementation. */
 public final class QueryBridge {

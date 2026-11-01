@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.backend.bridge;
 
-import dev.fopwoc.julia.backend.Subsystems;
+import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 
 /** OpenGL sync entry points backed by actual SDL/Metal completion fences. */
 public final class SyncBridge {
