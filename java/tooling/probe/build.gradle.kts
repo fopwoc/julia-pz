@@ -48,7 +48,8 @@ listOf(
         classpath = sourceSets.main.get().runtimeClasspath
         mainClass = application.mainClass
         javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
-        jvmArgs("-XstartOnFirstThread", "--enable-native-access=ALL-UNNAMED")
+        jvmArgs("--enable-native-access=ALL-UNNAMED")
+        if (NativeTarget.host.os == "macos") jvmArgs("-XstartOnFirstThread")
         args(probe.command, layout.buildDirectory.dir("reports/${probe.report}").get().asFile.absolutePath)
     }
 }

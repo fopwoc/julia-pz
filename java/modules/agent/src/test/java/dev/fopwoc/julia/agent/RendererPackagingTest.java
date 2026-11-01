@@ -60,7 +60,7 @@ class RendererPackagingTest {
     }
 
     @Test
-    void shipsNoGuavaClassesOrReferences() throws Exception {
+    void shipsNoGuavaOrDevelopmentTooling() throws Exception {
         try (var agent = new ZipFile(System.getProperty("agent.jar"))) {
             for (var library : agent.stream()
                     .filter(entry -> entry.getName().endsWith(".jar"))
@@ -70,6 +70,8 @@ class RendererPackagingTest {
                         if (!entry.getName().endsWith(".class")) continue;
                         String location = library.getName() + "!/" + entry.getName();
                         assertFalse(entry.getName().startsWith("com/google/common/"), location);
+                        assertFalse(entry.getName().startsWith("dev/fopwoc/julia/profiling/"), location);
+                        assertFalse(entry.getName().startsWith("dev/fopwoc/julia/probe/"), location);
                         String constants = new String(jar.readAllBytes(), StandardCharsets.ISO_8859_1);
                         assertFalse(constants.contains("com/google/common/"), location);
                     }

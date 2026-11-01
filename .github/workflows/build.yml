@@ -69,7 +69,9 @@ jobs:
         run: tools/build-natives-macos.sh "$GITHUB_WORKSPACE/native/build/universal/natives" x64
 
       - name: Test distribution packaging
-        run: python3 -m unittest discover -s tools/tests
+        run: |
+          python3 -m unittest discover -s tools/tests
+          python3 -m unittest discover -s java/tooling/profiling/tests
 
       - name: Check and build the universal agent
         working-directory: java

@@ -4,7 +4,7 @@
 
 - The repository root is the PZ mod folder (`common/`, `42/mod.info`). The Gradle build lives in `java/`: shared logic
   in `java/buildSrc` (`julia.java-conventions`, Git-derived `BuildInfo`), versions in `java/gradle/libs.versions.toml`,
-  modules under `java/modules/`.
+  shipped modules under `java/modules/`, development executables under `java/tooling/`.
 - Java 25, Gradle Kotlin DSL, base package `dev.fopwoc.julia`. The `third_party/angelica/` submodule pins the `pz`
   branch of our Angelica fork, which in turn pins the `pz` branch of our GTNHLib fork at `third_party/gtnhlib`.
   `java/modules/glsm`, `sdl-gpu`, and `gtnhlib` compile their sources locally (`gtnhlib` only the files its
@@ -18,6 +18,11 @@
   extensions. Both forks target LWJGL3 only, with no lwjgl3ify or Minecraft classes. Julia owns the host side: agent,
   isolated loader, game and mod bytecode passes, window borrowing, startup, and the Workshop package. Fork rules (merge
   model, tracked and owned files, hook list) live in `third_party/angelica/AGENTS.md`.
+- `:probe` maps to `java/tooling/probe`; its CLI/task names stay unchanged. Profiling core and standalone agent live
+  under `java/tooling/profiling`, with the Python runner beside them. Production projects must never depend on tooling.
+  The Workshop excludes `java/tooling`; the complete source archive retains it. Profiling hooks observe completed
+  render steps, never GL behavior; CPU wall durations are not GPU timestamps. Direct launch runs only on explicit
+  user request. `profile.py plan` and `FrameAudit` are safe offline checks.
 - Agent and probe packaging uses `buildSrc/packaging` to reduce Fastutil by static dependency closure, including nested
   classes. Compilation retains the full API. Audit new reflective Fastutil usage explicitly. `:buildSrc:test` covers
   closure behavior; run it when changing this packaging logic.

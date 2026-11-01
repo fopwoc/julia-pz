@@ -107,6 +107,6 @@ See `THIRD_PARTY.md` and `licenses/` for licensing and replacement information.
         files = archive(self.root, self.commit)
         excluded = {".gitignore", ".gitmodules", "AGENTS.md", "logo.pxd"}
         result = {name: content for name, content in files.items()
-                  if name not in excluded and not name.startswith((".github/", "third_party/"))}
+                  if name not in excluded and not name.startswith((".github/", "third_party/", "java/tooling/"))}
         result["SOURCES.md"] = File(self.manifest())
         return result

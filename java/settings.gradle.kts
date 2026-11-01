@@ -31,7 +31,7 @@ dependencyResolutionManagement {
     }
 }
 
-// Layers, bottom-up: utils → gl-audit → backend → transform → host → probe → agent; workshop packages the Lua companion.
+// Layers, bottom-up: utils → gl-audit → backend → transform → host → agent; workshop packages the Lua companion.
 // render-runtime is JDK-only and shared across the host/isolated loader boundary.
 listOf(
     "gtnhlib",
@@ -45,7 +45,6 @@ listOf(
     "backend",
     "transform",
     "host",
-    "probe",
     "workshop",
 ).forEach { name ->
     include(name)
@@ -53,3 +52,8 @@ listOf(
 }
 
 project(":renderer-tests").projectDir = rendererSources.resolve("renderer-tests")
+
+// Development executables are not dependencies of the production agent or Workshop runtime.
+include(":probe")
+project(":probe").projectDir = file("tooling/probe")
+include(":tooling:profiling:core", ":tooling:profiling:agent")

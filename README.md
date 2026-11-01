@@ -310,6 +310,15 @@ It requires an agent built from the matching committed revision; dirty or mismat
 Packaging reads committed Git objects, including each recorded submodule pin, rather than the current files in the
 working tree. `python3 -m unittest discover -s tools/tests` verifies the distribution tooling.
 
+### Profiling tools
+
+Development tools live under `java/tooling`, separate from shipped modules. The standalone profiler observes PZ's
+completed render steps with native OpenGL or Julia, records warmup/capture windows, and exports frame intervals and
+CPU render-step wall durations. Its direct runner copies a prepared profile into a fresh run directory and can print
+a launch plan without starting anything. Debug mode is optional. It currently uses manually prepared scenes;
+automatic teleport/camera control is not implemented. See [profiling instructions](java/tooling/profiling/README.md).
+Tooling source is included in the complete source archive, but excluded from Workshop packages and the production agent.
+
 ### GPU probes
 
 Windowless GPU checks run only on request. They create a real device but open no window:
@@ -320,11 +329,11 @@ Windowless GPU checks run only on request. They create a real device but open no
 ./gradlew :probe:adapterProbe # the full suite without the raw baseline
 ```
 
-Reports land in `modules/probe/build/reports/`. Run `suiteProbe` after any change to class loading, bytecode patches or
+Reports land in `tooling/probe/build/reports/`. Run `suiteProbe` after any change to class loading, bytecode patches or
 native extensions; unit tests cannot cover those paths.
 
 For focused mip-alpha, atlas-indexing and fragment-discard checks, build `:probe:installDist`, then run
-`modules/probe/build/install/probe/bin/probe --sampling <output-dir>` with `-Djulia.gpu=vulkan` in `JAVA_OPTS` when
+`tooling/probe/build/install/probe/bin/probe --sampling <output-dir>` with `-Djulia.gpu=vulkan` in `JAVA_OPTS` when
 selecting Vulkan explicitly.
 
 Vulkan checks should also run with an installed `VK_LAYER_KHRONOS_validation` layer enabled through
@@ -338,8 +347,8 @@ These read JAR bytecode and never load game classes:
 
 ```sh
 ./gradlew :probe:installDist
-modules/probe/build/install/probe/bin/probe --prepare-runtime preparation.tsv projectzomboid.jar
-modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects.tsv projectzomboid.jar
+tooling/probe/build/install/probe/bin/probe --prepare-runtime preparation.tsv projectzomboid.jar
+tooling/probe/build/install/probe/bin/probe --audit-redirects --compat redirects.tsv projectzomboid.jar
 ```
 
 ### Layout
@@ -354,7 +363,7 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `java/modules/transform` | Host and isolation adaptations for game/mod code; invokes the fork’s GL routing |
 | `java/modules/backend` | Host runtime lifecycle, platform/window borrowing, and renderer logging integration |
 | `java/modules/render-runtime` | JDK-only types shared across the isolation boundary |
-| `java/modules/probe` | GPU probes and offline audit CLI |
+| `java/tooling/probe` | Separate GPU probes and offline audit CLI; never bundled into the Workshop item |
 | `java/modules/workshop` | Packages the Lua companion mod |
 | `native` | Container build for the Linux and Windows natives, and the Windows `-agentlib` loader |
 | `third_party/angelica/sdl-gpu/native` | SDL patches: `common/` for every API, one folder per GPU API (`metal/`, `vulkan/`) |

@@ -5,6 +5,7 @@
 .gitignore
 .gitmodules
 third_party/
+java/tooling/
 .workshopignore
 .DS_Store
 AGENTS.md

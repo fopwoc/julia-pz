@@ -58,6 +58,7 @@ class DistributionTest(unittest.TestCase):
         commit(self.renderer)
         for name in ("README.md", "LICENSE", ".workshopignore", "java/build.gradle.kts", "common/status.lua"):
             put(self.root, name, name)
+        put(self.root, "java/tooling/probe/Probe.java", "development tool")
         put(self.root, "tools/build.sh", "#!/bin/sh\nexit 0\n")
         (self.root / "tools/build.sh").chmod(0o755)
         put(self.root, ".github/workflows/build.yml", "CI")
@@ -94,6 +95,7 @@ class DistributionTest(unittest.TestCase):
         workshop(self.snapshot, self.agent, self.loader, target)
         with zipfile.ZipFile(target) as archive:
             self.assertIn("Julia/java/build.gradle.kts", archive.namelist())
+            self.assertNotIn("Julia/java/tooling/probe/Probe.java", archive.namelist())
             self.assertIn("Julia/libs/julia-agent.jar", archive.namelist())
             self.assertIn("Julia/.workshopignore", archive.namelist())
             self.assertNotIn("Julia/.github/workflows/build.yml", archive.namelist())
