@@ -17,7 +17,6 @@ public final class UpstreamPatches {
             new DrawTracePass(),
             new TextureBindingPass(),
             new TextureViewPass(),
-            new TextureStoragePass(),
             new BufferTexturePass(),
             new SamplerBindingPass(),
             new SamplerResourcePass(),

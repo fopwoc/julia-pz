@@ -6,7 +6,6 @@ import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.texture.SamplerFallbacks;
-import com.gtnewhorizons.angelica.sdlgpu.texture.TextureStorage;
 
 /** Version-pinned internal hooks; all arguments already belong to the isolated runtime. */
 public final class TextureViewHooks {
@@ -15,11 +14,6 @@ public final class TextureViewHooks {
     public static void delete(int name) {
         Upstream.context();
         BackendManager.RENDER_BACKEND.deleteTextures(name);
-    }
-
-    /** Upstream wrote its texture handle or metadata maps; see {@code TextureStoragePass}. */
-    public static void storageChanged() {
-        TextureStorage.changed();
     }
 
     public static boolean referenced(ResourceManager resources, long handle) {
