@@ -19,8 +19,7 @@ public final class UpstreamPatches {
             new BufferTexturePass(),
             new SamplerBindingPass(),
             new SamplerResourcePass(),
-            new VertexInputPass(),
-            new CompatShaderPass());
+            new VertexInputPass());
 
     private UpstreamPatches() {}
 
