@@ -37,6 +37,7 @@ listOf(
     "gtnhlib",
     "glsm",
     "sdl-gpu",
+    "renderer-tests",
     "utils",
     "gl-audit",
     "agent",
@@ -50,3 +51,5 @@ listOf(
     include(name)
     project(":$name").projectDir = file("modules/$name")
 }
+
+project(":renderer-tests").projectDir = rendererSources.resolve("renderer-tests")

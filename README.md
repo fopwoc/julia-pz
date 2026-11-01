@@ -265,7 +265,8 @@ SHA-256-pinned SDL 3.4.12 archive, patches a copy, and builds `SDL3Julia` for th
 
 ```sh
 cd java
-./gradlew check            # unit tests; never launches the game or opens a window
+./gradlew check            # Julia and renderer CPU tests; never launches the game or opens a window
+./gradlew :renderer-tests:test # only the fork-owned renderer regressions
 ./gradlew :agent:jar       # → modules/agent/build/libs/julia-agent.jar
 ./gradlew :workshop:modZip # → modules/workshop/build/distributions/Julia.zip (Lua companion and agent jar)
 ./gradlew :workshop:stageAgent # → libs/julia-agent.jar in the repository root (Git ignores it)
@@ -329,6 +330,7 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | Path | Contents |
 | --- | --- |
 | `third_party/angelica/` | Pinned Angelica Git submodule; renderer sources and original license |
+| `third_party/angelica/renderer-tests/` | Fork-owned renderer CPU regressions, separate from upstream tests |
 | `java/modules/glsm`, `java/modules/sdl-gpu` | Local build descriptors for the fork, without publishing plugins |
 | `java/modules/agent` | The `-javaagent` entry point and startup audit |
 | `java/modules/host` | Isolated class loader and live runtime startup |

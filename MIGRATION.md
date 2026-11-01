@@ -24,8 +24,11 @@ The tree does not need to pass tests between steps; phase 6 restores tests and `
   `CapturingTessellator.Flags`).
 - **Julia `backend`** is host code only: `runtime`, `window` (per-OS borrowing, `HostWindow` implements the fork's
   `WindowSource`), `platform`, and `sdl.SdlDeveloperHud`. Julia rewrites no renderer or library bytecode anymore.
-- **Not verified:** unit tests and `suiteProbe` have not run since phase 1, there has been no game run, and CI has not
-  yet run the nested-submodule checkout or the Docker `sdl` build context. Each former bytecode patch was converted
+- **CPU verification:** fork-owned regressions live in `third_party/angelica/renderer-tests`, a separate project in
+  Julia's build. Its 27 test classes pass 66 tests; Julia's retained host and integration unit tests pass 160 tests.
+  Upstream test trees are not wired into this suite. All build outputs remain under `java/modules/renderer-tests/build`.
+- **Not verified:** `suiteProbe` has not run since phase 1, there has been no game run, and CI has not yet run the
+  nested-submodule checkout or the Docker `sdl` build context. Each former bytecode patch was converted
   by hand, so a subtle behavior difference is possible; the fork's `AGENTS.md` hook list maps each one.
 
 ## Remaining work
@@ -45,12 +48,14 @@ The tree does not need to pass tests between steps; phase 6 restores tests and `
 
 ### 6. Restore
 
-- Wire the fork test trees (`third_party/angelica/glsm/src/test`, `sdl-gpu/src/test`) into
-  `julia.renderer-conventions`. They mix upstream tests, some needing a real device (`*GpuTest`, `RealDeviceExtension`),
-  with the unit tests moved from Julia. Start with the moved ones and the pure-logic upstream ones.
+- **Done:** collected our 17 tests previously placed in `sdl-gpu/src/test` and the 10 renderer tests still in Julia
+  into the fork's separate `renderer-tests` project. Package names follow the renderer classes. Upstream tests remain
+  in their original trees and are not mixed into this suite.
+- **Done:** `./gradlew :renderer-tests:test --offline` and Julia's `./gradlew test --offline --no-build-cache` pass
+  (66 renderer tests plus 160 Julia tests, no skipped tests). Renderer tests use CPU shader tools and memory natives,
+  never a device/window. Agent packaging contains no renderer-tests artifact.
 - Add logging regressions for provider selection in the isolated loader, arbitrary Log4j names, `LOG_LEVEL`,
   formatted messages and exceptions, and duplicate-free JUL setup across loaders. Keep unrelated JUL logging unchanged.
-- Julia's own tests: `./gradlew test --offline --no-build-cache`.
 - Native probe (only when the user asks, it opens no window): `./gradlew :probe:suiteProbe`. It covers the isolated
   loader path that unit tests don't, which changed in every phase.
 - Check `GLStateManager.capabilities`: it comes from LWJGL3's thread-local `GL.getCapabilities()`, so GLSM must

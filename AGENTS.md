@@ -10,6 +10,10 @@
   `java/modules/glsm`, `sdl-gpu`, and `gtnhlib` compile their sources locally (`gtnhlib` only the files its
   `pz-sources.txt` lists). Renderer artifacts are bundled directly; do not publish them to Maven or fall back to
   published Angelica or GTNHLib binaries.
+- Fork-owned renderer tests live in `third_party/angelica/renderer-tests`, a separate Gradle project included in
+  Julia's build; its outputs stay in `java/modules/renderer-tests/build`. Do not mix them into upstream test trees.
+  Julia keeps host, interception, isolation, window, lifecycle, logging, packaging, and integration-probe tests.
+  `:renderer-tests:test` runs CPU-only regressions, including native CPU shader tools, and never creates a device/window.
 - The fork owns the renderer: GL state, SDL GPU execution, shaders, textures, and the patched SDL build with its GPU
   extensions. Both forks target LWJGL3 only, with no lwjgl3ify or Minecraft classes. Julia owns the host side: agent,
   isolated loader, game and mod bytecode passes, window borrowing, startup, and the Workshop package. Fork rules (merge
