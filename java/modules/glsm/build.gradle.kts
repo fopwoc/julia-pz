@@ -18,7 +18,6 @@ dependencies {
     compileOnly(libs.asm.tree)
     compileOnly(rendererLibs.celeritas.common) { isTransitive = false }
     compileOnly(variantOf(libs.lwjgl3ify) { classifier("dev") }) { isTransitive = false }
-    compileOnly(libs.retrofuturabootstrap) { isTransitive = false }
     compileOnly(rendererLibs.annotations)
     compileOnly(libs.jsr305)
     compileOnly(rendererLibs.lombok)

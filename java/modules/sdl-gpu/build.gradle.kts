@@ -4,7 +4,6 @@ dependencies {
     api(project(":glsm"))
     compileOnly(project(path = ":glsm", configuration = "stubsElements"))
     compileOnly(variantOf(libs.lwjgl3ify) { classifier("dev") }) { isTransitive = false }
-    compileOnly(libs.retrofuturabootstrap) { isTransitive = false }
     compileOnly(rendererLibs.celeritas.common) { isTransitive = false }
     compileOnly(rendererLibs.annotations)
     compileOnly(libs.log4j.api)

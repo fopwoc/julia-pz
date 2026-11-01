@@ -50,7 +50,6 @@ public enum Endpoint {
     STENCIL_REFERENCE("dev/fopwoc/julia/backend/compat/StencilReference", false),
     COMMAND_BUFFER_STATE("dev/fopwoc/julia/backend/compat/CommandBufferState", false),
     COMPAT_SHADER_INPUT("dev/fopwoc/julia/backend/compat/CompatShaderInput", false),
-    SHADER_SOURCES("dev/fopwoc/julia/backend/compat/ShaderSources", false),
     VERTEX_BINDING_BRIDGE("dev/fopwoc/julia/backend/bridge/VertexBindingBridge", false),
     INDIRECT_DRAWS("dev/fopwoc/julia/backend/vertex/IndirectDraws", false),
     INSTANCE_INDEX_SPIRV("dev/fopwoc/julia/backend/shader/InstanceIndexSpirv", false),

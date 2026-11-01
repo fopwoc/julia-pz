@@ -18,7 +18,6 @@ public final class UpstreamPatches {
             new BlendEquationPass(),
             new DrawTracePass(),
             new TextureBindingPass(),
-            new TextureUploadOrderPass(),
             new TextureFormatPass(),
             new TextureViewPass(),
             new TextureStoragePass(),
@@ -26,11 +25,8 @@ public final class UpstreamPatches {
             new SamplerBindingPass(),
             new SamplerResourcePass(),
             new VertexInputPass(),
-            new ShaderSourcePass(),
             new CompatShaderPass(),
             new FrameContinuityPass(),
-            new QuadIndexUploadPass(),
-            new ComputeBufferCyclePass(),
             new StencilReferencePass());
 
     private UpstreamPatches() {}

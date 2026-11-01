@@ -45,7 +45,7 @@ dependencies {
         // A Forge coremod that deploys a duplicate fastutil and other libraries into Minecraft; never activated here.
         exclude(group = "com.github.GTNewHorizons", module = "GTNHExtLib")
         // jcpp needs Ant, slf4j and semver only for its build task and command line; findbugs only for annotations.
-        // jopt-simple stays: RetroFuturaBootstrap and launchwrapper load it.
+        // jopt-simple stays for jcpp's command-line support.
         exclude(group = "org.apache.ant")
         exclude(group = "org.slf4j")
         exclude(group = "com.github.zafarkhaja")
@@ -64,9 +64,6 @@ dependencies {
     implementation(variantOf(libs.lwjgl3ify) { classifier("dev") }) { isTransitive = false }
 
     // Angelica expects these to be supplied by its host application.
-    runtimeOnly(libs.retrofuturabootstrap) { isTransitive = false }
-    // ShaderManager's debug-environment check references Launch.blackboard. Never launch it.
-    runtimeOnly(libs.launchwrapper) { isTransitive = false }
     runtimeOnly(libs.commons.lang3)
     // Kotlin backs only JOML's Kotlin extension functions, which Java code cannot call.
     runtimeOnly(libs.joml) { exclude(group = "org.jetbrains.kotlin") }

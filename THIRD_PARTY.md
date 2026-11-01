@@ -7,8 +7,6 @@ Julia's own code is WTFNMFPL (see `COPYRIGHT`). The libraries below ship with it
 | [SDL](https://github.com/libsdl-org/SDL) | 3.4.12 | zlib | GPU runtime, rebuilt as `SDL3Julia` with Julia's native extensions |
 | [Angelica fork](https://github.com/fopwoc/Angelica) `glsm`, `sdl-gpu` | `third_party/angelica/` Git revision (2.2.34 baseline) | LGPL v3 | GL state manager and SDL3 GPU backend that Julia renders through |
 | [LWJGL3ify](https://github.com/GTNewHorizons/lwjgl3ify) | 3.0.31 | LGPL v3 | Legacy LWJGL namespace and capability API that Angelica expects from its host |
-| [RetroFuturaBootstrap](https://github.com/GTNewHorizons/RetroFuturaBootstrap) | 1.1.0 | LGPL v3 | Runtime classes Angelica expects from its host |
-| [LaunchWrapper](https://github.com/Mojang/LegacyLauncher) | 1.12 | Mojang | Angelica's shader debug check reads `Launch.blackboard`; Julia never starts the launcher |
 
 Julia builds SDL 3.4.12 with the native extensions in `native/sdl/`: patches shared by every GPU API in `common/`, and
 per-API extensions such as `metal/` (timestamps, occlusion queries, buffer textures, texture views, vertex inputs,

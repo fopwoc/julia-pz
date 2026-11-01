@@ -12,10 +12,10 @@ import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 
-/** Runs every patch over the Angelica release Julia ships, so an upstream bump cannot leave a patch silently inert. */
+/** Runs every remaining patch over the pinned renderer, so source changes cannot leave a patch silently inert. */
 class UpstreamPatchesTest {
     @Test
-    void everyPatchChangesThePublishedUpstream() throws IOException {
+    void everyPatchChangesThePinnedRenderer() throws IOException {
         Set<UpstreamPatch> applied = new HashSet<>();
         for (String anchor : Set.of(
                 "com/gtnewhorizons/angelica/glsm/GLStateManager.class",
