@@ -7,8 +7,8 @@ import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameManager;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
+import com.gtnewhorizons.angelica.sdlgpu.util.StencilReference;
 import dev.fopwoc.julia.backend.Upstream;
-import dev.fopwoc.julia.backend.compat.StencilReference;
 import org.lwjgl.sdl.*;
 import org.lwjgl.system.MemoryStack;
 

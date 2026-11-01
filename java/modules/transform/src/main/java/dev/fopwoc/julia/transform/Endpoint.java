@@ -65,8 +65,6 @@ public enum Endpoint {
     BUFFER_BINDING_BRIDGE("dev/fopwoc/julia/backend/bridge/BufferBindingBridge", false),
     TEXTURE_CLEAR_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureClearBridge", false),
     TEXTURE_VIEW_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureViewBridge", false),
-    STENCIL_REFERENCE("dev/fopwoc/julia/backend/compat/StencilReference", false),
-    COMMAND_BUFFER_STATE("dev/fopwoc/julia/backend/compat/CommandBufferState", false),
     COMPAT_SHADER_INPUT("dev/fopwoc/julia/backend/compat/CompatShaderInput", false),
     VERTEX_BINDING_BRIDGE("dev/fopwoc/julia/backend/bridge/VertexBindingBridge", false),
     INDIRECT_DRAWS("dev/fopwoc/julia/backend/vertex/IndirectDraws", false),

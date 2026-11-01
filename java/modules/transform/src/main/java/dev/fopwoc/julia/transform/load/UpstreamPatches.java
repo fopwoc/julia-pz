@@ -12,22 +12,18 @@ import org.objectweb.asm.tree.ClassNode;
 public final class UpstreamPatches {
     static final List<UpstreamPatch> ORDER = List.of(
             new WindowQueryPass(),
-            new StrictQueryPass(),
             new FramebufferPass(),
             new ColorMaskPass(),
             new BlendEquationPass(),
             new DrawTracePass(),
             new TextureBindingPass(),
-            new TextureFormatPass(),
             new TextureViewPass(),
             new TextureStoragePass(),
             new BufferTexturePass(),
             new SamplerBindingPass(),
             new SamplerResourcePass(),
             new VertexInputPass(),
-            new CompatShaderPass(),
-            new FrameContinuityPass(),
-            new StencilReferencePass());
+            new CompatShaderPass());
 
     private UpstreamPatches() {}
 
