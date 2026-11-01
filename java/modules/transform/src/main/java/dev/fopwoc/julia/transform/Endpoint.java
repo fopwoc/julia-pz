@@ -53,7 +53,6 @@ public enum Endpoint {
     BLEND_BRIDGE("com/gtnewhorizons/angelica/sdlgpu/bridge/BlendBridge", false),
     FRAMEBUFFER_CLEAR_BRIDGE("com/gtnewhorizons/angelica/sdlgpu/bridge/FramebufferClearBridge", false),
     FRAMEBUFFER_BRIDGE("dev/fopwoc/julia/backend/bridge/FramebufferBridge", false),
-    FRAMEBUFFER_HOOKS("dev/fopwoc/julia/backend/framebuffer/FramebufferHooks", false),
     BOUND_TEXTURE_BRIDGE("dev/fopwoc/julia/backend/bridge/BoundTextureBridge", false),
     NAMED_TEXTURE_BRIDGE("dev/fopwoc/julia/backend/bridge/NamedTextureBridge", false),
     TEXTURE_ALLOCATION_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureAllocationBridge", false),
