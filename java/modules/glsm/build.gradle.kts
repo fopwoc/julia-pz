@@ -1,19 +1,6 @@
 plugins { id("julia.renderer-conventions") }
 
-// GTNHLib stays a binary for now; its tessellators extend Minecraft's, which javac must resolve.
-val stubs = sourceSets.create("stubs") {
-    java.srcDir(rootProject.layout.projectDirectory.dir("../third_party/angelica/glsm/src/stubs/java"))
-}
-val stubsElements = configurations.create("stubsElements") {
-    isCanBeConsumed = true
-    isCanBeResolved = false
-}
-artifacts.add(stubsElements.name, stubs.output.classesDirs.singleFile) {
-    builtBy(tasks.named(stubs.classesTaskName))
-}
-
 dependencies {
-    compileOnly(stubs.output)
     compileOnly("org.lwjgl:lwjgl:${libs.versions.lwjgl.get()}")
     compileOnly("org.lwjgl:lwjgl-opengl:${libs.versions.lwjgl.get()}")
     compileOnly(libs.asm.tree)
@@ -25,7 +12,7 @@ dependencies {
     compileOnly("org.lwjgl:lwjgl-shaderc:${libs.versions.lwjgl.get()}")
     compileOnly("org.lwjgl:lwjgl-spvc:${libs.versions.lwjgl.get()}")
 
-    api(variantOf(rendererLibs.gtnhlib) { classifier("dev") }) { isTransitive = false }
+    api(project(":gtnhlib"))
     api(rendererLibs.eventbus)
     api(rendererLibs.glsl.transformation.lib) { exclude(module = "antlr4") }
     api(rendererLibs.antlr4.runtime)

@@ -1,6 +1,5 @@
 package dev.fopwoc.julia.host;
 
-import dev.fopwoc.julia.transform.load.LegacyNamespacePass;
 import dev.fopwoc.julia.transform.load.SceneTransform;
 import java.io.IOException;
 import java.net.URL;
@@ -43,7 +42,6 @@ final class RuntimeLoader extends URLClassLoader {
                 LOG.log(System.Logger.Level.DEBUG, "Redirecting scene {0}", name);
                 bytes = SceneTransform.adapt(bytes);
             }
-            bytes = LegacyNamespacePass.adapt(name, bytes);
             return defineClass(name, bytes, 0, bytes.length);
         } catch (IOException | RuntimeException failure) {
             throw new ClassNotFoundException(name, failure);

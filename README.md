@@ -249,16 +249,15 @@ git submodule update --init --recursive
 ```
 
 `third_party/angelica/` is [our Angelica fork](https://github.com/fopwoc/Angelica), kept on the `pz` branch over upstream `master` and pinned to an exact renderer revision.
-Julia builds only its `glsm` and `sdl-gpu` sources as local Gradle modules and embeds their JARs in the agent;
+Julia builds only its `glsm` and `sdl-gpu` sources, plus the GTNHLib subset from the fork's nested
+`third_party/gtnhlib/` submodule, as local Gradle modules and embeds their JARs in the agent;
 no renderer Maven publication, local Maven install, or Minecraft build is needed. The small Gradle descriptors
 in `java/modules/` select the source directories and dependencies; renderer source changes belong in the fork.
-Minecraft launcher integration is removed from the renderer; shader resource loading and migrated GL fixes live
-in the fork itself. Remaining Julia runtime patches are being moved into source as their dependencies are separated.
-LWJGL3ify's compatibility classes and GTNHLib's vertex/buffer helpers are still required; this is not yet a complete
-removal of every Minecraft-origin library.
+The renderer and the GTNHLib subset are LWJGL3 only, with no Minecraft, launcher, or lwjgl3ify code, and Julia patches
+neither of them at runtime.
 
-Renderer updates rebase the fork's `pz` branch onto upstream `master`, pass Julia's checks, then update the committed
-submodule revision. The submodule's `branch = pz` setting selects that branch for explicit `--remote` updates;
+Renderer updates merge upstream `master` into the fork's `pz` branch (never a rebase, since Julia pins its commits),
+pass Julia's checks, then update the committed submodule revision. The submodule's `branch = pz` setting selects that branch for explicit `--remote` updates;
 ordinary checkouts keep using the exact revision recorded by Julia.
 
 Requirements: JDK 25 and CMake 3.24+. On macOS, also the Xcode command-line tools. The first build downloads a
@@ -369,5 +368,5 @@ separate operation synchronizes the GPU and may briefly stall; ordinary draw tra
 
 ## License
 
-Julia's own code is [WTFNMFPL](LICENSE). Bundled Angelica, LWJGL3ify and RetroFuturaBootstrap are LGPL v3; see
+Julia's own code is [WTFNMFPL](LICENSE). Bundled Angelica and GTNHLib are LGPL v3; see
 [THIRD_PARTY.md](THIRD_PARTY.md).

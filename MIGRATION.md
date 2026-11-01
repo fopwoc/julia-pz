@@ -61,12 +61,11 @@ find them.
 
 Left over:
 
-- **GTNHLib.** glsm links 47 GTNHLib classes (immediate mode via `DirectTessellator`, `VAOManager`, vertex formats,
-  `MemoryUtilities`); 15 extend or use Minecraft's `Tessellator` and 14 call LWJGL2. It stays a binary for now:
-  `LegacyNamespacePass` remaps only `com.gtnewhorizon.gtnhlib.`, lwjgl3ify stays on the runtime classpath, the
-  `Tessellator` stubs stay compile-only, and `GlsmSession` keeps `GLCapabilitiesOverride` for GTNHLib's capability
-  checks. Later: vendor the closure into glsm under its own package, strip Minecraft, port to LWJGL3, then delete all
-  four.
+- **GTNHLib (done).** `fopwoc/GTNHLib` is a fork on `pz` (from tag `0.11.36`) nested in the Angelica fork at
+  `third_party/gtnhlib`. Julia's `:gtnhlib` module compiles the 60 upstream files `pz-sources.txt` lists plus the
+  fork's own `src/pz/java` (a Minecraft-free `Tessellator`, the direct-capture `TessellatorManager`, and
+  `CapturingTessellator.Flags`). lwjgl3ify, `LegacyNamespacePass`, `TessellatorState`, the Minecraft stubs, and
+  `GLCapabilitiesOverride` are gone. The GTNHLib fork's `AGENTS.md` lists its edits.
 - **Splash.** Switched off at its entry: no splash target, no checkpoint dispatch. Its dormant code stays to keep
   merges small; GLSM's splash flags still follow Julia's `markSplashComplete`.
 - **Capabilities.** `GLStateManager.capabilities` comes from LWJGL3's thread-local `GL.getCapabilities()`; GLSM must

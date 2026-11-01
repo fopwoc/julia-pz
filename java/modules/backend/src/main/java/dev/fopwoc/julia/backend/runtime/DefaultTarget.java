@@ -8,7 +8,6 @@ import com.gtnewhorizons.angelica.sdlgpu.Upstream;
 import com.gtnewhorizons.angelica.sdlgpu.frame.OffscreenTarget;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
 import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
-import org.lwjglx.opengl.Display;
 
 /** Changes the logical default framebuffer without changing the borrowed native window. */
 public final class DefaultTarget {
@@ -37,7 +36,7 @@ public final class DefaultTarget {
     /** A resize keeps the target's format; a new target matches the swapchain, or RGBA8 without a window. */
     private static int format(OffscreenTarget target, ResourceManager resources) {
         if (target.isReady()) return resources.getFbo(target.fboId()).colorFormats[0];
-        return Display.getWindow() != 0
+        return SDLGPUGate.device().getClaimedWindow() != 0
                 ? SDLGPUGate.device().getSwapchainTextureFormat()
                 : SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
     }

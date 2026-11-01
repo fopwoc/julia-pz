@@ -13,7 +13,6 @@ import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
 import dev.fopwoc.julia.backend.sdl.SdlDeveloperHud;
 import dev.fopwoc.julia.runtime.CapabilitySnapshot;
 import java.util.function.Supplier;
-import me.eigenraven.lwjgl3ify.api.GLCapabilitiesOverride;
 import org.lwjgl.sdl.SDLGPU;
 
 /** GLSM running on Julia's hosted SDL backend, from device creation to backend shutdown. */
@@ -78,7 +77,6 @@ public final class GlsmSession implements AutoCloseable {
         if (!(backend instanceof HostedBackend))
             throw new IllegalStateException("Unexpected backend: " + backend.getName());
         backend.onPostWindowCreate(window);
-        GLCapabilitiesOverride.set(SDLGPURenderBackend.advertisedCapabilities());
         size = drawable.get();
         GLStateManager.initialize(GLSMInitConfig.builder()
                 .displaySize(size.width(), size.height())

@@ -6,11 +6,12 @@
   in `java/buildSrc` (`julia.java-conventions`, Git-derived `BuildInfo`), versions in `java/gradle/libs.versions.toml`,
   modules under `java/modules/`.
 - Java 25, Gradle Kotlin DSL, base package `dev.fopwoc.julia`. The `third_party/angelica/` submodule pins the `pz`
-  branch of our Angelica fork; `java/modules/glsm` and `sdl-gpu` compile its source locally. Renderer artifacts are
-  bundled directly; do not publish them to Maven or fall back to published Angelica binaries.
+  branch of our Angelica fork, which in turn pins the `pz` branch of our GTNHLib fork at `third_party/gtnhlib`.
+  `java/modules/glsm`, `sdl-gpu`, and `gtnhlib` compile their sources locally (`gtnhlib` only the files its
+  `pz-sources.txt` lists). Renderer artifacts are bundled directly; do not publish them to Maven or fall back to
+  published Angelica or GTNHLib binaries.
 - The fork owns the renderer: GL state, SDL GPU execution, shaders, textures, and the patched SDL build with its GPU
-  extensions. The fork targets LWJGL3 only. GTNHLib, still linked as a binary,
-  is the last LWJGL2 code: `LegacyNamespacePass` remaps only it, and lwjgl3ify stays on the runtime classpath for it. Julia owns the host side: agent,
+  extensions. Both forks target LWJGL3 only, with no lwjgl3ify or Minecraft classes. Julia owns the host side: agent,
   isolated loader, game and mod bytecode passes, window borrowing, startup, and the Workshop package. Fork rules (merge
   model, tracked and owned files, hook list) live in `third_party/angelica/AGENTS.md`.
 - Migration in progress: Julia's renderer code is moving into the fork per `MIGRATION.md`. Until it finishes, the tree
@@ -28,8 +29,7 @@
   Default level is `error`; `LOG_LEVEL` overrides it. Keep error logs detailed and normal output compact.
 - New renderer code and fixes go into fork source, never into Julia. The fork never references `dev.fopwoc.julia`;
   Julia configures it through fork APIs.
-- Julia no longer rewrites renderer bytecode; the only load-time remap left is `LegacyNamespacePass` for GTNHLib.
-  Change renderer behavior in fork source, never by patching renderer classes from Julia.
+- Julia never rewrites renderer or GTNHLib bytecode. Change their behavior in fork source.
 - Julia's `backend` module is host code only: runtime, window borrowing, platform selection, and the developer HUD.
   Static entry points that rewritten game code calls live in the fork's `sdlgpu.bridge`; `Endpoint` names them.
 - Use comments for non-obvious reasoning only. Javadoc a class when its role or invariant isn't evident from its name.
@@ -61,4 +61,4 @@
 ## Git
 
 - Make small local commits after verified milestones, with short plain messages. Do not push without a request.
-- Commit fork changes on `pz` first, then bump the submodule pin in Julia in its own commit.
+- Commit innermost first: GTNHLib `pz`, then Angelica `pz` with its pin bump, then Julia with its pin bump.
