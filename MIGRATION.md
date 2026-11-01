@@ -34,7 +34,7 @@ Details live in `third_party/angelica/AGENTS.md`. In short:
 | `backend.sdl` (Java bindings) | `sdl-gpu` `extension` | Four moved in 1b; the rest move with their domains |
 | `native/sdl` (CMake patches and SDL GPU extensions) | `sdl-gpu/native` in the fork | Done in 1b. `native/agentlib` and the Dockerfile stay in Julia |
 | `transform.load.LegacyNamespacePass`, glsm stubs, `Lwjgl3ify-Aware` marker, lwjgl3ify dependency | Deleted | `glsm` compiles against LWJGL3 |
-| `backend.bridge` (32 entry points) | `sdl-gpu` owned `bridge` package | `Endpoint` keeps naming them by string. Simple one-to-one mappings may become `GLSMRedirector` entries |
+| `backend.bridge` (32 entry points) | `sdlgpu.bridge` | Done in phases 2 to 4; `Endpoint` names them by string |
 | `WindowQueryPass`, `window.HostWindow` | A host-window API on `Device`; `HostWindow` stays in Julia and implements it | |
 | `backend.runtime`, `window`, `platform`, `gpu`, `utils` | Stay in Julia | `backend` shrinks to host runtime glue |
 | `agent`, `host`, `render-runtime`, `transform.pass`, `prepare`, `audit`, `gl-audit`, `workshop`, `probe` | Stay in Julia | Update imports and endpoint strings |
@@ -136,10 +136,13 @@ lists every hook. Original order:
 
 Record every hook added to a tracked file in the fork's `AGENTS.md` hook list.
 
-### 4. Bridges
+### 4. Bridges (done)
 
-Move `backend.bridge` into `sdl-gpu`, update `Endpoint` strings and `TargetAbi`. Where a bridge is a plain overload
-mapping, prefer a `GLSMRedirector` table entry and delete the bridge.
+All 30 bridges are in `sdlgpu.bridge`, with `ResourceOutput` and `IndirectDraws` (`sdlgpu.vertex`); `Endpoint` names
+them there and keeps their `upstream` flag `false`. `DebugCallbackBridge` declares its own callback `MethodType`
+instead of reading Julia's `DebugCallback`. Their unit tests are in the fork's test tree.
+
+Later, optional: a bridge that is only a plain overload mapping can become a `GLSMRedirector` table entry.
 
 ### 5. Julia cleanup
 

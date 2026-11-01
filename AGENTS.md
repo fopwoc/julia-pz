@@ -30,8 +30,8 @@
   Julia configures it through fork APIs.
 - Julia no longer rewrites renderer bytecode; the only load-time remap left is `LegacyNamespacePass` for GTNHLib.
   Change renderer behavior in fork source, never by patching renderer classes from Julia.
-- Bridges hold static entry points that rewritten game code calls; layers change how GL work runs on SDL GPU. Keep the
-  two apart, wherever they live.
+- Julia's `backend` module is host code only: runtime, window borrowing, platform selection, and the developer HUD.
+  Static entry points that rewritten game code calls live in the fork's `sdlgpu.bridge`; `Endpoint` names them.
 - Use comments for non-obvious reasoning only. Javadoc a class when its role or invariant isn't evident from its name.
 - Tests cover behavior that can regress silently. Don't test trivial mappings.
 

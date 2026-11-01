@@ -2,6 +2,7 @@ package dev.fopwoc.julia.backend.shader;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.shader.ResourceOutput;
 import org.junit.jupiter.api.Test;
 
 class ResourceOutputTest {

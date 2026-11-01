@@ -2,8 +2,8 @@ package dev.fopwoc.julia.probe.adapter;
 
 import static org.lwjgl.sdl.SDLLog.SDL_LOG_PRIORITY_ERROR;
 
+import com.gtnewhorizons.angelica.sdlgpu.bridge.DebugCallbackBridge;
 import com.gtnewhorizons.angelica.sdlgpu.util.DebugMessageRelay;
-import dev.fopwoc.julia.backend.bridge.DebugCallbackBridge;
 import dev.fopwoc.julia.runtime.DebugCallback;
 import java.lang.invoke.MethodHandles;
 import org.lwjgl.system.MemoryStack;
