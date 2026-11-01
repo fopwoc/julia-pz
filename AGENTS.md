@@ -5,8 +5,8 @@
 - The repository root is the PZ mod folder (`common/`, `42/mod.info`). The Gradle build lives in `java/`: shared logic
   in `java/buildSrc` (`julia.java-conventions`, Git-derived `BuildInfo`), versions in `java/gradle/libs.versions.toml`,
   modules under `java/modules/`.
-- Java 25, Gradle Kotlin DSL, base package `dev.fopwoc.julia`. Prefer the published Angelica artifacts over vendored
-  source.
+- Java 25, Gradle Kotlin DSL, base package `dev.fopwoc.julia`. The `third_party/angelica/` submodule pins our Angelica fork; `java/modules/glsm` and `sdl-gpu` compile its source locally.
+  Renderer artifacts are bundled directly; do not publish them to Maven or fall back to published Angelica binaries.
 - Keep game binaries, saves, Workshop files, extracted proprietary sources, and local machine paths out of Git.
 
 ## Code style

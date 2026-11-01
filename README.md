@@ -242,6 +242,18 @@ Anything ambiguous still stops the game with a report.
 
 The repository root is the Lua mod folder (`common/`, `42/`); the Gradle build lives in `java/`.
 
+Initialize the pinned renderer fork after cloning (or clone with `--recurse-submodules`):
+
+```sh
+git submodule update --init --recursive
+```
+
+`third_party/angelica/` is [our Angelica fork](https://github.com/fopwoc/Angelica), pinned to the existing 2.2.34 baseline.
+Julia builds only its `glsm` and `sdl-gpu` sources as local Gradle modules and embeds their JARs in the agent;
+no renderer Maven publication, local Maven install, or Minecraft build is needed. The small Gradle descriptors
+in `java/modules/` select the source directories and dependencies; renderer source changes belong in the fork.
+Existing Julia runtime patches remain in place until they are migrated into that source.
+
 Requirements: JDK 25 and CMake 3.24+. On macOS, also the Xcode command-line tools. The first build downloads a
 SHA-256-pinned SDL 3.4.12 archive, patches a copy, and builds `SDL3Julia` for the host; later builds are incremental.
 
@@ -309,6 +321,8 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 
 | Path | Contents |
 | --- | --- |
+| `third_party/angelica/` | Pinned Angelica Git submodule; renderer sources and original license |
+| `java/modules/glsm`, `java/modules/sdl-gpu` | Local build descriptors for the fork, without publishing plugins |
 | `java/modules/agent` | The `-javaagent` entry point and startup audit |
 | `java/modules/host` | Isolated class loader and live runtime startup |
 | `java/modules/transform` | Bytecode passes for game and mod code, and pinned patches to Angelica |

@@ -39,8 +39,8 @@ val hostTarget = run {
 
 dependencies {
     api(project(":render-runtime"))
-    api(libs.angelica.sdlgpu) {
-        // The upstream publication carries the publishing host's Linux natives.
+    api(project(":sdl-gpu")) {
+        // Platform natives are supplied by Julia, independently of the source-built renderer.
         exclude(group = "org.lwjgl")
         // A Forge coremod that deploys a duplicate fastutil and other libraries into Minecraft; never activated here.
         exclude(group = "com.github.GTNewHorizons", module = "GTNHExtLib")

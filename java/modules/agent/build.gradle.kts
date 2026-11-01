@@ -24,7 +24,13 @@ tasks.jar {
 tasks.test {
     val agentJar = tasks.jar.flatMap { it.archiveFile }
     inputs.file(agentJar).withPropertyName("agentJar")
-    doFirst { systemProperty("agent.jar", agentJar.get().asFile.absolutePath) }
+    doFirst {
+        systemProperty("agent.jar", agentJar.get().asFile.absolutePath)
+        for (module in listOf("glsm", "sdl-gpu")) {
+            val archive = project(":$module").tasks.named<Jar>("jar").get().archiveFile.get().asFile
+            systemProperty("renderer.$module.jar", archive.absolutePath)
+        }
+    }
 }
 
 // Uses the ordinary agent layout; completeness is an additional distribution requirement.
