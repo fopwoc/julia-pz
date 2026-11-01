@@ -68,6 +68,7 @@ extensions, implemented per API.
 | [ViewPoint](https://steamcommunity.com/sharedfiles/filedetails/?id=3809306528) | Works | All presets run, including high and extreme, some minor far LODs rendering issues |
 | [Grassier Grass](https://steamcommunity.com/sharedfiles/filedetails/?id=3818853354) | Works | Probably all good |
 | [WinterFX](https://steamcommunity.com/sharedfiles/filedetails/?id=3819972196) | Works | it uses the mesh path because tessellation isn't supported |
+| Visceral | Works | |
 | [PZ3D](https://steamcommunity.com/sharedfiles/filedetails/?id=3807334881) | Broken | Reaches world load, then needs geometry shaders (cube shadows, rain, lightning, fog), which SDL GPU lacks |
 
 ### Known limits
