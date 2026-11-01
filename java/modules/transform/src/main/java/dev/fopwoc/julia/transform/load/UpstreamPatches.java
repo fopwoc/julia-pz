@@ -10,8 +10,8 @@ import org.objectweb.asm.tree.ClassNode;
  * written once; untargeted or unchanged classes keep their original bytes.
  */
 public final class UpstreamPatches {
-    static final List<UpstreamPatch> ORDER = List.of(
-            new TextureViewPass(), new BufferTexturePass(), new SamplerBindingPass(), new SamplerResourcePass());
+    static final List<UpstreamPatch> ORDER =
+            List.of(new BufferTexturePass(), new SamplerBindingPass(), new SamplerResourcePass());
 
     private UpstreamPatches() {}
 

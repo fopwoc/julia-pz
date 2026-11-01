@@ -3,7 +3,7 @@ package dev.fopwoc.julia.backend.texture.buffer;
 import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.ResourceManager;
-import dev.fopwoc.julia.backend.texture.TextureViewHooks;
+import com.gtnewhorizons.angelica.sdlgpu.texture.TextureViewHooks;
 import org.lwjgl.util.spvc.Spvc;
 
 /** Internal integration points for typed sampler binding, physical storage ownership, and native MSL reads. */
