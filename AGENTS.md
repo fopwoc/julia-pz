@@ -5,8 +5,15 @@
 - The repository root is the PZ mod folder (`common/`, `42/mod.info`). The Gradle build lives in `java/`: shared logic
   in `java/buildSrc` (`julia.java-conventions`, Git-derived `BuildInfo`), versions in `java/gradle/libs.versions.toml`,
   modules under `java/modules/`.
-- Java 25, Gradle Kotlin DSL, base package `dev.fopwoc.julia`. The `third_party/angelica/` submodule pins our Angelica fork; `java/modules/glsm` and `sdl-gpu` compile its source locally.
-  Renderer artifacts are bundled directly; do not publish them to Maven or fall back to published Angelica binaries.
+- Java 25, Gradle Kotlin DSL, base package `dev.fopwoc.julia`. The `third_party/angelica/` submodule pins the `pz`
+  branch of our Angelica fork; `java/modules/glsm` and `sdl-gpu` compile its source locally. Renderer artifacts are
+  bundled directly; do not publish them to Maven or fall back to published Angelica binaries.
+- The fork owns the renderer: GL state, SDL GPU execution, shaders, textures, and the patched SDL build with its GPU
+  extensions. The fork targets LWJGL3 only; no LWJGL2 or lwjgl3ify layer. Julia owns the host side: agent,
+  isolated loader, game and mod bytecode passes, window borrowing, startup, and the Workshop package. Fork rules (merge
+  model, tracked and owned files, hook list) live in `third_party/angelica/AGENTS.md`.
+- Migration in progress: Julia's renderer code is moving into the fork per `MIGRATION.md`. Until it finishes, the tree
+  may not compile and tests may fail; don't restore either unless a step asks for it.
 - Keep game binaries, saves, Workshop files, extracted proprietary sources, and local machine paths out of Git.
 
 ## Code style
@@ -18,14 +25,13 @@
   them.
 - Log with `System.Logger`, named after the declaring class. Only entry points call `LogConfiguration.configure()`.
   Default level is `error`; `LOG_LEVEL` overrides it. Keep error logs detailed and normal output compact.
-- GL overrides live in `backend.layer`, one abstract layer per domain; `HostedBackend` keeps only cross-domain calls.
-  Reach Angelica's private state only through `Upstream`, and Julia's own state through `Subsystems`.
-- New renderer fixes belong in `third_party/angelica` source. Remaining upstream bytecode rewrites implement
-  `UpstreamPatch` and are listed in `UpstreamPatches`; match anchors with
-  `Anchors`, which skips ASM's label and frame nodes. `UpstreamPatchesTest` fails when a patch stops changing the
-  pinned renderer, so check it first after a renderer revision change.
-- `backend.bridge` holds static entry points that rewritten game code calls; `backend.layer` changes how GL work runs
-  on SDL GPU. Keep the two apart.
+- New renderer code and fixes go into fork source, never into Julia. The fork never references `dev.fopwoc.julia`;
+  Julia configures it through fork APIs.
+- `UpstreamPatch` rewrites, `Upstream` reflection, `*Hooks` classes, and `backend.layer` are migration debt: don't add
+  to them; port them into the fork. Until they are gone, `UpstreamPatchesTest` fails when a patch stops changing the
+  pinned renderer.
+- Bridges hold static entry points that rewritten game code calls; layers change how GL work runs on SDL GPU. Keep the
+  two apart, wherever they live.
 - Use comments for non-obvious reasoning only. Javadoc a class when its role or invariant isn't evident from its name.
 - Tests cover behavior that can regress silently. Don't test trivial mappings.
 
@@ -38,8 +44,9 @@
 - Every class in `dev.fopwoc.julia.probe.scene` is redirected as it loads and must contain redirected GL calls. Put
   non-GL helpers elsewhere.
 - OS specifics stay behind `Platform`, `ForeignWindow`, and `BorrowedWindow`, with implementations in per-OS packages
-  such as `window.macos`. GPU-API specifics stay behind `GpuBackend` (Metal, Vulkan, Direct3D 12). Julia's native SDL
-  extensions are bound once in `backend.sdl` and export the same C symbols for every GPU backend that implements them.
+  such as `window.macos`. GPU-API specifics stay behind `GpuBackend` (Metal, Vulkan, Direct3D 12). Native SDL
+  extensions are bound once (in `backend.sdl` until they move to the fork) and export the same C symbols for every GPU
+  backend that implements them.
 - After changing service registration, loader prefixes, package names, or endpoint strings, run
   `./gradlew :probe:suiteProbe`. Unit tests do not cover the isolated loader path.
 
@@ -53,3 +60,4 @@
 ## Git
 
 - Make small local commits after verified milestones, with short plain messages. Do not push without a request.
+- Commit fork changes on `pz` first, then bump the submodule pin in Julia in its own commit.
