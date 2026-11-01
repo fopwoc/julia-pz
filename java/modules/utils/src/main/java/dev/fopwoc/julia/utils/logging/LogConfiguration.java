@@ -3,6 +3,7 @@ package dev.fopwoc.julia.utils.logging;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
@@ -11,30 +12,36 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 /**
- * Routes {@code dev.fopwoc.julia} {@link System.Logger} output to stderr at the {@code LOG_LEVEL} environment level.
+ * Routes Julia and renderer logging to stderr at the {@code LOG_LEVEL} environment level.
  *
  * <p>JUL is JVM-global while this class may be loaded once per class loader, so repeated calls are no-ops.
  */
 public final class LogConfiguration {
-    private static final String ROOT = "dev.fopwoc.julia";
+    // JUL holds loggers weakly; keep the configured namespace roots alive before any child logger exists.
+    private static final List<Logger> ROOTS = List.of(
+            Logger.getLogger("dev.fopwoc.julia"),
+            Logger.getLogger("com.gtnewhorizons.angelica"),
+            Logger.getLogger("com.gtnewhorizon.gtnhlib"));
 
     private LogConfiguration() {}
 
     public static void configure() {
-        var logger = Logger.getLogger(ROOT);
         synchronized (Logger.class) {
-            // Compare by name: another loader's copy of this class may already have installed its handler.
-            if (Arrays.stream(logger.getHandlers())
-                    .anyMatch(handler -> handler.getFormatter() != null
-                            && handler.getFormatter().getClass().getName().equals(CompactFormat.class.getName()))) {
-                return;
+            Level level = level(System.getenv().getOrDefault("LOG_LEVEL", "error"));
+            for (var logger : ROOTS) {
+                // Compare by name: another loader may already have installed the same configuration.
+                if (Arrays.stream(logger.getHandlers())
+                        .anyMatch(handler -> handler.getFormatter() != null
+                                && handler.getFormatter().getClass().getName().equals(CompactFormat.class.getName()))) {
+                    continue;
+                }
+                logger.setUseParentHandlers(false);
+                logger.setLevel(level);
+                var handler = new ConsoleHandler();
+                handler.setLevel(Level.ALL);
+                handler.setFormatter(new CompactFormat());
+                logger.addHandler(handler);
             }
-            logger.setUseParentHandlers(false);
-            logger.setLevel(level(System.getenv().getOrDefault("LOG_LEVEL", "error")));
-            var handler = new ConsoleHandler();
-            handler.setLevel(Level.ALL);
-            handler.setFormatter(new CompactFormat());
-            logger.addHandler(handler);
         }
     }
 

@@ -30,26 +30,26 @@ The tree does not need to pass tests between steps; phase 6 restores tests and `
 
 ## Remaining work
 
-### 5. Julia cleanup
+### 5. Julia cleanup — complete
 
-- **Logging.** Angelica logs through log4j and Julia through `System.Logger` on JUL; don't rewrite calls. Replace
-  `log4j-core` and `java/modules/backend/src/main/resources/log4j2.xml` with
-  `org.apache.logging.log4j:log4j-to-jul` (2.26.1, matching the catalog's log4j). Angelica's logger names are free
-  strings (`"Angelica/SDLGPU"`, `"SpirvCompiler"`), so they land under JUL's root; teach `LogConfiguration`
-  (`java/modules/utils/.../logging`) to configure them, or add a small log4j `Provider` in Julia that prefixes every
-  name with `dev.fopwoc.julia.renderer.`.
-- **Gradle.** `java/modules/backend/build.gradle.kts` still excludes jcpp's build-only dependencies and lists
-  `runtimeOnly` libraries "Angelica expects from its host"; check which are still needed now that GTNHLib is a
-  project dependency. `java/settings.gradle.kts` still declares repository groups for lwjgl3ify, GTNHLib, and
-  RetroFuturaBootstrap that nothing may resolve anymore.
-- **Endpoint flags.** Bridges keep `upstream = false` in `Endpoint`; decide whether that flag still means anything now
-  that they live in the fork, and simplify if not.
+- Log4j API calls now use `log4j-to-jul` 2.26.1. Julia's service-loaded `RendererLoggingProvider` selects a context
+  factory that delegates to the standard JUL adapter with names under `dev.fopwoc.julia.renderer.`. Upstream logging
+  calls stay unchanged; `log4j-core` and its XML configuration are removed.
+- `LogConfiguration` configures Julia, Angelica, and GTNHLib's JUL namespaces at `LOG_LEVEL`, without changing the
+  JVM's global root logger. It keeps strong references to those namespace roots and remains idempotent across loaders.
+- The host backend no longer repeats renderer dependencies or exclusions owned by `glsm` and `gtnhlib`. Obsolete
+  Minecraft/launcher repository filters are removed; nested renderer initialization has an explicit error message.
+- `Endpoint` no longer stores the unused `upstream` flag; GLSM membership and the shared JDK-only boundary stay explicit.
+- Verified compilation of main and test sources offline, the host logging provider's JAR resources, and the cleaned
+  runtime dependency graph. Tests and native probes remain deferred.
 
 ### 6. Restore
 
 - Wire the fork test trees (`third_party/angelica/glsm/src/test`, `sdl-gpu/src/test`) into
   `julia.renderer-conventions`. They mix upstream tests, some needing a real device (`*GpuTest`, `RealDeviceExtension`),
   with the unit tests moved from Julia. Start with the moved ones and the pure-logic upstream ones.
+- Add logging regressions for provider selection in the isolated loader, arbitrary Log4j names, `LOG_LEVEL`,
+  formatted messages and exceptions, and duplicate-free JUL setup across loaders. Keep unrelated JUL logging unchanged.
 - Julia's own tests: `./gradlew test --offline --no-build-cache`.
 - Native probe (only when the user asks, it opens no window): `./gradlew :probe:suiteProbe`. It covers the isolated
   loader path that unit tests don't, which changed in every phase.

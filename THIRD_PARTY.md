@@ -7,6 +7,7 @@ Julia's own code is WTFNMFPL (see `COPYRIGHT`). The libraries below ship with it
 | [SDL](https://github.com/libsdl-org/SDL) | 3.4.12 | zlib | GPU runtime, rebuilt as `SDL3Julia` with Julia's native extensions |
 | [Angelica fork](https://github.com/fopwoc/Angelica) `glsm`, `sdl-gpu` | `third_party/angelica/` Git revision (`pz` over upstream `master`) | LGPL v3 | GL state manager and SDL3 GPU backend that Julia renders through |
 | [GTNHLib fork](https://github.com/fopwoc/GTNHLib), subset | `third_party/angelica/third_party/gtnhlib/` Git revision (`pz` over upstream `0.11.36`) | LGPL v3 | Tessellator, vertex format and memory helpers the renderer uses |
+| [Apache Log4j](https://logging.apache.org/log4j/2.x/) API and JUL bridge | 2.26.1 | Apache 2.0 | Routes renderer Log4j calls to Java logging with Julia’s log configuration |
 
 Julia builds SDL 3.4.12 with the native extensions in `third_party/angelica/sdl-gpu/native/`: patches shared by every GPU API in `common/`, and
 per-API extensions such as `metal/` (timestamps, occlusion queries, buffer textures, texture views, vertex inputs,

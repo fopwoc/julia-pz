@@ -16,5 +16,5 @@ joml = "org.joml:joml:1.10.8"
 jsr305 = "com.google.code.findbugs:jsr305:3.0.2"
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
-log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
+log4j-to-jul = { module = "org.apache.logging.log4j:log4j-to-jul", version.ref = "log4j" }
 spotless-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }

@@ -27,10 +27,12 @@
   them.
 - Log with `System.Logger`, named after the declaring class. Only entry points call `LogConfiguration.configure()`.
   Default level is `error`; `LOG_LEVEL` overrides it. Keep error logs detailed and normal output compact.
+  Renderer Log4j calls use the service-loaded JUL adapter in `backend.logging`; keep Log4j Core and its XML config out
+  of Julia's runtime. Never configure the JVM-global JUL root logger.
 - New renderer code and fixes go into fork source, never into Julia. The fork never references `dev.fopwoc.julia`;
   Julia configures it through fork APIs.
 - Julia never rewrites renderer or GTNHLib bytecode. Change their behavior in fork source.
-- Julia's `backend` module is host code only: runtime, window borrowing, platform selection, and the developer HUD.
+- Julia's `backend` module is host code only: runtime, window borrowing, platform selection, logging integration, and the developer HUD.
   Static entry points that rewritten game code calls live in the fork's `sdlgpu.bridge`; `Endpoint` names them.
 - Use comments for non-obvious reasoning only. Javadoc a class when its role or invariant isn't evident from its name.
 - Tests cover behavior that can regress silently. Don't test trivial mappings.

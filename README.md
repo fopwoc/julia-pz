@@ -351,7 +351,7 @@ modules/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `-Djulia.drawTrace=true` | Launch options or probe JVM | Bounded CPU draw-state snapshots and compiler inputs beside renderer/probe reports; no GPU readbacks |
 | `-Djulia.gpu=metal\|vulkan` | Launch options or probe JVM | Override the platform's default SDL GPU driver |
 | `-Djulia.metalHud=true` | Launch options, macOS | Show Apple's Metal Performance HUD over the game (current process only; restart required) |
-| `LOG_LEVEL=debug\|info\|warn\|error` | Environment | Julia's log detail on stderr; default `error` |
+| `LOG_LEVEL=debug\|info\|warn\|error` | Environment | Julia and renderer log detail on stderr; default `error` |
 | `-PjuliaNatives=<dir>` | Gradle | Pack other hosts' SDL builds (`<os>/<arch>/<library>`) into the agent jar |
 | `-Djulia.probe.width=<px>`, `-Djulia.probe.height=<px>` | Probe JVM | Offscreen size of the adapter probe; default 32 × 32 |
 

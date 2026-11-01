@@ -1,8 +1,9 @@
 rootProject.name = "julia-zomboid"
 
 val rendererSources = file("../third_party/angelica")
-require(rendererSources.resolve("glsm/src/main/java").isDirectory) {
-    "Renderer submodule is missing. Run: git submodule update --init --recursive"
+require(rendererSources.resolve("glsm/src/main/java").isDirectory
+        && rendererSources.resolve("third_party/gtnhlib/pz-sources.txt").isFile) {
+    "Renderer submodules are missing. Run: git submodule update --init --recursive"
 }
 
 dependencyResolutionManagement {
@@ -12,21 +13,10 @@ dependencyResolutionManagement {
     repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
     repositories {
         mavenCentral()
-        maven("https://libraries.minecraft.net/") {
-            content {
-                includeGroup("com.mojang")
-                includeGroup("net.minecraft")
-                includeGroup("org.lwjgl.lwjgl")
-            }
-        }
         maven("https://nexus.gtnewhorizons.com/repository/public/") {
             content {
-                includeGroup("com.gtnewhorizons.angelica")
-                includeGroup("com.gtnewhorizons.retrofuturabootstrap")
-                includeGroup("com.github.GTNewHorizons")
                 includeGroup("org.taumc")
                 includeGroup("org.embeddedt.celeritas")
-                includeGroup("io.github.legacymoddingmc")
             }
         }
         maven("https://maven.minecraftforge.net/") {
