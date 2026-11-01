@@ -1,3 +1,5 @@
+import packaging.compactRuntime
+
 plugins {
     id("julia.java-conventions")
 }
@@ -9,12 +11,14 @@ dependencies {
     runtimeOnly(project(":host"))
 }
 
+val packagedRuntime = compactRuntime(configurations.runtimeClasspath.get(), sourceSets.main.get().output)
+
 tasks.jar {
     archiveFileName = "julia-agent.jar"
     manifest {
         attributes("Premain-Class" to "dev.fopwoc.julia.agent.JuliaAgent", "Implementation-Version" to project.version)
     }
-    from(configurations.runtimeClasspath) { into("lib") }
+    from(packagedRuntime) { into("lib") }
     // Only JDK-only bootstrap and auditing classes are exposed to the application loader.
     for (path in listOf(":gl-audit", ":utils", ":render-runtime")) {
         from(project(path).the<SourceSetContainer>()["main"].output)

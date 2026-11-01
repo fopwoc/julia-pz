@@ -257,6 +257,12 @@ in `java/modules/` select the source directories and dependencies; renderer sour
 The renderer and the GTNHLib subset are LWJGL3 only, with no Minecraft, launcher, or lwjgl3ify code, and Julia patches
 neither of them at runtime.
 
+Agent and probe distributions include a reduced Fastutil JAR. The build scans every production runtime class with
+JDK 25's `jdeps`, retains the transitive Fastutil dependencies and complete nested-class families, and copies their
+bytecode unchanged. Compilation uses the full published library. `subsetFastutil` runs automatically; its selected
+class list is written to each module's `build/reports/fastutil/classes.txt`. Reflective use of Fastutil classes must
+be reviewed when adding dependencies because `jdeps` follows static references.
+
 Renderer updates merge upstream `master` into the fork's `pz` branch (never a rebase, since Julia pins its commits),
 pass Julia's checks, then update the committed submodule revision. The submodule's `branch = pz` setting selects that branch for explicit `--remote` updates;
 ordinary checkouts keep using the exact revision recorded by Julia.

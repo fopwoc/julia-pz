@@ -1,3 +1,5 @@
+import packaging.compactRuntime
+
 plugins {
     id("julia.java-conventions")
     application
@@ -10,13 +12,22 @@ dependencies {
     implementation(project(":host"))
 }
 
+val packagedRuntime = compactRuntime(configurations.runtimeClasspath.get(), sourceSets.main.get().output)
+sourceSets.main { runtimeClasspath = output + packagedRuntime }
+
 application {
     mainClass = "dev.fopwoc.julia.probe.cli.ProbeMain"
     applicationName = "probe"
 }
 
+tasks.startScripts {
+    classpath = files(tasks.jar, packagedRuntime)
+}
+
 distributions.main {
     contents {
+        exclude { it.name.matches(Regex("fastutil-[0-9].*\\.jar")) }
+        from(packagedRuntime.filter { it.name == "fastutil-subset.jar" }) { into("lib") }
         // Notices live in the mod folder at the repository root.
         from(rootProject.file("../THIRD_PARTY.md"))
         from(rootProject.file("../licenses")) { into("licenses") }
