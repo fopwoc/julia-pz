@@ -69,7 +69,7 @@ class ResourcePassTest {
         var unknownExtension = new MethodInsnNode(
                 Opcodes.INVOKESTATIC, "org/lwjgl/opengl/EXTSemaphore", "glFenceSync", "(II)J", false);
         var glsm = new MethodInsnNode(
-                Opcodes.INVOKESTATIC, Endpoint.STATE_MANAGER.owner(), "glDeleteTextures", "([I)V", false);
+                Opcodes.INVOKESTATIC, Endpoint.GLSM_TEXTURES.owner(), "glDeleteTextures", "([I)V", false);
         for (var call : new MethodInsnNode[] {later, core, extension, lookalike, unknownExtension, glsm})
             method.instructions.add(call);
         ResourcePass.adapt(node);

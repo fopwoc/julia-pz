@@ -248,7 +248,7 @@ Initialize the pinned renderer fork after cloning (or clone with `--recurse-subm
 git submodule update --init --recursive
 ```
 
-`third_party/angelica/` is [our Angelica fork](https://github.com/fopwoc/Angelica), derived from the 2.2.34 baseline and pinned to our renderer revision.
+`third_party/angelica/` is [our Angelica fork](https://github.com/fopwoc/Angelica), kept on the `pz` branch over upstream `master` and pinned to an exact renderer revision.
 Julia builds only its `glsm` and `sdl-gpu` sources as local Gradle modules and embeds their JARs in the agent;
 no renderer Maven publication, local Maven install, or Minecraft build is needed. The small Gradle descriptors
 in `java/modules/` select the source directories and dependencies; renderer source changes belong in the fork.
@@ -256,6 +256,10 @@ Minecraft launcher integration is removed from the renderer; shader resource loa
 in the fork itself. Remaining Julia runtime patches are being moved into source as their dependencies are separated.
 LWJGL3ify's compatibility classes and GTNHLib's vertex/buffer helpers are still required; this is not yet a complete
 removal of every Minecraft-origin library.
+
+Renderer updates rebase the fork's `pz` branch onto upstream `master`, pass Julia's checks, then update the committed
+submodule revision. The submodule's `branch = pz` setting selects that branch for explicit `--remote` updates;
+ordinary checkouts keep using the exact revision recorded by Julia.
 
 Requirements: JDK 25 and CMake 3.24+. On macOS, also the Xcode command-line tools. The first build downloads a
 SHA-256-pinned SDL 3.4.12 archive, patches a copy, and builds `SDL3Julia` for the host; later builds are incremental.

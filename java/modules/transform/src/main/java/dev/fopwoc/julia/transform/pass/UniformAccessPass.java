@@ -30,7 +30,7 @@ public final class UniformAccessPass {
                 boolean core = CoreOwners.is(call.owner);
                 if (core && signature.equals("glUniform1iv(I[I)V")) {
                     call.owner = Endpoint.UNIFORM_UPLOAD_BRIDGE.owner();
-                } else if (Endpoint.STATE_MANAGER.is(call.owner) && call.name.equals("glGetUniform")) {
+                } else if (Endpoint.isGlsm(call.owner) && call.name.equals("glGetUniform")) {
                     String name = switch (call.desc) {
                         case "(IILjava/nio/FloatBuffer;)V" -> "glGetUniformfv";
                         case "(IILjava/nio/IntBuffer;)V" -> "glGetUniformiv";

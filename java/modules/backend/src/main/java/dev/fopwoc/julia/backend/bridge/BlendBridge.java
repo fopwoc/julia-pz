@@ -5,7 +5,8 @@ import static org.lwjgl.opengl.GL14.*;
 import static org.lwjgl.opengl.GL20.GL_BLEND_EQUATION_ALPHA;
 import static org.lwjgl.opengl.GL20.GL_BLEND_EQUATION_RGB;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMBlend;
+import com.gtnewhorizons.angelica.glsm.GLSMEnable;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FormatMap;
 import dev.fopwoc.julia.backend.Subsystems;
@@ -41,7 +42,7 @@ public final class BlendBridge {
             throw new IllegalArgumentException("Blend draw-buffer index out of range: " + buffer);
         for (int factor : new int[] {source, destination, sourceAlpha, destinationAlpha}) requireFactor(factor);
         Upstream.flushTextureReferences();
-        GLStateManager.glBlendFuncSeparatei(buffer, source, destination, sourceAlpha, destinationAlpha);
+        GLSMBlend.glBlendFuncSeparatei(buffer, source, destination, sourceAlpha, destinationAlpha);
     }
 
     public static void glBlendEquationi(int buffer, int mode) {
@@ -55,13 +56,13 @@ public final class BlendBridge {
     public static void glEnablei(int capability, int index) {
         requireIndexed(capability, index);
         Upstream.flushTextureReferences();
-        GLStateManager.glEnablei(capability, index);
+        GLSMEnable.glEnablei(capability, index);
     }
 
     public static void glDisablei(int capability, int index) {
         requireIndexed(capability, index);
         Upstream.flushTextureReferences();
-        GLStateManager.glDisablei(capability, index);
+        GLSMEnable.glDisablei(capability, index);
     }
 
     public static boolean glIsEnabledi(int capability, int index) {

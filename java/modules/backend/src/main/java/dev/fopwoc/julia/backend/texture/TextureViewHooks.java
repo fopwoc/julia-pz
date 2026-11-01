@@ -13,7 +13,6 @@ public final class TextureViewHooks {
     public static void delete(int name) {
         Upstream.context();
         BackendManager.RENDER_BACKEND.deleteTextures(name);
-        Upstream.forgetTextureName(name);
     }
 
     /** Upstream wrote its texture handle or metadata maps; see {@code TextureStoragePass}. */

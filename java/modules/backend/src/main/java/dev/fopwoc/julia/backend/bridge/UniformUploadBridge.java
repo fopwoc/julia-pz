@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.backend.bridge;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMPrograms;
 import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager.ProgramObject;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.shader.SamplerUniforms;
@@ -13,25 +13,25 @@ public final class UniformUploadBridge {
     private UniformUploadBridge() {}
 
     public static void glUniform1iv(int location, IntBuffer values) {
-        GLStateManager.glUniform1(location, values);
+        GLSMPrograms.glUniform1(location, values);
     }
 
     // Upstream stores plain integer uniforms by bit pattern, so unsigned values ride the signed path once the
     // reflected type confirms the location really is unsigned.
     public static void glUniform1ui(int location, int x) {
-        if (unsigned(location, 1)) GLStateManager.glUniform1i(location, x);
+        if (unsigned(location, 1)) GLSMPrograms.glUniform1i(location, x);
     }
 
     public static void glUniform2ui(int location, int x, int y) {
-        if (unsigned(location, 2)) GLStateManager.glUniform2i(location, x, y);
+        if (unsigned(location, 2)) GLSMPrograms.glUniform2i(location, x, y);
     }
 
     public static void glUniform3ui(int location, int x, int y, int z) {
-        if (unsigned(location, 3)) GLStateManager.glUniform3i(location, x, y, z);
+        if (unsigned(location, 3)) GLSMPrograms.glUniform3i(location, x, y, z);
     }
 
     public static void glUniform4ui(int location, int x, int y, int z, int w) {
-        if (unsigned(location, 4)) GLStateManager.glUniform4i(location, x, y, z, w);
+        if (unsigned(location, 4)) GLSMPrograms.glUniform4i(location, x, y, z, w);
     }
 
     private static boolean unsigned(int location, int components) {
@@ -68,7 +68,7 @@ public final class UniformUploadBridge {
             if (values.length != 1) {
                 throw new UnsupportedOperationException("Sampler/image array locations require upstream array support");
             }
-            GLStateManager.glUniform1i(location, values[0]);
+            GLSMPrograms.glUniform1i(location, values[0]);
             return;
         }
         var info = program.anyBlockMemberInfo(location);
@@ -85,7 +85,7 @@ public final class UniformUploadBridge {
         }
         // Upstream copies uniform data before returning, so reflected-length arrays fit the thread stack.
         try (var stack = MemoryStack.stackPush()) {
-            GLStateManager.glUniform1(location, stack.ints(values));
+            GLSMPrograms.glUniform1(location, stack.ints(values));
         }
     }
 }

@@ -2,7 +2,7 @@ package dev.fopwoc.julia.backend.bridge;
 
 import static org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMTextures;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 
@@ -16,7 +16,7 @@ public final class BufferTextureBridge {
         else {
             if (name != 0 && buffers.contains(name))
                 throw new IllegalArgumentException("Buffer texture rebound to a different target");
-            GLStateManager.glBindTexture(target, name);
+            GLSMTextures.glBindTexture(target, name);
         }
     }
 

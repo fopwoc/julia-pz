@@ -3,7 +3,7 @@ package dev.fopwoc.julia.backend.bridge;
 import static org.lwjgl.opengl.GL31.GL_COPY_READ_BUFFER;
 import static org.lwjgl.opengl.GL31.GL_COPY_WRITE_BUFFER;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMBuffers;
 import dev.fopwoc.julia.backend.Upstream;
 import java.nio.ByteBuffer;
 import java.util.Objects;
@@ -27,13 +27,13 @@ public final class BufferTransferBridge {
         var state = Upstream.context();
         int read = state.boundCopyReadBuffer, write = state.boundCopyWriteBuffer;
         try {
-            GLStateManager.glBindBuffer(GL_COPY_READ_BUFFER, source);
-            GLStateManager.glBindBuffer(GL_COPY_WRITE_BUFFER, destination);
-            GLStateManager.glCopyBufferSubData(
+            GLSMBuffers.glBindBuffer(GL_COPY_READ_BUFFER, source);
+            GLSMBuffers.glBindBuffer(GL_COPY_WRITE_BUFFER, destination);
+            GLSMBuffers.glCopyBufferSubData(
                     GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, sourceOffset, destinationOffset, size);
         } finally {
-            GLStateManager.glBindBuffer(GL_COPY_WRITE_BUFFER, write);
-            GLStateManager.glBindBuffer(GL_COPY_READ_BUFFER, read);
+            GLSMBuffers.glBindBuffer(GL_COPY_WRITE_BUFFER, write);
+            GLSMBuffers.glBindBuffer(GL_COPY_READ_BUFFER, read);
         }
     }
 
@@ -46,16 +46,16 @@ public final class BufferTransferBridge {
         var state = Upstream.context();
         int read = state.boundCopyReadBuffer;
         try {
-            GLStateManager.glBindBuffer(GL_COPY_READ_BUFFER, buffer);
-            GLStateManager.glGetBufferSubData(GL_COPY_READ_BUFFER, offset, result.duplicate());
+            GLSMBuffers.glBindBuffer(GL_COPY_READ_BUFFER, buffer);
+            GLSMBuffers.glGetBufferSubData(GL_COPY_READ_BUFFER, offset, result.duplicate());
         } finally {
-            GLStateManager.glBindBuffer(GL_COPY_READ_BUFFER, read);
+            GLSMBuffers.glBindBuffer(GL_COPY_READ_BUFFER, read);
         }
     }
 
     private static void range(int buffer, long offset, long length) {
         if (offset < 0 || length < 0) throw new IllegalArgumentException("Negative buffer transfer range");
-        if (!GLStateManager.glIsBuffer(buffer))
+        if (!GLSMBuffers.glIsBuffer(buffer))
             throw new IllegalArgumentException("Named buffer does not exist: " + buffer);
         long size = Upstream.resources().getBufferSize(buffer);
         if (offset > size || length > size - offset)

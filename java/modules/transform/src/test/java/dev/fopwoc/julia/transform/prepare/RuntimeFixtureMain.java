@@ -11,7 +11,7 @@ import org.objectweb.asm.Opcodes;
 
 /** Separate JVM integration fixture: typed calls and lambdas target sibling-loader endpoints. */
 public final class RuntimeFixtureMain {
-    private static final String GLSM = "com/gtnewhorizons/angelica/glsm/GLStateManager";
+    private static final String GLSM = Endpoint.GLSM_QUERIES.owner();
 
     private RuntimeFixtureMain() {}
 

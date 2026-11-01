@@ -12,7 +12,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 
 class CompatShaderPassTest {
-    private static final String STATE = "com.gtnewhorizons.angelica.glsm.GLStateManager";
+    private static final String STATE = "com.gtnewhorizons.angelica.glsm.GLSMPrograms";
 
     @Test
     void rewritesThePublishedShaderEntryWithoutChangingOtherCompatibilityCalls() throws IOException {

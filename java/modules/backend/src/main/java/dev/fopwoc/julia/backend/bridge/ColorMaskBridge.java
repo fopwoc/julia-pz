@@ -2,7 +2,7 @@ package dev.fopwoc.julia.backend.bridge;
 
 import static org.lwjgl.opengl.GL11.GL_COLOR_WRITEMASK;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMQueries;
 import dev.fopwoc.julia.backend.Subsystems;
 import java.nio.ByteBuffer;
 
@@ -16,7 +16,7 @@ public final class ColorMaskBridge {
 
     public static void glGetBooleani_v(int parameter, int output, ByteBuffer values) {
         if (parameter != GL_COLOR_WRITEMASK) {
-            GLStateManager.glGetBooleani_v(parameter, output, values);
+            GLSMQueries.glGetBooleani_v(parameter, output, values);
             return;
         }
         if (values.remaining() < 4) throw new IllegalArgumentException("Color-mask query requires four bytes");

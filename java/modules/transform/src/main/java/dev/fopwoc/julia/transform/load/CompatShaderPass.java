@@ -12,7 +12,7 @@ public final class CompatShaderPass implements UpstreamPatch {
 
     @Override
     public boolean targets(String name) {
-        return name.equals("com.gtnewhorizons.angelica.glsm.GLStateManager");
+        return name.equals("com.gtnewhorizons.angelica.glsm.GLSMPrograms");
     }
 
     @Override

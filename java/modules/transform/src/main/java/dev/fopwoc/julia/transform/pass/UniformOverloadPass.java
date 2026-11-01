@@ -12,7 +12,6 @@ import org.objectweb.asm.tree.MethodInsnNode;
 /** LWJGL 3 uniform overloads missing from the published GLSM ABI, including method handles. */
 public final class UniformOverloadPass {
     private static final String OWNER = Endpoint.UNIFORM_BRIDGE.owner();
-    private static final String STATE_MANAGER = Endpoint.STATE_MANAGER.owner();
     private static final Set<String> METHODS = Set.of(
             "glUniform1(I[F)V",
             "glUniformMatrix3(IZ[F)V",
@@ -39,7 +38,7 @@ public final class UniformOverloadPass {
     }
 
     private static boolean matches(String owner, String name, String descriptor) {
-        return owner.equals(STATE_MANAGER) && METHODS.contains(name + descriptor);
+        return Endpoint.isGlsm(owner) && METHODS.contains(name + descriptor);
     }
 
     private static Object adaptConstant(Object value) {

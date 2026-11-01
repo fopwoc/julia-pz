@@ -8,7 +8,7 @@ import org.objectweb.asm.tree.*;
 /** Adds indexed output masks to the published pipeline descriptor/key and invalidates GLSM's global cache. */
 public final class ColorMaskPass implements UpstreamPatch {
     private static final String PIPELINE = "com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineCache";
-    private static final String GLSM = "com.gtnewhorizons.angelica.glsm.GLStateManager";
+    private static final String GLSM = "com.gtnewhorizons.angelica.glsm.GLSMBlend";
 
     @Override
     public boolean targets(String name) {
@@ -21,7 +21,11 @@ public final class ColorMaskPass implements UpstreamPatch {
         for (var method : node.methods) {
             if (name.equals(GLSM) && method.name.equals("glColorMask") && method.desc.equals("(ZZZZ)V"))
                 edits += Anchors.replaceCalls(
-                        method, GLSM.replace('.', '/'), "isCachingEnabled", "()Z", () -> hook("cacheEnabled", "()Z"));
+                        method,
+                        "com/gtnewhorizons/angelica/glsm/GLStateManager",
+                        "isCachingEnabled",
+                        "()Z",
+                        () -> hook("cacheEnabled", "()Z"));
             if (name.equals(PIPELINE) && method.name.equals("computeOutputHash") && method.desc.equals("()J")) {
                 for (var instruction : method.instructions.toArray())
                     if (instruction.getOpcode() == Opcodes.LRETURN) {

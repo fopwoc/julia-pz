@@ -34,7 +34,7 @@ class RuntimePreparationTest {
         var type = loader.define(result.requireBytecode());
         var session = RenderSession.open(
                 (owner, name, signature) -> {
-                    assertEquals("com/gtnewhorizons/angelica/glsm/GLStateManager", owner);
+                    assertEquals("com/gtnewhorizons/angelica/glsm/GLSMQueries", owner);
                     assertEquals("glGetError", name);
                     return MethodHandles.constant(int.class, 1234);
                 },
@@ -64,7 +64,7 @@ class RuntimePreparationTest {
         node.methods.add(method);
         method.instructions.add(new MethodInsnNode(
                 Opcodes.INVOKESTATIC,
-                "com/gtnewhorizons/angelica/glsm/GLStateManager",
+                "com/gtnewhorizons/angelica/glsm/GLSMQueries",
                 "callback",
                 "(Lorg/lwjgl/opengl/GLDebugMessageCallback;)V",
                 false));
@@ -118,7 +118,7 @@ class RuntimePreparationTest {
                 Type.getMethodType("()I"),
                 new Handle(
                         Opcodes.H_INVOKESTATIC,
-                        "com/gtnewhorizons/angelica/glsm/GLStateManager",
+                        "com/gtnewhorizons/angelica/glsm/GLSMQueries",
                         "glGetError",
                         "()I",
                         false),

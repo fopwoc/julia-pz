@@ -3,6 +3,7 @@ package dev.fopwoc.julia.backend;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.GL_TEXTURE_MAX_LEVEL;
 
+import com.gtnewhorizons.angelica.glsm.GLSMTextures;
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
@@ -18,7 +19,6 @@ import com.gtnewhorizons.angelica.sdlgpu.shader.ShaderManager;
 import dev.fopwoc.julia.backend.texture.TextureStorage;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -28,7 +28,7 @@ import java.util.HashSet;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Version-pinned access to private state of the published SDL backend (Angelica 2.2.34). Julia's own state lives in
+ * Version-pinned access to private state of the source-built SDL backend. Julia's own state lives in
  * {@link Subsystems}.
  *
  * <p>All private upstream integration is resolved here once; every accessor requires Julia's hosted backend and the
@@ -44,7 +44,6 @@ public final class Upstream {
     private static final VarHandle CLEARS;
     private static final MethodHandle CONTEXT;
     private static final MethodHandle RELEASE_SHADER_ATTACHMENT;
-    private static final VarHandle UNSHRINKABLE;
     private static final MethodHandle DRAW_LOCK;
     private static final MethodHandle DRAW_UNLOCK;
     private static final VarHandle TEXTURE_HANDLES;
@@ -81,8 +80,6 @@ public final class Upstream {
             FRAMES = lookup.findVarHandle(SDLGPURenderBackend.class, "frameManager", FrameManager.class);
             CLEARS = lookup.findVarHandle(SDLGPURenderBackend.class, "fboClearTracker", FBOClearTracker.class);
             var glsmLookup = MethodHandles.privateLookupIn(GLStateManager.class, MethodHandles.lookup());
-            UNSHRINKABLE =
-                    glsmLookup.findStaticVarHandle(GLStateManager.class, "unshrinkableTextures", IntOpenHashSet.class);
             DRAW_LOCK = glsmLookup.findStatic(
                     GLStateManager.class, "acquireDrawLock", MethodType.methodType(boolean.class));
             DRAW_UNLOCK =
@@ -208,12 +205,6 @@ public final class Upstream {
         return (AttachmentClear) ATTACHMENT_CLEAR.get(ownedBackend());
     }
 
-    public static void forgetTextureName(int name) {
-        try (var _ = drawLock()) {
-            ((IntOpenHashSet) UNSHRINKABLE.get()).remove(name);
-        }
-    }
-
     @SuppressWarnings("unchecked")
     public static void aliasTexture(int name, int original) {
         var resources = resources();
@@ -316,7 +307,7 @@ public final class Upstream {
     /** Named and floating-point setters must also update GLSM's integer cache and allocation hint. */
     public static void textureMipParameter(int name, int parameter, int value) {
         int target = Subsystems.current().textureObjects().target(name);
-        GLStateManager.updateTexParameteriCache(target, name, parameter, value);
+        GLSMTextures.updateTexParameteriCache(target, name, parameter, value);
         if (parameter == GL_TEXTURE_MAX_LEVEL) resources().getOrCreateTexSamplerState(name).maxLevel = value;
     }
 

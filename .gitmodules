@@ -1,3 +1,4 @@
 [submodule "renderer"]
 	path = third_party/angelica
 	url = https://github.com/fopwoc/Angelica.git
+	branch = pz

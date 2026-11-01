@@ -2,7 +2,7 @@ package dev.fopwoc.julia.backend.bridge;
 
 import static org.lwjgl.opengl.GL43.*;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMPrograms;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.shader.ProgramResources;
@@ -20,7 +20,7 @@ public final class ProgramResourceBridge {
     public static String glGetActiveAttrib(int program, int index, int capacity, IntBuffer size, IntBuffer type) {
         try (var stack = MemoryStack.stackPush()) {
             var sizeType = stack.mallocInt(2);
-            String name = GLStateManager.glGetActiveAttrib(program, index, capacity, sizeType);
+            String name = GLSMPrograms.glGetActiveAttrib(program, index, capacity, sizeType);
             size.put(size.position(), sizeType.get(0));
             type.put(type.position(), sizeType.get(1));
             return name;

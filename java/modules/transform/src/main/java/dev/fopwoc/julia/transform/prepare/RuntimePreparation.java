@@ -88,7 +88,7 @@ public final class RuntimePreparation {
                     || !abi.contains(symbol.owner(), symbol.name(), symbol.descriptor())) {
                 return "MISSING_TARGET " + key;
             }
-            if (Endpoint.STATE_MANAGER.is(symbol.owner()) && symbol.name().equals("glGetUniform")) {
+            if (Endpoint.isGlsm(symbol.owner()) && symbol.name().equals("glGetUniform")) {
                 return "UNIMPLEMENTED_BACKEND " + key;
             }
             try {

@@ -2,7 +2,7 @@ package dev.fopwoc.julia.backend.bridge;
 
 import static org.lwjgl.opengl.GL11.GL_QUADS;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMDraws;
 import java.nio.IntBuffer;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.Pointer;
@@ -22,7 +22,7 @@ public final class DrawRangeBridge {
         for (int i = 0; i < draws; i++) {
             int count = counts.get(counts.position() + i);
             if (count == 0) continue;
-            GLStateManager.glDrawElementsBaseVertex(
+            GLSMDraws.glDrawElementsBaseVertex(
                     mode,
                     count,
                     type,
@@ -35,9 +35,9 @@ public final class DrawRangeBridge {
         if (mode == GL_QUADS) {
             // The valid index range does not change the vertices drawn. GLSM's ordinary indexed
             // path also preserves EBO bindings, display-list recording, and quad triangulation.
-            GLStateManager.glDrawElements(mode, count, type, indices);
+            GLSMDraws.glDrawElements(mode, count, type, indices);
         } else {
-            GLStateManager.glDrawRangeElements(mode, start, end, count, type, indices);
+            GLSMDraws.glDrawRangeElements(mode, start, end, count, type, indices);
         }
     }
 }

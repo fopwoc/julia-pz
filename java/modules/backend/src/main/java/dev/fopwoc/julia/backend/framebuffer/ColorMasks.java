@@ -4,7 +4,7 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.GL_COLOR;
 import static org.lwjgl.sdl.SDLGPU.*;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMBlend;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.bridge.FramebufferClearBridge;
@@ -43,7 +43,7 @@ public final class ColorMasks {
         if (mask(output) == next) return;
         Upstream.flushTextureReferences();
         masks[output] = next;
-        if (output == 0) GLStateManager.getColorMask().setAll(red, green, blue, alpha);
+        if (output == 0) GLSMBlend.getColorMask().setAll(red, green, blue, alpha);
         changed();
     }
 

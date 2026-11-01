@@ -76,9 +76,7 @@ public final class RedirectAudit {
     /** Upstream endpoints always; Julia's bridges only when the compatibility pipeline is applied. */
     private boolean target(String owner) {
         return Endpoint.contains(owner)
-                && (compatibility
-                        || owner.equals(Endpoint.STATE_MANAGER.owner())
-                        || owner.equals(Endpoint.DEBUG_SHIM.owner()));
+                && (compatibility || Endpoint.isGlsm(owner) || owner.equals(Endpoint.DEBUG_SHIM.owner()));
     }
 
     private void inspect(Path input, Writer writer) throws IOException {

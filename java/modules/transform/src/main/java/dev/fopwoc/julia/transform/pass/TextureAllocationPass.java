@@ -15,7 +15,7 @@ public final class TextureAllocationPass {
         for (var method : node.methods) {
             for (var instruction : method.instructions) {
                 if (!(instruction instanceof MethodInsnNode call)
-                        || !Endpoint.STATE_MANAGER.is(call.owner)
+                        || !Endpoint.isGlsm(call.owner)
                         || !call.name.equals("glTexImage3D")
                         || !call.desc.equals("(IIIIIIIIIJ)V")
                         || call.getOpcode() != Opcodes.INVOKESTATIC) continue;

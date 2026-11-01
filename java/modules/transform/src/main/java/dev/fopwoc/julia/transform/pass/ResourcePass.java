@@ -15,7 +15,6 @@ public final class ResourcePass {
     // CORE keys match the function under any GLnn or GLnnC owner; extension and GLSM owners stay exact.
     private static final String CORE = CoreOwners.core("");
     private static final String LWJGL = CoreOwners.LWJGL;
-    private static final String GLSM = Endpoint.STATE_MANAGER.owner() + ".";
     private static final Map<String, Endpoint> ROUTES = Map.ofEntries(
             Map.entry(CORE + "glTexParameterfv(II[F)V", Endpoint.BOUND_TEXTURE_BRIDGE),
             Map.entry(CORE + "glGetInteger64i(II)J", Endpoint.BUFFER_BINDING_BRIDGE),
@@ -41,21 +40,37 @@ public final class ResourcePass {
             Map.entry(CORE + "glGetVertexAttribi(II)I", Endpoint.VERTEX_BINDING_BRIDGE),
             Map.entry(CORE + "glGetVertexAttribPointer(II)J", Endpoint.VERTEX_BINDING_BRIDGE),
             Map.entry(CORE + "glDrawElementsIndirect(IIJ)V", Endpoint.INDIRECT_DRAWS),
-            Map.entry(GLSM + "glGetIntegeri_v(II[I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
-            Map.entry(GLSM + "glGetAttachedShaders(I[I[I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
             Map.entry(
-                    GLSM + "glGetActiveAttrib(IIILjava/nio/IntBuffer;Ljava/nio/IntBuffer;)Ljava/lang/String;",
+                    "com/gtnewhorizons/angelica/glsm/GLSMQueries.glGetIntegeri_v(II[I)V",
+                    Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMPrograms.glGetAttachedShaders(I[I[I)V",
+                    Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMPrograms.glGetActiveAttrib(IIILjava/nio/IntBuffer;Ljava/nio/IntBuffer;)Ljava/lang/String;",
                     Endpoint.PROGRAM_RESOURCE_BRIDGE),
-            Map.entry(GLSM + "glTexImage2D(IIIIIIII[F)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(GLSM + "glTexImage2D(IIIIIIII[I)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(GLSM + "glTexImage3D(IIIIIIIII[F)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(GLSM + "glTexSubImage3D(IIIIIIIIIILjava/nio/FloatBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(GLSM + "glGetTexImage(IIIILjava/nio/FloatBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glTexImage2D(IIIIIIII[F)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glTexImage2D(IIIIIIII[I)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glTexImage3D(IIIIIIIII[F)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glTexSubImage3D(IIIIIIIIIILjava/nio/FloatBuffer;)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glGetTexImage(IIIILjava/nio/FloatBuffer;)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
             Map.entry(CORE + "glEnablei(II)V", Endpoint.BLEND_BRIDGE),
             Map.entry(CORE + "glDisablei(II)V", Endpoint.BLEND_BRIDGE),
             Map.entry(CORE + "glIsEnabledi(II)Z", Endpoint.BLEND_BRIDGE),
             Map.entry(CORE + "glBlendFuncSeparatei(IIIII)V", Endpoint.BLEND_BRIDGE),
-            Map.entry(GLSM + "glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMQueries.glGetBooleani_v(IILjava/nio/ByteBuffer;)V",
+                    Endpoint.COLOR_MASK_BRIDGE),
             Map.entry(CORE + "glColorMaski(IZZZZ)V", Endpoint.COLOR_MASK_BRIDGE),
             Map.entry(CORE + "glGetBooleani_v(IILjava/nio/ByteBuffer;)V", Endpoint.COLOR_MASK_BRIDGE),
             Map.entry(CORE + "glBlendFunci(III)V", Endpoint.BLEND_BRIDGE),
@@ -65,11 +80,15 @@ public final class ResourcePass {
             Map.entry(CORE + "glClearBufferfv(IILjava/nio/FloatBuffer;)V", Endpoint.FRAMEBUFFER_CLEAR_BRIDGE),
             Map.entry(CORE + "glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
             Map.entry(LWJGL + "ARBMultiDrawIndirect.glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
-            Map.entry(GLSM + "glMultiDrawArraysIndirect(IJII)V", Endpoint.INDIRECT_DRAWS),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLStateManager.glMultiDrawArraysIndirect(IJII)V",
+                    Endpoint.INDIRECT_DRAWS),
             Map.entry(CORE + "glDrawArraysInstancedBaseInstance(IIIII)V", Endpoint.BASE_INSTANCE_DRAWS),
             Map.entry(
                     LWJGL + "ARBBaseInstance.glDrawArraysInstancedBaseInstance(IIIII)V", Endpoint.BASE_INSTANCE_DRAWS),
-            Map.entry(GLSM + "glDrawArraysInstancedBaseInstance(IIIII)V", Endpoint.BASE_INSTANCE_DRAWS),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLStateManager.glDrawArraysInstancedBaseInstance(IIIII)V",
+                    Endpoint.BASE_INSTANCE_DRAWS),
             Map.entry(CORE + "glUniform1iv(ILjava/nio/IntBuffer;)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
             Map.entry(CORE + "glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
             Map.entry(CORE + "glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
@@ -79,19 +98,27 @@ public final class ResourcePass {
             Map.entry(LWJGL + "ARBSync.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
             Map.entry(LWJGL + "ARBSync.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
             Map.entry(LWJGL + "ARBSync.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
-            Map.entry(GLSM + "glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
-            Map.entry(GLSM + "glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
-            Map.entry(GLSM + "glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
-            Map.entry(GLSM + "glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
+            Map.entry("com/gtnewhorizons/angelica/glsm/GLSMBuffers.glFenceSync(II)J", Endpoint.SYNC_BRIDGE),
+            Map.entry("com/gtnewhorizons/angelica/glsm/GLSMBuffers.glClientWaitSync(JIJ)I", Endpoint.SYNC_BRIDGE),
+            Map.entry("com/gtnewhorizons/angelica/glsm/GLSMBuffers.glDeleteSync(J)V", Endpoint.SYNC_BRIDGE),
+            Map.entry("com/gtnewhorizons/angelica/glsm/GLStateManager.glIsSync(J)Z", Endpoint.SYNC_BRIDGE),
             Map.entry(CORE + "glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
             Map.entry(LWJGL + "ARBTextureStorage.glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(GLSM + "glTexStorage3D(IIIIII)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLStateManager.glTexStorage3D(IIIIII)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
             Map.entry(CORE + "glTexSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(GLSM + "glTexSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glTexSubImage3D(IIIIIIIIIILjava/nio/IntBuffer;)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
             Map.entry(CORE + "glTexSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(GLSM + "glTexSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glTexSubImage2D(IIIIIIIILjava/nio/FloatBuffer;)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
             Map.entry(CORE + "glTexSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
-            Map.entry(GLSM + "glTexSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V", Endpoint.BOUND_TEXTURE_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glTexSubImage2D(IIIIIIIILjava/nio/ShortBuffer;)V",
+                    Endpoint.BOUND_TEXTURE_BRIDGE),
             Map.entry(CORE + "glGetProgramInterfacei(III)I", Endpoint.PROGRAM_RESOURCE_BRIDGE),
             Map.entry(CORE + "glGetProgramInterfaceiv(III[I)V", Endpoint.PROGRAM_RESOURCE_BRIDGE),
             Map.entry(CORE + "glGetProgramInterfaceiv(IIILjava/nio/IntBuffer;)V", Endpoint.PROGRAM_RESOURCE_BRIDGE),
@@ -109,7 +136,9 @@ public final class ResourcePass {
             Map.entry(CORE + "glNamedFramebufferReadBuffer(II)V", Endpoint.FRAMEBUFFER_BRIDGE),
             Map.entry(CORE + "glCheckNamedFramebufferStatus(II)I", Endpoint.FRAMEBUFFER_BRIDGE),
             Map.entry(CORE + "glFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
-            Map.entry(GLSM + "glFramebufferTextureLayer(IIIII)V", Endpoint.FRAMEBUFFER_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMFramebuffer.glFramebufferTextureLayer(IIIII)V",
+                    Endpoint.FRAMEBUFFER_BRIDGE),
             Map.entry(CORE + "glGetTextureLevelParameteri(III)I", Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry(CORE + "glGetTextureLevelParameterf(III)F", Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry(CORE + "glGetTextureLevelParameteriv(IIILjava/nio/IntBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
@@ -144,20 +173,34 @@ public final class ResourcePass {
             Map.entry(CORE + "glTextureSubImage3D(IIIIIIIIIILjava/nio/FloatBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry(CORE + "glTextureSubImage3D(IIIIIIIIIILjava/nio/ShortBuffer;)V", Endpoint.NAMED_TEXTURE_BRIDGE),
             Map.entry(CORE + "glVertexBindingDivisor(II)V", Endpoint.VERTEX_BINDING_BRIDGE),
-            Map.entry(GLSM + "glVertexAttribDivisor(II)V", Endpoint.VERTEX_BINDING_BRIDGE),
-            Map.entry(GLSM + "glVertexAttribDivisorARB(II)V", Endpoint.VERTEX_BINDING_BRIDGE),
-            Map.entry(GLSM + "glBindTexture(II)V", Endpoint.BUFFER_TEXTURE_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMVertexInput.glVertexAttribDivisor(II)V",
+                    Endpoint.VERTEX_BINDING_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMVertexInput.glVertexAttribDivisorARB(II)V",
+                    Endpoint.VERTEX_BINDING_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glBindTexture(II)V", Endpoint.BUFFER_TEXTURE_BRIDGE),
             Map.entry(CORE + "glTexBuffer(III)V", Endpoint.BUFFER_TEXTURE_BRIDGE),
             Map.entry(CORE + "glTexBufferRange(IIIJJ)V", Endpoint.BUFFER_TEXTURE_BRIDGE),
-            Map.entry(GLSM + "glGenTextures([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
-            Map.entry(GLSM + "glDeleteTextures([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
-            Map.entry(GLSM + "glDeleteFramebuffers([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
-            Map.entry(GLSM + "glDrawBuffers([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glGenTextures([I)V", Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glDeleteTextures([I)V",
+                    Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMFramebuffer.glDeleteFramebuffers([I)V",
+                    Endpoint.RESOURCE_ARRAY_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMFramebuffer.glDrawBuffers([I)V",
+                    Endpoint.RESOURCE_ARRAY_BRIDGE),
             Map.entry(CORE + "glUniform1iv(I[I)V", Endpoint.UNIFORM_UPLOAD_BRIDGE),
-            Map.entry(GLSM + "glGenQueries([I)V", Endpoint.QUERY_BRIDGE),
-            Map.entry(GLSM + "glDeleteQueries([I)V", Endpoint.QUERY_BRIDGE),
+            Map.entry("com/gtnewhorizons/angelica/glsm/GLSMQueries.glGenQueries([I)V", Endpoint.QUERY_BRIDGE),
+            Map.entry("com/gtnewhorizons/angelica/glsm/GLSMQueries.glDeleteQueries([I)V", Endpoint.QUERY_BRIDGE),
             Map.entry(CORE + "glGetQueryObjecti64(II)J", Endpoint.QUERY_BRIDGE),
-            Map.entry(GLSM + "glDrawRangeElements(IIIIIJ)V", Endpoint.DRAW_RANGE_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMDraws.glDrawRangeElements(IIIIIJ)V",
+                    Endpoint.DRAW_RANGE_BRIDGE),
             Map.entry(
                     CORE + "glGetProgramResourceIndex(IILjava/lang/CharSequence;)I", Endpoint.PROGRAM_RESOURCE_BRIDGE),
             Map.entry(CORE + "glGetProgramResourceName(IIII)Ljava/lang/String;", Endpoint.PROGRAM_RESOURCE_BRIDGE),
@@ -184,7 +227,9 @@ public final class ResourcePass {
                     Endpoint.TEXTURE_READBACK_BRIDGE),
             Map.entry(CORE + "glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
             Map.entry(LWJGL + "ARBCopyImage.glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
-            Map.entry(GLSM + "glCopyImageSubData(IIIIIIIIIIIIIII)V", Endpoint.TEXTURE_COPY_BRIDGE),
+            Map.entry(
+                    "com/gtnewhorizons/angelica/glsm/GLSMTextures.glCopyImageSubData(IIIIIIIIIIIIIII)V",
+                    Endpoint.TEXTURE_COPY_BRIDGE),
             Map.entry(CORE + "glClearTexSubImage(IIIIIIIIII[F)V", Endpoint.TEXTURE_CLEAR_BRIDGE));
 
     private ResourcePass() {}

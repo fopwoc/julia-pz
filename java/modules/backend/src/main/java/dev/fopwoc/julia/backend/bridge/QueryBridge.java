@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.backend.bridge;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMQueries;
 import dev.fopwoc.julia.backend.Subsystems;
 
 /** LWJGL array and signed query overloads backed by the hosted GPU timer implementation. */
@@ -8,11 +8,11 @@ public final class QueryBridge {
     private QueryBridge() {}
 
     public static void glGenQueries(int[] names) {
-        for (int i = 0; i < names.length; i++) names[i] = GLStateManager.glGenQueries();
+        for (int i = 0; i < names.length; i++) names[i] = GLSMQueries.glGenQueries();
     }
 
     public static void glDeleteQueries(int[] names) {
-        for (int name : names) GLStateManager.glDeleteQueries(name);
+        for (int name : names) GLSMQueries.glDeleteQueries(name);
     }
 
     public static int glGetQueryi(int target, int parameter) {
@@ -20,6 +20,6 @@ public final class QueryBridge {
     }
 
     public static long glGetQueryObjecti64(int name, int parameter) {
-        return GLStateManager.glGetQueryObjectui64(name, parameter);
+        return GLSMQueries.glGetQueryObjectui64(name, parameter);
     }
 }

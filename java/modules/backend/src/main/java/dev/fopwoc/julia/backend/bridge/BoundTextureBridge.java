@@ -5,7 +5,7 @@ import static org.lwjgl.opengl.GL11.GL_TEXTURE_BORDER_COLOR;
 import static org.lwjgl.opengl.GL12.GL_TEXTURE_3D;
 import static org.lwjgl.opengl.GL30.GL_TEXTURE_2D_ARRAY;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMTextures;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.texture.NamedTextureUploads;
@@ -103,12 +103,12 @@ public final class BoundTextureBridge {
         if (parameter == GL_TEXTURE_BORDER_COLOR) {
             if (values.length < 4) throw new IllegalArgumentException("Border colour needs four components");
             TextureWrap.borderColor();
-        } else GLStateManager.glTexParameterf(target, parameter, values[0]);
+        } else GLSMTextures.glTexParameterf(target, parameter, values[0]);
     }
 
     public static void glGetTexImage(int target, int level, int format, int type, FloatBuffer pixels) {
         if (!pixels.isDirect()) throw new IllegalArgumentException("Texture readback requires direct client storage");
-        GLStateManager.glGetTexImage(target, level, format, type, MemoryUtil.memByteBuffer(pixels));
+        GLSMTextures.glGetTexImage(target, level, format, type, MemoryUtil.memByteBuffer(pixels));
     }
 
     // Array overloads carry typed pixels whose layout the format and type arguments already describe.
@@ -125,7 +125,7 @@ public final class BoundTextureBridge {
         var bytes = MemoryUtil.memAlloc(data.length * Float.BYTES);
         try {
             bytes.asFloatBuffer().put(data);
-            GLStateManager.glTexImage2D(target, level, format, width, height, border, pixelFormat, type, bytes);
+            GLSMTextures.glTexImage2D(target, level, format, width, height, border, pixelFormat, type, bytes);
         } finally {
             MemoryUtil.memFree(bytes);
         }
@@ -144,7 +144,7 @@ public final class BoundTextureBridge {
         var bytes = MemoryUtil.memAlloc(data.length * Integer.BYTES);
         try {
             bytes.asIntBuffer().put(data);
-            GLStateManager.glTexImage2D(target, level, format, width, height, border, pixelFormat, type, bytes);
+            GLSMTextures.glTexImage2D(target, level, format, width, height, border, pixelFormat, type, bytes);
         } finally {
             MemoryUtil.memFree(bytes);
         }
@@ -164,7 +164,7 @@ public final class BoundTextureBridge {
         var bytes = MemoryUtil.memAlloc(data.length * Float.BYTES);
         try {
             bytes.asFloatBuffer().put(data);
-            GLStateManager.glTexImage3D(target, level, format, width, height, depth, border, pixelFormat, type, bytes);
+            GLSMTextures.glTexImage3D(target, level, format, width, height, depth, border, pixelFormat, type, bytes);
         } finally {
             MemoryUtil.memFree(bytes);
         }

@@ -11,7 +11,7 @@ import org.objectweb.asm.tree.*;
  */
 public final class BlendEquationPass implements UpstreamPatch {
     private static final String PIPELINE = "com.gtnewhorizons.angelica.sdlgpu.pipeline.PipelineCache";
-    private static final String GLSM = "com.gtnewhorizons.angelica.glsm.GLStateManager";
+    private static final String GLSM = "com.gtnewhorizons.angelica.glsm.GLSMBlend";
 
     @Override
     public boolean targets(String name) {
@@ -26,7 +26,11 @@ public final class BlendEquationPass implements UpstreamPatch {
                     && ((method.name.equals("glBlendEquation") && method.desc.equals("(I)V"))
                             || (method.name.equals("glBlendEquationSeparate") && method.desc.equals("(II)V"))))
                 edits += Anchors.replaceCalls(
-                        method, GLSM.replace('.', '/'), "isCachingEnabled", "()Z", () -> hook("cacheEnabled", "()Z"));
+                        method,
+                        "com/gtnewhorizons/angelica/glsm/GLStateManager",
+                        "isCachingEnabled",
+                        "()Z",
+                        () -> hook("cacheEnabled", "()Z"));
             if (name.equals(PIPELINE) && method.name.equals("computeOutputHash") && method.desc.equals("()J"))
                 for (var instruction : method.instructions.toArray())
                     if (instruction.getOpcode() == Opcodes.LRETURN) {

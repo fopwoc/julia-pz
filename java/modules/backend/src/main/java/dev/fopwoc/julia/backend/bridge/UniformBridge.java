@@ -2,7 +2,8 @@ package dev.fopwoc.julia.backend.bridge;
 
 import static org.lwjgl.opengl.GL20.GL_CURRENT_PROGRAM;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMPrograms;
+import com.gtnewhorizons.angelica.glsm.GLSMQueries;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import org.lwjgl.system.MemoryStack;
@@ -19,7 +20,7 @@ public final class UniformBridge {
         try (var stack = MemoryStack.stackPush()) {
             var buffer = stage(stack, values, values.length);
             try {
-                GLStateManager.glUniform1(location, buffer);
+                GLSMPrograms.glUniform1(location, buffer);
             } finally {
                 release(buffer);
             }
@@ -31,7 +32,7 @@ public final class UniformBridge {
         try (var stack = MemoryStack.stackPush()) {
             var buffer = stage(stack, values, values.length / 9 * 9);
             try {
-                GLStateManager.glUniformMatrix3(location, transpose, buffer);
+                GLSMPrograms.glUniformMatrix3(location, transpose, buffer);
             } finally {
                 release(buffer);
             }
@@ -43,7 +44,7 @@ public final class UniformBridge {
         try (var stack = MemoryStack.stackPush()) {
             var buffer = stage(stack, values, values.length / 16 * 16);
             try {
-                GLStateManager.glUniformMatrix4(location, transpose, buffer);
+                GLSMPrograms.glUniformMatrix4(location, transpose, buffer);
             } finally {
                 release(buffer);
             }
@@ -54,7 +55,7 @@ public final class UniformBridge {
     public static void glProgramUniform1f(int program, int location, float x) {
         int previous = use(program);
         try {
-            GLStateManager.glUniform1f(location, x);
+            GLSMPrograms.glUniform1f(location, x);
         } finally {
             restore(program, previous);
         }
@@ -63,7 +64,7 @@ public final class UniformBridge {
     public static void glProgramUniform2f(int program, int location, float x, float y) {
         int previous = use(program);
         try {
-            GLStateManager.glUniform2f(location, x, y);
+            GLSMPrograms.glUniform2f(location, x, y);
         } finally {
             restore(program, previous);
         }
@@ -72,7 +73,7 @@ public final class UniformBridge {
     public static void glProgramUniform4f(int program, int location, float x, float y, float z, float w) {
         int previous = use(program);
         try {
-            GLStateManager.glUniform4f(location, x, y, z, w);
+            GLSMPrograms.glUniform4f(location, x, y, z, w);
         } finally {
             restore(program, previous);
         }
@@ -81,7 +82,7 @@ public final class UniformBridge {
     public static void glProgramUniform1i(int program, int location, int x) {
         int previous = use(program);
         try {
-            GLStateManager.glUniform1i(location, x);
+            GLSMPrograms.glUniform1i(location, x);
         } finally {
             restore(program, previous);
         }
@@ -90,7 +91,7 @@ public final class UniformBridge {
     public static void glProgramUniform4fv(int program, int location, float[] values) {
         int previous = use(program);
         try {
-            GLStateManager.glUniform4(location, values);
+            GLSMPrograms.glUniform4(location, values);
         } finally {
             restore(program, previous);
         }
@@ -99,13 +100,13 @@ public final class UniformBridge {
     private static int use(int program) {
         if (program == 0) throw new IllegalArgumentException("Program uniform target must be a program");
         // GLSM's binding is what the caller observes and what it restores against.
-        int previous = GLStateManager.glGetInteger(GL_CURRENT_PROGRAM);
-        if (previous != program) GLStateManager.glUseProgram(program);
+        int previous = GLSMQueries.glGetInteger(GL_CURRENT_PROGRAM);
+        if (previous != program) GLSMPrograms.glUseProgram(program);
         return previous;
     }
 
     private static void restore(int program, int previous) {
-        if (previous != program) GLStateManager.glUseProgram(previous);
+        if (previous != program) GLSMPrograms.glUseProgram(previous);
     }
 
     private static FloatBuffer stage(MemoryStack stack, float[] values, int count) {
@@ -128,7 +129,7 @@ public final class UniformBridge {
             var actualSize = stack.callocInt(1);
             var actualType = stack.callocInt(1);
             // Scratch outputs isolate the caller's positions; capacity includes the null terminator.
-            GLStateManager.glGetActiveUniform(program, index, length, actualSize, actualType, name);
+            GLSMPrograms.glGetActiveUniform(program, index, length, actualSize, actualType, name);
             size.put(size.position(), actualSize.get(0));
             type.put(type.position(), actualType.get(0));
             name.position(0);

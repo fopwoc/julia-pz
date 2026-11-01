@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.backend.vertex;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMDraws;
 import com.gtnewhorizons.angelica.glsm.GLTypes;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import dev.fopwoc.julia.backend.Upstream;
@@ -22,7 +22,7 @@ public final class BaseInstanceDraws {
         int previous = BaseInstanceDraws.base;
         BaseInstanceDraws.base = base;
         try {
-            GLStateManager.glDrawArraysInstanced(mode, first, count, instances);
+            GLSMDraws.glDrawArraysInstanced(mode, first, count, instances);
         } finally {
             BaseInstanceDraws.base = previous;
         }

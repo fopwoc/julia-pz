@@ -24,7 +24,7 @@ class SceneTransformTest {
                 .map(InvokeDynamicInsnNode.class::cast)
                 .anyMatch(call -> call.bsm.getOwner().equals("dev/fopwoc/julia/runtime/RenderDispatch")
                         && call.name.equals("glClear")
-                        && Arrays.asList(call.bsmArgs).contains("com/gtnewhorizons/angelica/glsm/GLStateManager")));
+                        && Arrays.asList(call.bsmArgs).contains("com/gtnewhorizons/angelica/glsm/GLSMFramebuffer")));
         assertFalse(references.stream()
                 .anyMatch(reference -> reference.target().owner().startsWith("org/lwjgl/opengl/")));
     }

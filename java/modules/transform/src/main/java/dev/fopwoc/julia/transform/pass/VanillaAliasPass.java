@@ -1,5 +1,6 @@
 package dev.fopwoc.julia.transform.pass;
 
+import com.gtnewhorizons.angelica.glsm.redirect.GLSMRedirector;
 import dev.fopwoc.julia.transform.Endpoint;
 import java.util.Map;
 import org.objectweb.asm.Opcodes;
@@ -9,7 +10,6 @@ import org.objectweb.asm.tree.MethodInsnNode;
 
 /** Exact remaining vanilla entry points with implemented GLSM/backend equivalents. */
 public final class VanillaAliasPass {
-    private static final String GLSM = Endpoint.STATE_MANAGER.owner();
     // Keyed by function, so every core version class a caller imports from reaches the same alias.
     private static final Map<String, String> ALIASES = Map.of(
             CoreOwners.core("glLightfv(IILjava/nio/FloatBuffer;)V"), "glLight",
@@ -25,17 +25,17 @@ public final class VanillaAliasPass {
             for (var instruction : method.instructions.toArray()) {
                 if (!(instruction instanceof MethodInsnNode call) || call.getOpcode() != Opcodes.INVOKESTATIC) continue;
                 String key = CoreOwners.key(call.owner, call.name, call.desc);
-                if (key.equals(GLSM + ".glDepthRange(DD)V")) {
+                if (key.equals(Endpoint.GLSM_DEPTH_STENCIL_ALPHA.owner() + ".glDepthRange(DD)V")) {
                     call.owner = Endpoint.DEPTH_RANGE_BRIDGE.owner();
                 } else if (key.equals(CoreOwners.core("glClearDepthf(F)V"))) {
                     method.instructions.insertBefore(call, new InsnNode(Opcodes.F2D));
-                    call.owner = GLSM;
+                    call.owner = Endpoint.GLSM_DEPTH_STENCIL_ALPHA.owner();
                     call.name = "glClearDepth";
                     call.desc = "(D)V";
                 } else {
                     String name = ALIASES.get(key);
                     if (name != null) {
-                        call.owner = GLSM;
+                        call.owner = GLSMRedirector.getTargetOwner(name);
                         call.name = name;
                     }
                 }

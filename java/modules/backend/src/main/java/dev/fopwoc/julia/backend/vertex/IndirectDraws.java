@@ -3,6 +3,7 @@ package dev.fopwoc.julia.backend.vertex;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.sdl.SDLGPU.SDL_DrawGPUPrimitivesIndirect;
 
+import com.gtnewhorizons.angelica.glsm.GLSMDraws;
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import com.gtnewhorizons.angelica.sdlgpu.resource.FormatMap;
@@ -33,14 +34,14 @@ public final class IndirectDraws {
                 || offset + size > 0x100000000L)
             throw new IllegalArgumentException("Indirect commands outside allocated GPU buffer");
         try (var _ = Upstream.drawLock()) {
-            GLStateManager.preDraw(GLStateManager.ctx(), mode);
+            GLSMDraws.preDraw(GLStateManager.ctx(), mode);
             draw(state, mode, buffer, offset, count, step);
         }
     }
 
     /** One indexed command; the multi-draw path already validates and draws it GPU-resident. */
     public static void glDrawElementsIndirect(int mode, int type, long offset) {
-        GLStateManager.glMultiDrawElementsIndirect(mode, type, offset, 1, 0);
+        GLSMDraws.glMultiDrawElementsIndirect(mode, type, offset, 1, 0);
     }
 
     private static void draw(ContextState state, int mode, long buffer, long offset, int count, int stride) {

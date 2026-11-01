@@ -17,7 +17,7 @@ import static org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT;
 import static org.lwjgl.opengl.GL44.GL_MAP_COHERENT_BIT;
 import static org.lwjgl.opengl.GL44.GL_MAP_PERSISTENT_BIT;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMBuffers;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import dev.fopwoc.julia.backend.Upstream;
 import java.nio.ByteBuffer;
@@ -62,7 +62,7 @@ public final class BufferStorageBridge {
         if (size > Integer.MAX_VALUE)
             throw new UnsupportedOperationException("Named buffer storage exceeds the supported byte range");
         var context = Upstream.context();
-        boolean known = GLStateManager.glIsBuffer(buffer);
+        boolean known = GLSMBuffers.glIsBuffer(buffer);
         for (int target : BINDING_TARGETS) known |= context.getBoundBuffer(target) == buffer;
         if (!known) {
             throw new UnsupportedOperationException(
@@ -73,14 +73,14 @@ public final class BufferStorageBridge {
         }
         int previous = context.boundCopyWriteBuffer;
         try {
-            GLStateManager.glBindBuffer(GL_COPY_WRITE_BUFFER, buffer);
-            if (data == null) GLStateManager.glBufferStorage(GL_COPY_WRITE_BUFFER, size, flags);
-            else GLStateManager.glBufferStorage(GL_COPY_WRITE_BUFFER, data.duplicate(), flags);
+            GLSMBuffers.glBindBuffer(GL_COPY_WRITE_BUFFER, buffer);
+            if (data == null) GLSMBuffers.glBufferStorage(GL_COPY_WRITE_BUFFER, size, flags);
+            else GLSMBuffers.glBufferStorage(GL_COPY_WRITE_BUFFER, data.duplicate(), flags);
             var resources = Upstream.resources();
             if (resources.getBufferHandle(buffer) == 0 || resources.getBufferSize(buffer) != size)
                 throw new IllegalStateException("Named buffer storage allocation failed");
         } finally {
-            GLStateManager.glBindBuffer(GL_COPY_WRITE_BUFFER, previous);
+            GLSMBuffers.glBindBuffer(GL_COPY_WRITE_BUFFER, previous);
         }
     }
 
@@ -90,10 +90,10 @@ public final class BufferStorageBridge {
         var context = Upstream.context();
         int previous = context.boundCopyReadBuffer;
         try {
-            GLStateManager.glBindBuffer(GL_COPY_READ_BUFFER, buffer);
-            return GLStateManager.glGetBufferParameter(GL_COPY_READ_BUFFER, parameter);
+            GLSMBuffers.glBindBuffer(GL_COPY_READ_BUFFER, buffer);
+            return GLSMBuffers.glGetBufferParameter(GL_COPY_READ_BUFFER, parameter);
         } finally {
-            GLStateManager.glBindBuffer(GL_COPY_READ_BUFFER, previous);
+            GLSMBuffers.glBindBuffer(GL_COPY_READ_BUFFER, previous);
         }
     }
 

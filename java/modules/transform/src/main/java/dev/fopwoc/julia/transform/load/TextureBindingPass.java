@@ -42,7 +42,8 @@ public final class TextureBindingPass implements UpstreamPatch {
 
     @Override
     public boolean targets(String name) {
-        return name.equals("com.gtnewhorizons.angelica.glsm.GLStateManager");
+        return name.equals("com.gtnewhorizons.angelica.glsm.GLSMTextures")
+                || name.equals("com.gtnewhorizons.angelica.glsm.GLSMQueries");
     }
 
     @Override
@@ -81,9 +82,9 @@ public final class TextureBindingPass implements UpstreamPatch {
                 deletes++;
             }
         }
-        Anchors.require("texture-target selection", selected, 30);
-        Anchors.require("texture binding query", queries, 1);
-        Anchors.require("texture deletion", deletes, 1);
+        Anchors.require("texture-target selection", selected, name.endsWith("GLSMTextures") ? 30 : 0);
+        Anchors.require("texture binding query", queries, name.endsWith("GLSMQueries") ? 1 : 0);
+        Anchors.require("texture deletion", deletes, name.endsWith("GLSMTextures") ? 1 : 0);
         return true;
     }
 

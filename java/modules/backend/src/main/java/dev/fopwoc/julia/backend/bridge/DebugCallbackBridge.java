@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.backend.bridge;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMDraws;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.runtime.DebugCallback;
 import java.lang.invoke.MethodHandle;
@@ -14,7 +14,7 @@ public final class DebugCallbackBridge {
         if (callback != null && !callback.type().equals(DebugCallback.TYPE)) {
             throw new IllegalArgumentException("Invalid debug callback signature: " + callback.type());
         }
-        GLStateManager.registerDebugMessageListener(
+        GLSMDraws.registerDebugMessageListener(
                 callback == null
                         ? null
                         : (source, type, id, severity, length, message, parameter) -> {

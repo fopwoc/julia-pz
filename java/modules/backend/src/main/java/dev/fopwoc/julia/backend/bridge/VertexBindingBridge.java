@@ -8,7 +8,7 @@ import static org.lwjgl.opengl.GL33.GL_VERTEX_ATTRIB_ARRAY_DIVISOR;
 import static org.lwjgl.opengl.GL43.GL_VERTEX_ATTRIB_BINDING;
 import static org.lwjgl.opengl.GL43.GL_VERTEX_ATTRIB_RELATIVE_OFFSET;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMVertexInput;
 import com.gtnewhorizons.angelica.sdlgpu.frame.ContextState;
 import dev.fopwoc.julia.backend.Upstream;
 import dev.fopwoc.julia.backend.vertex.VertexInputs;
@@ -53,7 +53,7 @@ public final class VertexBindingBridge {
 
     public static void glVertexAttribDivisor(int attribute, int divisor) {
         VertexInputs.validateBinding(attribute);
-        GLStateManager.glVertexAttribDivisor(attribute, divisor);
+        GLSMVertexInput.glVertexAttribDivisor(attribute, divisor);
         // GLSM may skip an equal legacy value after a modern binding operation changed the binding.
         VertexInputs.attributeDivisor(attribute, divisor);
     }

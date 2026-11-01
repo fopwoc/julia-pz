@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.backend.texture;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMTextures;
 import dev.fopwoc.julia.backend.Subsystems;
 import dev.fopwoc.julia.backend.Upstream;
 
@@ -23,7 +23,7 @@ public final class TextureBindingHooks {
         if (!TextureBindings.selectable(target)) return;
         var state = Upstream.context();
         int name = Subsystems.current().textureBindings().get(state, state.activeTextureUnit, target);
-        GLStateManager.glBindTexture(target, name);
+        GLSMTextures.glBindTexture(target, name);
     }
 
     public static void samplerOverride(long[] overrides) {

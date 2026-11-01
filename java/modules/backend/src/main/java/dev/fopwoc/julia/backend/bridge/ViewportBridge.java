@@ -4,7 +4,7 @@ import static org.lwjgl.opengl.GL11.GL_DEPTH_RANGE;
 import static org.lwjgl.opengl.GL11.GL_SCISSOR_BOX;
 import static org.lwjgl.opengl.GL11.GL_VIEWPORT;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMRasterizer;
 import dev.fopwoc.julia.backend.Upstream;
 
 /**
@@ -16,12 +16,12 @@ public final class ViewportBridge {
 
     public static void glViewportIndexedf(int index, float x, float y, float width, float height) {
         requireFirst(index);
-        GLStateManager.glViewport(Math.round(x), Math.round(y), Math.round(width), Math.round(height));
+        GLSMRasterizer.glViewport(Math.round(x), Math.round(y), Math.round(width), Math.round(height));
     }
 
     public static void glScissorIndexed(int index, int x, int y, int width, int height) {
         requireFirst(index);
-        GLStateManager.glScissor(x, y, width, height);
+        GLSMRasterizer.glScissor(x, y, width, height);
     }
 
     public static void glDepthRangeIndexed(int index, double near, double far) {

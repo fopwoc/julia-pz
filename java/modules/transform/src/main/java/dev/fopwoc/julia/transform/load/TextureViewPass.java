@@ -10,7 +10,7 @@ import org.objectweb.asm.tree.*;
 public final class TextureViewPass implements UpstreamPatch {
     private static final String ROOT = "com.gtnewhorizons.angelica.sdlgpu.";
     private static final Set<String> TARGETS = Set.of(
-            "com.gtnewhorizons.angelica.glsm.GLStateManager",
+            "com.gtnewhorizons.angelica.glsm.GLSMTextureLifetime",
             ROOT + "resource.ResourceManager",
             ROOT + "pipeline.PipelineApplier",
             ROOT + "sampler.SamplerBinder",
@@ -25,7 +25,7 @@ public final class TextureViewPass implements UpstreamPatch {
 
     @Override
     public boolean apply(String name, ClassNode node) {
-        boolean glsm = name.equals("com.gtnewhorizons.angelica.glsm.GLStateManager");
+        boolean glsm = name.equals("com.gtnewhorizons.angelica.glsm.GLSMTextureLifetime");
         boolean resource = name.equals(ROOT + "resource.ResourceManager");
         boolean pipeline = name.equals(ROOT + "pipeline.PipelineApplier");
         boolean sampler = name.equals(ROOT + "sampler.SamplerBinder");

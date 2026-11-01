@@ -17,7 +17,7 @@ public final class VertexInputPass implements UpstreamPatch {
     private static final String ROOT = "com.gtnewhorizons.angelica.sdlgpu.";
     private static final Set<String> TARGETS = Set.of(
             ROOT + "pipeline.PipelineCache",
-            "com.gtnewhorizons.angelica.glsm.GLStateManager",
+            "com.gtnewhorizons.angelica.glsm.GLSMVertexInput",
             ROOT + "compute.VertexWriteReplayer");
     private static final String STATE = ROOT.replace('.', '/') + "frame/ContextState";
     private static final String CACHE = ROOT.replace('.', '/') + "pipeline/PipelineCache";
@@ -30,7 +30,7 @@ public final class VertexInputPass implements UpstreamPatch {
     @Override
     public boolean apply(String name, ClassNode node) {
         boolean pipeline = name.equals(ROOT + "pipeline.PipelineCache");
-        boolean glsm = name.equals("com.gtnewhorizons.angelica.glsm.GLStateManager");
+        boolean glsm = name.equals("com.gtnewhorizons.angelica.glsm.GLSMVertexInput");
         boolean replay = name.equals(ROOT + "compute.VertexWriteReplayer");
         int hashes = 0, creates = 0, protects = 0, guards = 0, defaults = 0;
         for (var method : node.methods) {

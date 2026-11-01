@@ -1,6 +1,6 @@
 package zombie;
 
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMQueries;
 import java.util.function.IntSupplier;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
@@ -14,7 +14,7 @@ public final class RuntimeDispatchFixture {
     }
 
     public static IntSupplier supplier() {
-        return GLStateManager::glGetError;
+        return GLSMQueries::glGetError;
     }
 
     public static void upload(float[] values) {

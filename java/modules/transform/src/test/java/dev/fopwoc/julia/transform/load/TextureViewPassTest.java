@@ -44,7 +44,7 @@ class TextureViewPassTest {
 
     @Test
     void removesTheMinecraftShrinkWorkaroundFromDeletion() throws IOException {
-        String glsm = "com.gtnewhorizons.angelica.glsm.GLStateManager";
+        String glsm = "com.gtnewhorizons.angelica.glsm.GLSMTextureLifetime";
         var adapted = node(new TextureViewPass().adapt(glsm, bytes(glsm)));
         var method = adapted.methods.stream()
                 .filter(m -> m.name.equals("deferDeleteTexture"))
