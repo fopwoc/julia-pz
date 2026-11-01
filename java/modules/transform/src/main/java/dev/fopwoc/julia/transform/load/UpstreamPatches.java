@@ -14,7 +14,6 @@ public final class UpstreamPatches {
             new FramebufferPass(),
             new ColorMaskPass(),
             new BlendEquationPass(),
-            new TextureBindingPass(),
             new TextureViewPass(),
             new BufferTexturePass(),
             new SamplerBindingPass(),
