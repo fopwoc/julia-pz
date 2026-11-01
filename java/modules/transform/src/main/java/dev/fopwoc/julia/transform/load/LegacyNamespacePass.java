@@ -10,8 +10,9 @@ import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
 
 /**
- * Applies LWJGL3ify's namespace rule to Angelica and GTNHLib classes: legacy {@code org.lwjgl} references move to
- * {@code org.lwjglx} unless the class is {@code @Lwjgl3Aware}.
+ * Applies LWJGL3ify's namespace rule to GTNHLib, the one LWJGL2 binary the renderer still uses: legacy
+ * {@code org.lwjgl} references move to {@code org.lwjglx} unless the class is {@code @Lwjgl3Aware}. The renderer itself
+ * targets LWJGL3 and is never remapped.
  */
 public final class LegacyNamespacePass {
     /** Host stand-in for Minecraft's tessellator state, which GTNHLib's DirectTessellator inherits. */
@@ -30,10 +31,7 @@ public final class LegacyNamespacePass {
     private LegacyNamespacePass() {}
 
     public static byte[] adapt(String className, byte[] bytes) {
-        if (!className.startsWith("com.gtnewhorizons.angelica.")
-                && !className.startsWith("com.gtnewhorizon.gtnhlib.")) {
-            return bytes;
-        }
+        if (!className.startsWith("com.gtnewhorizon.gtnhlib.")) return bytes;
         var node = new ClassNode();
         new ClassReader(bytes).accept(node, 0);
         if (aware(node)) return bytes;

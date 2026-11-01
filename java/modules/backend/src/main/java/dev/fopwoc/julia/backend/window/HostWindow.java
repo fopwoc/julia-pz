@@ -1,7 +1,9 @@
 package dev.fopwoc.julia.backend.window;
 
+import com.gtnewhorizons.angelica.sdlgpu.device.WindowSource;
+
 /** One borrowed SDL window per isolated runtime, with explicit thread ownership. */
-public final class HostWindow implements AutoCloseable {
+public final class HostWindow implements WindowSource, AutoCloseable {
     private static volatile HostWindow current;
     private final long handle;
     private final Thread owner = Thread.currentThread();
@@ -25,17 +27,28 @@ public final class HostWindow implements AutoCloseable {
         return window;
     }
 
-    public static long getWindow() {
-        HostWindow window = current;
-        return window == null ? 0 : window.handle;
+    /** Answers 0 once closed, so device teardown after the binding ends releases nothing. */
+    @Override
+    public long window() {
+        return current == this ? handle : 0;
     }
 
-    public static int getWidth() {
-        return require().width;
+    @Override
+    public int width() {
+        requireBound();
+        return width;
     }
 
-    public static int getHeight() {
-        return require().height;
+    @Override
+    public int height() {
+        requireBound();
+        return height;
+    }
+
+    @Override
+    public boolean wasResized() {
+        requireBound();
+        return resized;
     }
 
     /** Render in the host's GL coordinate space; the final present scales to the native drawable. */
@@ -44,19 +57,15 @@ public final class HostWindow implements AutoCloseable {
         logicalRendering = true;
     }
 
-    public static long renderSize(long nativePixels) {
+    @Override
+    public long renderSize(long nativePixels) {
         if (nativePixels == 0) return 0;
-        var window = require();
-        return window.logicalRendering ? ((long) window.width << 32) | (window.height & 0xffffffffL) : nativePixels;
-    }
-
-    public static boolean wasResized() {
-        return require().resized;
+        requireBound();
+        return logicalRendering ? ((long) width << 32) | (height & 0xffffffffL) : nativePixels;
     }
 
     public long handle() {
-        requireOwner();
-        if (current != this) throw new IllegalStateException("Host window binding is closed");
+        requireBound();
         return handle;
     }
 
@@ -68,11 +77,9 @@ public final class HostWindow implements AutoCloseable {
         this.height = height;
     }
 
-    private static HostWindow require() {
-        HostWindow window = current;
-        if (window == null) throw new IllegalStateException("No host window is bound");
-        window.requireOwner();
-        return window;
+    private void requireBound() {
+        requireOwner();
+        if (current != this) throw new IllegalStateException("Host window binding is closed");
     }
 
     private void requireOwner() {

@@ -46,6 +46,7 @@ public final class GameRuntime {
             var logical = size(runtime.window.handle(), false);
             runtime.binding = HostWindow.bind(runtime.window.handle(), logical.width(), logical.height());
             runtime.binding.useLogicalResolution();
+            SDLGPUGate.device().setWindowSource(runtime.binding);
             runtime.session = GlsmSession.open(
                     runtime.video,
                     runtime.binding.handle(),

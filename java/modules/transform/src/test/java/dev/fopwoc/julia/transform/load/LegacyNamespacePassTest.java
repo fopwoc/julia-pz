@@ -14,7 +14,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 
 class LegacyNamespacePassTest {
-    private static final String LEGACY = "com.gtnewhorizons.angelica.glsm.Fixture";
+    private static final String LEGACY = "com.gtnewhorizon.gtnhlib.Fixture";
 
     @Test
     void remapsInheritanceDescriptorsClassLiteralsAndMethodHandles() {
@@ -37,9 +37,10 @@ class LegacyNamespacePassTest {
     }
 
     @Test
-    void neverRemapsGameBridgeOrProbeClasses() {
+    void neverRemapsRendererGameBridgeOrProbeClasses() {
         byte[] original = fixture(null);
         for (String name : new String[] {
+            "com.gtnewhorizons.angelica.glsm.Fixture",
             "zombie.Fixture",
             "org.lwjgl.opengl.GL11",
             "org.lwjglx.opengl.Display",

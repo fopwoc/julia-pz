@@ -1,5 +1,6 @@
 plugins { id("julia.renderer-conventions") }
 
+// GTNHLib stays a binary for now; its tessellators extend Minecraft's, which javac must resolve.
 val stubs = sourceSets.create("stubs") {
     java.srcDir(rootProject.layout.projectDirectory.dir("../third_party/angelica/glsm/src/stubs/java"))
 }
@@ -13,11 +14,10 @@ artifacts.add(stubsElements.name, stubs.output.classesDirs.singleFile) {
 
 dependencies {
     compileOnly(stubs.output)
-    compileOnly(rendererLibs.lwjgl2)
-    compileOnly(rendererLibs.lwjgl2.util)
+    compileOnly("org.lwjgl:lwjgl:${libs.versions.lwjgl.get()}")
+    compileOnly("org.lwjgl:lwjgl-opengl:${libs.versions.lwjgl.get()}")
     compileOnly(libs.asm.tree)
     compileOnly(rendererLibs.celeritas.common) { isTransitive = false }
-    compileOnly(variantOf(libs.lwjgl3ify) { classifier("dev") }) { isTransitive = false }
     compileOnly(rendererLibs.annotations)
     compileOnly(libs.jsr305)
     compileOnly(rendererLibs.lombok)

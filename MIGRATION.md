@@ -51,25 +51,28 @@ find them.
 - Add an `upstream` remote (GTNewHorizons/Angelica) and enable `rerere` in the submodule.
 - Write fork rules (`third_party/angelica/AGENTS.md`) and update Julia's `AGENTS.md`.
 
-### 1. LWJGL3 and host seams in the fork
+### 1. LWJGL3 and host seams in the fork (done)
 
-Project Zomboid runs LWJGL3, so the LWJGL2 layer goes away. Compiling `glsm` against LWJGL3 instead of LWJGL2 and
-lwjgl3ify gives 202 errors in 15 files. Those are symbol errors only; signature mismatches may appear once they are
-fixed.
+- `glsm` and `sdl-gpu` compile against LWJGL3 with no lwjgl3ify, `org.lwjglx`, or `Lwjgl3Aware`. The LWJGL2
+  `Display`/`Drawable` context model, GLU quadrics, and `Lwjgl2GLRenderBackend` are deleted; the fork's `AGENTS.md`
+  lists each change.
+- `Device.setWindowSource` replaces `WindowQueryPass`; Julia's `HostWindow` implements `WindowSource`.
+- `configureWindowThread` covers the window thread.
 
-- Delete what only LWJGL2 hosts need: the GLU shapes (`compat/lwjgl/Angelica{Disk,PartialDisk,Sphere,Cylinder}`),
-  `Lwjgl2GLRenderBackend`, `Tessellator` users, and the `net.minecraft` stubs.
-- Port the rest to LWJGL3 in place (`GLStateManager`, `RenderBackend`, the SPIR-V and shader cache classes,
-  `MainThreadPump`, and a few others): `Display`/`Drawable`/`GLContext`/`ContextCapabilities`, the LWJGL2 debug
-  callbacks, and `LWJGLException`.
-- Drop lwjgl3ify, `org.lwjglx`, `Lwjgl3Aware`, the `Lwjgl3ify-Aware` manifest marker, `injectLwjgl3Aware`, the
-  `stubs` source set, and `LegacyNamespacePass`.
+Left over:
 
-APIs Julia fills before `init()`, replacing what `SDLGPUGate` and lwjgl3ify used to provide:
-
-- Window: `Device` takes a host-window handle and size/scale queries (replaces `WindowQueryPass`).
-- Window thread: `configureWindowThread` (done).
-- Remove the remaining `org.lwjglx.opengl.Display`/`Drawable` use in `sdl-gpu` behind that window API.
+- **GTNHLib.** glsm links 47 GTNHLib classes (immediate mode via `DirectTessellator`, `VAOManager`, vertex formats,
+  `MemoryUtilities`); 15 extend or use Minecraft's `Tessellator` and 14 call LWJGL2. It stays a binary for now:
+  `LegacyNamespacePass` remaps only `com.gtnewhorizon.gtnhlib.`, lwjgl3ify stays on the runtime classpath, the
+  `Tessellator` stubs stay compile-only, and `GlsmSession` keeps `GLCapabilitiesOverride` for GTNHLib's capability
+  checks. Later: vendor the closure into glsm under its own package, strip Minecraft, port to LWJGL3, then delete all
+  four.
+- **Splash.** The Minecraft splash path in `SDLGPURenderBackend` (`splashTarget`, `SplashDispatcher`,
+  `OffscreenTarget`) still runs until `markSplashComplete`. Delete it along with GLSM's splash flags.
+- **Capabilities.** `GLStateManager.capabilities` comes from LWJGL3's thread-local `GL.getCapabilities()`; GLSM must
+  initialize on the thread that ran the backend's `init()`. Confirm with `suiteProbe`.
+- **Redirector tables.** LWJGL2-only mappings (`GLU`, `Project`, `Util`, LWJGL2-signature extensions) are dead under
+  LWJGL3 but harmless; prune them when the bridges move.
 
 ### 1b. Native SDL into the fork
 

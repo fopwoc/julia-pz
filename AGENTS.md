@@ -9,7 +9,8 @@
   branch of our Angelica fork; `java/modules/glsm` and `sdl-gpu` compile its source locally. Renderer artifacts are
   bundled directly; do not publish them to Maven or fall back to published Angelica binaries.
 - The fork owns the renderer: GL state, SDL GPU execution, shaders, textures, and the patched SDL build with its GPU
-  extensions. The fork targets LWJGL3 only; no LWJGL2 or lwjgl3ify layer. Julia owns the host side: agent,
+  extensions. The fork targets LWJGL3 only. GTNHLib, still linked as a binary,
+  is the last LWJGL2 code: `LegacyNamespacePass` remaps only it, and lwjgl3ify stays on the runtime classpath for it. Julia owns the host side: agent,
   isolated loader, game and mod bytecode passes, window borrowing, startup, and the Workshop package. Fork rules (merge
   model, tracked and owned files, hook list) live in `third_party/angelica/AGENTS.md`.
 - Migration in progress: Julia's renderer code is moving into the fork per `MIGRATION.md`. Until it finishes, the tree

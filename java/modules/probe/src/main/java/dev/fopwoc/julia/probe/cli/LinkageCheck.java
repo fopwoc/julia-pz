@@ -15,8 +15,7 @@ final class LinkageCheck {
     private static final List<String> ENTRY_POINTS = List.of(
             "com.gtnewhorizons.angelica.glsm.redirect.GLSMRedirector",
             "com.gtnewhorizons.angelica.glsm.GLStateManager",
-            "com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend",
-            "com.gtnewhorizons.angelica.sdlgpu.device.SDLDrawable");
+            "com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend");
 
     private LinkageCheck() {}
 
