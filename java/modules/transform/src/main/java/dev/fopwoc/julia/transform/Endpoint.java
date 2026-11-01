@@ -66,8 +66,6 @@ public enum Endpoint {
     INSTANCE_INDEX_SPIRV("dev/fopwoc/julia/backend/shader/InstanceIndexSpirv", false),
     BASE_INSTANCE_DRAWS("com/gtnewhorizons/angelica/sdlgpu/vertex/BaseInstanceDraws", false),
     BUFFER_TEXTURE_BRIDGE("dev/fopwoc/julia/backend/bridge/BufferTextureBridge", false),
-    BUFFER_TEXTURE_HOOKS("com/gtnewhorizons/angelica/sdlgpu/texture/buffer/BufferTextureHooks", false),
-    TEXTURE_BINDING_HOOKS("dev/fopwoc/julia/backend/texture/TextureBindingHooks", false),
     TEXTURE_READBACK_BRIDGE("com/gtnewhorizons/angelica/sdlgpu/bridge/TextureReadbackBridge", false),
     TEXTURE_COPY_BRIDGE("dev/fopwoc/julia/backend/bridge/TextureCopyBridge", false);
 
