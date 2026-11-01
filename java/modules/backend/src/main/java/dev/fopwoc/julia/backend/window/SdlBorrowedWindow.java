@@ -3,8 +3,8 @@ package dev.fopwoc.julia.backend.window;
 import static org.lwjgl.sdl.SDLProperties.*;
 import static org.lwjgl.sdl.SDLVideo.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.gpu.GpuBackend;
 import com.gtnewhorizons.angelica.sdlgpu.util.Sdl;
-import dev.fopwoc.julia.backend.gpu.GpuBackend;
 import dev.fopwoc.julia.backend.platform.Platform;
 import java.util.function.IntConsumer;
 

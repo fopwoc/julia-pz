@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.backend.platform;
 
-import dev.fopwoc.julia.backend.gpu.GpuBackend;
+import com.gtnewhorizons.angelica.sdlgpu.gpu.GpuBackend;
 import java.util.Locale;
 import org.lwjgl.system.Configuration;
 import org.lwjgl.system.JNI;

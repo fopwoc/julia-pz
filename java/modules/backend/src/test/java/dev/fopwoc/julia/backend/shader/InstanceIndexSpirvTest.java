@@ -3,6 +3,7 @@ package dev.fopwoc.julia.backend.shader;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.lwjgl.util.spvc.Spv.*;
 
+import com.gtnewhorizons.angelica.sdlgpu.shader.InstanceIndexSpirv;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
