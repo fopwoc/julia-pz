@@ -10,20 +10,51 @@ val agentJar = project(":agent").tasks.named<Jar>("jar").flatMap { it.archiveFil
 // PZ's Windows launcher cannot start -javaagent itself; the -agentlib loader from the native build does it instead.
 val windowsLoader = providers.gradleProperty("juliaNatives").map { file(it).resolve("windows/x64/julia.dll") }
 
-// The Workshop upload takes the repository root as is, so the agent must sit in it; Git ignores the copy. Like
-// ZombieBuddy, the jar lives in libs/ so players find it next to the mod rather than mixed with its folders.
+// The source ZIP expands the pinned forks; the small runtime ZIP points to those same revisions.
+val hasGit = modRoot.file(".git").asFile.exists()
+val sourceManifestFile = if (hasGit) layout.buildDirectory.file("source-manifest/SOURCES.md")
+    else providers.provider { modRoot.file("SOURCES.md") }
+val sourceManifest by tasks.registering(Exec::class) {
+    group = "distribution"
+    description = "Write exact Julia and renderer source revisions."
+    inputs.property("revision", BuildInfo.of(project).version)
+    inputs.dir(modRoot.dir("tools/distribution"))
+    inputs.file(modRoot.file("tools/package-distribution.py"))
+    outputs.file(sourceManifestFile)
+    onlyIf { hasGit }
+    commandLine("python3", modRoot.file("tools/package-distribution.py").asFile,
+        "manifest", sourceManifestFile.get().asFile)
+}
+
+val sourceZip by tasks.registering(Exec::class) {
+    group = "distribution"
+    description = "Archive committed Julia and the required pinned renderer sources."
+    val archive = layout.buildDirectory.file("distributions/Julia-sources.zip")
+    inputs.property("revision", BuildInfo.of(project).version)
+    inputs.dir(modRoot.dir("tools/distribution"))
+    inputs.file(modRoot.file("tools/package-distribution.py"))
+    outputs.file(archive)
+    commandLine("python3", modRoot.file("tools/package-distribution.py").asFile, "sources", archive.get().asFile)
+}
+
+// Direct uploads stage the agent and source manifest in the mod root; Git ignores both generated copies.
 val stageAgent by tasks.registering {
     group = "distribution"
     description = "Copy the built agent jar into the mod root for a Workshop upload."
     val target = modRoot.file("libs/julia-agent.jar")
     val loaderTarget = modRoot.file("libs/julia.dll")
     val loader = windowsLoader.orNull
+    dependsOn("sourceManifest")
+    inputs.file(sourceManifestFile)
     inputs.file(agentJar)
     if (loader != null) inputs.file(loader)
-    outputs.files(target, loaderTarget)
+    outputs.files(target, loaderTarget, modRoot.file("SOURCES.md"))
     doLast {
         agentJar.get().asFile.copyTo(target.asFile, overwrite = true)
         loader?.copyTo(loaderTarget.asFile, overwrite = true)
+        val source = sourceManifestFile.get().asFile
+        val destination = modRoot.file("SOURCES.md").asFile
+        if (source != destination) source.copyTo(destination, overwrite = true)
     }
 }
 
@@ -36,6 +67,8 @@ val modZip by tasks.registering(Zip::class) {
         include("common/**", "42/**", "licenses/**", "LICENSE", "COPYRIGHT", "THIRD_PARTY.md")
         into("Julia")
     }
+    from(sourceManifestFile) { into("Julia") }
+    dependsOn(sourceManifest)
     from(agentJar) { into("Julia/libs") }
     // Local builds have no Windows natives; CI passes them and the zip then carries the loader.
     from(windowsLoader.map { listOf(it) }.orElse(emptyList())) { into("Julia/libs") }

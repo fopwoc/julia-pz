@@ -68,13 +68,18 @@ jobs:
       - name: Build macOS x64 natives
         run: tools/build-natives-macos.sh "$GITHUB_WORKSPACE/native/build/universal/natives" x64
 
+      - name: Test distribution packaging
+        run: python3 -m unittest discover -s tools/tests
+
       - name: Check and build the universal agent
         working-directory: java
         run: >-
           ./gradlew
           check
+          :buildSrc:test
           :agent:universalJar
           :workshop:modZip
+          :workshop:sourceZip
           "-PjuliaNatives=$GITHUB_WORKSPACE/native/build/universal/natives"
 
       - name: Package the Workshop folder
@@ -83,6 +88,7 @@ jobs:
           cp java/modules/agent/build/libs/julia-agent.jar dist/julia-agent.jar
           cp native/build/universal/natives/windows/x64/julia.dll dist/julia.dll
           cp java/modules/workshop/build/distributions/Julia.zip dist/julia-mod.zip
+          cp java/modules/workshop/build/distributions/Julia-sources.zip dist/julia-sources.zip
           tools/package-workshop.sh dist/julia-agent.jar dist/julia.dll dist/julia-workshop.zip
           unzip -p dist/julia-agent.jar META-INF/MANIFEST.MF | grep Implementation-Version
 

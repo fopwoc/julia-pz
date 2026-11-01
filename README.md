@@ -276,7 +276,8 @@ cd java
 ./gradlew :renderer-tests:test # only the fork-owned renderer regressions
 ./gradlew :agent:jar       # → modules/agent/build/libs/julia-agent.jar
 ./gradlew :workshop:modZip # → modules/workshop/build/distributions/Julia.zip (Lua companion and agent jar)
-./gradlew :workshop:stageAgent # → libs/julia-agent.jar in the repository root (Git ignores it)
+./gradlew :workshop:stageAgent # → libs/julia-agent.jar and SOURCES.md in the mod root (Git ignores them)
+./gradlew :workshop:sourceZip # → modules/workshop/build/distributions/Julia-sources.zip (committed sources + forks)
 ```
 
 The agent jar bundles LWJGL natives for every platform in the support table and Julia's SDL build for the host. To
@@ -296,9 +297,18 @@ incomplete distribution. Ordinary `:agent:jar` remains available for host-only d
 
 CI builds every push the same way: the Linux and Windows libraries in the pinned container, the macOS libraries with
 the Apple SDK, then `check` and the universal jar. Pushing an `x.y.z` tag on `main` runs that build again and
-publishes four files with signed build provenance: the agent jar, the Windows loader, the Lua companion zip, and the
-Workshop folder (this repository at the tag plus `libs/julia-agent.jar` and `libs/julia.dll`).
-`tools/package-workshop.sh` builds the same folder locally.
+publishes five files with signed build provenance: the agent jar, Windows loader, Lua companion zip, Workshop folder,
+and complete source ZIP. Both runtime ZIPs carry `SOURCES.md` with exact Julia/Angelica/GTNHLib revisions and source
+links. The Workshop folder also carries Julia's own source; the renderer forks are available in the separate source
+ZIP. That ZIP expands the required renderer modules, native patches, and selected GTNHLib sources, omitting unrelated
+Minecraft modules and Git history. Its generated source identity lets Gradle build it directly without Git metadata.
+External dependencies still download through Gradle and CMake.
+
+`tools/package-workshop.sh <agent.jar> <julia.dll> <output.zip> [revision]` packages the same Workshop folder locally.
+It requires an agent built from the matching committed revision; dirty or mismatched agent identities are rejected.
+`python3 tools/package-distribution.py sources <output.zip> [--revision <commit-or-tag>]` exports the complete sources.
+Packaging reads committed Git objects, including each recorded submodule pin, rather than the current files in the
+working tree. `python3 -m unittest discover -s tools/tests` verifies the distribution tooling.
 
 ### GPU probes
 

@@ -28,9 +28,12 @@ Other runtime dependencies (LWJGL, ASM, Log4j, …) carry their notices inside t
   its `pz-sources.txt` lists plus the fork's own `src/pz/java`. `:gtnhlib:sourcesJar` produces its source archive,
   and its JAR carries GTNHLib's license under `META-INF/licenses/gtnhlib/`. Julia does not modify any library in
   memory; its changes to Angelica and GTNHLib are source commits in the forks.
-- The corresponding renderer source is the exact Git revision recorded by the `third_party/angelica/` submodule, available
-  in [fopwoc/Angelica](https://github.com/fopwoc/Angelica), together with the build descriptors under `java/modules/glsm`
-  and `java/modules/sdl-gpu` in this repository. `:glsm:sourcesJar` and `:sdl-gpu:sourcesJar` produce local source archives.
-  Angelica's original [license](third_party/angelica/LICENSE) and per-file upstream notices remain in force; compiled renderer
-  JARs also carry that license under `META-INF/licenses/angelica/`.
+- `SOURCES.md` in distributed packages identifies the exact Julia, Angelica, and GTNHLib commits and links to their
+  source. Each release also provides `julia-<tag>-sources.zip`: Julia's build scripts and sources, the required Angelica
+  modules and native patches, and GTNHLib's selected source files and license, expanded at their recorded pins. It can
+  build without Git metadata; external pinned dependencies download through Gradle and CMake. Unrelated Minecraft
+  modules are not required and are omitted. `:workshop:sourceZip` produces this complete source archive locally.
+- `:glsm:sourcesJar` and `:sdl-gpu:sourcesJar` also produce individual local source archives. Angelica's original
+  license and per-file upstream notices remain in force; compiled renderer JARs carry that license under
+  `META-INF/licenses/angelica/LICENSE`, and the complete source ZIP includes `third_party/angelica/LICENSE`.
 - The full GPL v3 and LGPL v3 texts are in `licenses/` and ship with every distribution.

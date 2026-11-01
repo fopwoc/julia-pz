@@ -21,6 +21,10 @@
 - Agent and probe packaging uses `buildSrc/packaging` to reduce Fastutil by static dependency closure, including nested
   classes. Compilation retains the full API. Audit new reflective Fastutil usage explicitly. `:buildSrc:test` covers
   closure behavior; run it when changing this packaging logic.
+- Distribution tooling in `tools/distribution` reads committed Git objects and recursively expands only the required
+  pinned fork sources. Workshop ZIPs keep Julia source and `SOURCES.md`; the separate source ZIP includes build inputs
+  and generated `.source-info.properties` for Git-free builds. `BuildInfo` reads that identity only without `.git`.
+  Test packaging changes with `python3 -m unittest discover -s tools/tests` and `:buildSrc:test`.
 - Keep game binaries, saves, Workshop files, extracted proprietary sources, and local machine paths out of Git.
 
 ## Code style

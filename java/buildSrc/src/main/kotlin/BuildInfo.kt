@@ -1,4 +1,5 @@
 import java.io.File
+import java.util.Properties
 import org.gradle.api.Project
 
 /**
@@ -18,12 +19,13 @@ data class BuildInfo(val version: String, val isRelease: Boolean, val buildNumbe
         fun of(project: Project): BuildInfo {
             val extra = project.rootProject.extensions.extraProperties
             return synchronized(extra) {
-                if (!extra.has(KEY)) extra.set(KEY, project.resolve(project.rootDir.canonicalFile))
+                if (!extra.has(KEY)) extra.set(KEY, project.resolve(project.rootDir.canonicalFile.parentFile))
                 extra.get(KEY) as BuildInfo
             }
         }
 
         private fun Project.resolve(repository: File): BuildInfo {
+            if (!repository.resolve(".git").exists()) return fromArchive(repository)
             val hash = git(repository, "rev-parse", "--short=8", "HEAD")
             val tag = git(repository, "tag", "--points-at", "HEAD", "--sort=-version:refname")
                 .lineSequence()
@@ -31,6 +33,21 @@ data class BuildInfo(val version: String, val isRelease: Boolean, val buildNumbe
             val identity = if (tag == null) hash else "$tag-$hash"
             val dirty = if (git(repository, "status", "--porcelain").isEmpty()) "" else "-dirty"
             return BuildInfo("$identity$dirty", tag != null, git(repository, "rev-list", "--count", "HEAD").toInt(), hash)
+        }
+
+        // Source archives carry generated Git identity, not a manually maintained application version.
+        internal fun fromArchive(repository: File): BuildInfo {
+            val file = repository.resolve(".source-info.properties")
+            require(file.isFile) { "Git metadata or an official complete source archive is required" }
+            val properties = Properties().apply { file.inputStream().use { load(it) } }
+            val commit = properties.getProperty("commit", "")
+            val tag = properties.getProperty("tag", "")
+            val count = properties.getProperty("buildNumber", "").toIntOrNull()
+            require(commit.matches(Regex("[0-9a-f]{40}|[0-9a-f]{64}"))) { "Invalid archived commit identity" }
+            require(tag.isEmpty() || RELEASE.matches(tag)) { "Invalid archived release tag" }
+            require(count != null && count > 0) { "Invalid archived build number" }
+            val hash = commit.take(8)
+            return BuildInfo(if (tag.isEmpty()) hash else "$tag-$hash", tag.isNotEmpty(), count, hash)
         }
 
         private fun Project.git(repository: File, vararg arguments: String): String =

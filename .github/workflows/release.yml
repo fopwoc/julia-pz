@@ -55,6 +55,7 @@ jobs:
           mv dist/julia.dll "release/julia-$GITHUB_REF_NAME-windows-loader.dll"
           mv dist/julia-mod.zip "release/julia-$GITHUB_REF_NAME-mod.zip"
           mv dist/julia-workshop.zip "release/julia-$GITHUB_REF_NAME-workshop.zip"
+          mv dist/julia-sources.zip "release/julia-$GITHUB_REF_NAME-sources.zip"
           (cd release && sha256sum -- * > SHA256SUMS)
 
       # Signed SLSA build provenance: anyone can check a jar against this repository and workflow.
@@ -66,6 +67,7 @@ jobs:
             release/julia-*-windows-loader.dll
             release/julia-*-mod.zip
             release/julia-*-workshop.zip
+            release/julia-*-sources.zip
 
       - name: Write release notes
         run: |

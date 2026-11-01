@@ -13,3 +13,9 @@ local.properties
 
 # Staged by :workshop:stageAgent for Workshop uploads.
 /libs/
+
+# Generated source manifest for direct Workshop staging and Python tool caches.
+/SOURCES.md
+/.source-info.properties
+__pycache__/
+*.pyc
