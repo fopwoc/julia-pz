@@ -22,11 +22,9 @@ Other runtime dependencies (LWJGL, ASM, Guava, Log4j, …) carry their notices i
   Other LGPL dependencies remain published artifacts. They ship as separate JARs under `lib/` in the agent and
   probe distribution, so you can drop in an interface-compatible replacement. Compile-only Minecraft signatures
   from Angelica are not included in the renderer JARs.
-- `java/buildSrc/src/main/kotlin/Lwjgl3AwareInjection.kt` is copied from Angelica's build tooling and remains under
-  the upstream LGPL v3 terms. It reproduces the SDL backend's existing build-time LWJGL3 annotation stamping.
-- Julia adapts some library classes **in memory as they load**: it remaps legacy LWJGL package names following
-  LWJGL3ify's `@Lwjgl3Aware` rule, and applies version-pinned patches to Angelica, each listed in
-  `java/modules/transform/.../load/UpstreamPatches.java`. The files on disk are never changed.
+- Julia adapts GTNHLib's classes **in memory as they load**, remapping its legacy LWJGL package names following
+  LWJGL3ify's `@Lwjgl3Aware` rule (`java/modules/transform/.../load/LegacyNamespacePass.java`). The files on disk are
+  never changed. Julia's changes to Angelica itself are source commits in the fork.
 - The corresponding renderer source is the exact Git revision recorded by the `third_party/angelica/` submodule, available
   in [fopwoc/Angelica](https://github.com/fopwoc/Angelica), together with the build descriptors under `java/modules/glsm`
   and `java/modules/sdl-gpu` in this repository. `:glsm:sourcesJar` and `:sdl-gpu:sourcesJar` produce local source archives.

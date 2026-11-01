@@ -21,11 +21,11 @@ Details live in `third_party/angelica/AGENTS.md`. In short:
 
 | Julia today | Destination | Notes |
 | --- | --- | --- |
-| `transform.load`: 13 `UpstreamPatch` passes, `UpstreamPatches`, `UpstreamPatchesTest` | Source hooks in tracked fork files, one commit per pass | Then delete the infrastructure. Keep `Anchors` only if game passes still use it |
+| `transform.load`: 13 `UpstreamPatch` passes, `UpstreamPatches`, `UpstreamPatchesTest` | Source hooks in tracked fork files | Done in phases 1 and 3; infrastructure deleted, `Anchors` kept for game passes |
 | `backend.Upstream` (private-state reflection) | `sdlgpu.Upstream`, reflection-free | Done in phase 2; reads widened upstream members |
 | `backend.layer` chain + `HostedBackend` | `sdlgpu.layer`, `sdlgpu.HostedBackend` | Done in phase 2 |
 | `Subsystems` | `sdlgpu.Subsystems` | Done in phase 2; `current()` keeps its owning-thread check |
-| `*Hooks` (7 classes) | Folded into the owned domain class the hook calls | The fork calls them directly |
+| `*Hooks` (7 classes) | Owned hook classes in the fork's domain packages | Done in phase 3; tracked files call them directly |
 | `backend.shader` (+ `metal`, `vulkan`) | `sdl-gpu` `shader` | SPIR-V reflection, linked programs, sampler resources |
 | `backend.texture`, `texture.buffer` | `sdl-gpu` `resource` / `sampler` | |
 | `backend.framebuffer`, `query`, `sync`, `vertex`, `buffer` | `sdl-gpu` matching domain packages | |
@@ -111,10 +111,14 @@ of moved classes now sit in the fork's `sdl-gpu/src/test`, which Julia's build d
 Still in Julia: the seven `*Hooks` classes and the classes only they or the passes use. They reach the fork across
 the module boundary, so the remaining bytecode patches keep working.
 
-### 3. Domains, one commit each
+### 3. Domains, one commit each (done)
 
-For each domain, move its Julia code and hooks into the fork and turn its `UpstreamPatch` into source edits at the
-same anchors. Simplest and most isolated first:
+All twelve passes are source edits in the fork now, one commit each, and every hook they called is an owned fork
+class. Where glsm needed backend behavior, a no-op `RenderBackend` method that the hosted backend's layers override
+stands in, because glsm cannot depend on sdl-gpu. The sampler shader bridge, `GpuBackend`, and the Metal/Vulkan
+SPIR-V rewriters moved with the last pass. `UpstreamPatch`, `UpstreamPatches`, and `UpstreamPatchesTest` are deleted;
+`RuntimeLoader` calls `LegacyNamespacePass` directly, and `Anchors` stays for game passes. The fork's `AGENTS.md`
+lists every hook. Original order:
 
 1. `TextureStoragePass`: `ResourceManager`
 2. `DrawTracePass`: `PipelineApplier`, `ContextState`
@@ -139,7 +143,7 @@ mapping, prefer a `GLSMRedirector` table entry and delete the bridge.
 
 ### 5. Julia cleanup
 
-- Delete `UpstreamPatch`, `UpstreamPatches`, `UpstreamPatchesTest`, `Upstream`, the hook classes, and empty packages.
+- Delete empty packages. (`UpstreamPatch*` and the hook classes are already gone; `Upstream` lives on in the fork.)
 - Shrink `backend` to runtime, window, platform, GPU selection, and native loading.
 - Drop Gradle dependencies and excludes the fork no longer needs.
 - Switch logging to the bridge described below.

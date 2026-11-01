@@ -28,9 +28,8 @@
   Default level is `error`; `LOG_LEVEL` overrides it. Keep error logs detailed and normal output compact.
 - New renderer code and fixes go into fork source, never into Julia. The fork never references `dev.fopwoc.julia`;
   Julia configures it through fork APIs.
-- `UpstreamPatch` rewrites and `*Hooks` classes are migration debt: don't add to them; port them into the fork. The
-  hosted backend, its layers, `Subsystems`, and `Upstream` already live in `sdl-gpu`. Until they are gone, `UpstreamPatchesTest` fails when a patch stops changing the
-  pinned renderer.
+- Julia no longer rewrites renderer bytecode; the only load-time remap left is `LegacyNamespacePass` for GTNHLib.
+  Change renderer behavior in fork source, never by patching renderer classes from Julia.
 - Bridges hold static entry points that rewritten game code calls; layers change how GL work runs on SDL GPU. Keep the
   two apart, wherever they live.
 - Use comments for non-obvious reasoning only. Javadoc a class when its role or invariant isn't evident from its name.
