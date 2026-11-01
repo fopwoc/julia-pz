@@ -67,10 +67,10 @@ Left over:
   `Tessellator` stubs stay compile-only, and `GlsmSession` keeps `GLCapabilitiesOverride` for GTNHLib's capability
   checks. Later: vendor the closure into glsm under its own package, strip Minecraft, port to LWJGL3, then delete all
   four.
-- **Splash.** The Minecraft splash path in `SDLGPURenderBackend` (`splashTarget`, `SplashDispatcher`,
-  `OffscreenTarget`) still runs until `markSplashComplete`. Delete it along with GLSM's splash flags.
+- **Splash.** Switched off at its entry: no splash target, no checkpoint dispatch. Its dormant code stays to keep
+  merges small; GLSM's splash flags still follow Julia's `markSplashComplete`.
 - **Capabilities.** `GLStateManager.capabilities` comes from LWJGL3's thread-local `GL.getCapabilities()`; GLSM must
-  initialize on the thread that ran the backend's `init()`. Confirm with `suiteProbe`.
+  initialize on the thread that ran the backend's `init()`. Check it once tests are back in scope.
 - **Redirector tables.** LWJGL2-only mappings (`GLU`, `Project`, `Util`, LWJGL2-signature extensions) are dead under
   LWJGL3 but harmless; prune them when the bridges move.
 

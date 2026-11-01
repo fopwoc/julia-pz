@@ -33,13 +33,11 @@ public final class HostWindow implements WindowSource, AutoCloseable {
         return current == this ? handle : 0;
     }
 
-    @Override
     public int width() {
         requireBound();
         return width;
     }
 
-    @Override
     public int height() {
         requireBound();
         return height;
