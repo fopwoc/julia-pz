@@ -46,7 +46,7 @@ final class SamplerTargetChecks {
     private SamplerTargetChecks() {}
 
     static void run(Path output) throws IOException {
-        int[] textures = {glGenTextures(), glGenTextures(), glGenTextures(), glGenTextures()};
+        int[] textures = {-16, -17, -18, glGenTextures()};
         int[] targets = {GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_2D_ARRAY};
         int fbo = glGenFramebuffers(),
                 storage = glGenBuffers(),

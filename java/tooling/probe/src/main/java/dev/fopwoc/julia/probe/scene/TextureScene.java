@@ -16,10 +16,12 @@ public final class TextureScene {
         backend.onFrameBegin();
         try {
             ClientBufferChecks.run(output);
+            UnsignedTextureChecks.run(output);
             ViewChecks.run();
             LayerViewChecks.run(output);
             BufferTextureChecks.run(output);
             SparseFramebufferChecks.run(output);
+            SamplerTargetChecks.run(output);
             int error = glGetError();
             if (error != GL_NO_ERROR) throw new IllegalStateException("Texture probe GL error: " + error);
         } finally {

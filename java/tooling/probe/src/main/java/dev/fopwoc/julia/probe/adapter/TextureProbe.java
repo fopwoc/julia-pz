@@ -28,6 +28,6 @@ public final class TextureProbe {
         Files.writeString(
                 output.resolve("result.txt"),
                 "PASS\nbackend=" + backend
-                        + "\nchecks=native client buffers,pixel-buffer row layout,shared texture views,nested array subresources,view lifetime\n");
+                        + "\nchecks=unsigned texture names,typed incomplete samplers,native client buffers,pixel-buffer row layout,shared texture views,nested array subresources,view lifetime\n");
     }
 }

@@ -65,10 +65,10 @@ final class BufferTextureChecks {
             emptyStore(vertex, target);
             Files.writeString(
                     output.resolve("buffer-textures.txt"),
-                    "PASS\nverified_pixels=3264\nverified_compute_words=4\nlimit_texels="
+                    "PASS\nverified_pixels=3520\nverified_compute_words=4\nlimit_texels="
                             + glGetInteger(GL_MAX_TEXTURE_BUFFER_SIZE) + "\noffset_alignment="
                             + glGetInteger(GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT)
-                            + "\nchecks=twelve formats,unsigned 16-bit channels,single 16-bit channels,vertex/fragment/compute,reflection,ranges,updates,reallocation,deletion,pending draws,separate bindings,shared sampler units,empty and sub-texel stores,million texels\n");
+                            + "\nchecks=twelve formats,unsigned 16-bit channels,single 16-bit channels,vertex/fragment/compute,reflection,ranges,updates,reallocation,deletion,pending draws,separate bindings,shared sampler units,unsigned texture names,typed unbound buffer reads,empty and sub-texel stores,million texels\n");
         } finally {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_BUFFER, 0);
@@ -448,8 +448,13 @@ final class BufferTextureChecks {
 
     /** Desktop drivers draw when sampler types share a unit and read each target's own binding there. */
     private static void sharedUnit(int vertex, int target) {
+        sharedUnit(vertex, target, glGenTextures(), glGenTextures());
+        sharedUnit(vertex, target, -16, -2);
+    }
+
+    private static void sharedUnit(int vertex, int target, int image, int texture) {
         int fragment = glCreateShader(GL_FRAGMENT_SHADER), program = glCreateProgram();
-        int image = glGenTextures(), texture = glGenTextures(), buffer = glGenBuffers();
+        int buffer = glGenBuffers();
         var pixel = MemoryUtil.memAlloc(4);
         var data = MemoryUtil.memAlloc(16).order(ByteOrder.nativeOrder());
         pixel.put(0, (byte) 51).put(1, (byte) 102).put(2, (byte) 153).put(3, (byte) 255);
@@ -489,6 +494,12 @@ final class BufferTextureChecks {
             GL31.glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, buffer);
             glUniform1i(glGetUniformLocation(program, "uUse"), 1);
             draw(target, 204, 102, 153);
+            glUniform1i(glGetUniformLocation(program, "uIndices"), 1);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_BUFFER, 0);
+            glActiveTexture(GL_TEXTURE0);
+            glUniform1i(glGetUniformLocation(program, "uUse"), 2);
+            draw(target, 204, 0, 153);
         } finally {
             MemoryUtil.memFree(pixel);
             MemoryUtil.memFree(data);
