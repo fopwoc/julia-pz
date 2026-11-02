@@ -15,6 +15,7 @@ public final class TextureScene {
         var backend = BackendManager.RENDER_BACKEND;
         backend.onFrameBegin();
         try {
+            ClientBufferChecks.run(output);
             ViewChecks.run();
             LayerViewChecks.run(output);
             BufferTextureChecks.run(output);

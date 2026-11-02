@@ -27,6 +27,7 @@ public final class TextureProbe {
         DebugMessages.verifyShutdown();
         Files.writeString(
                 output.resolve("result.txt"),
-                "PASS\nbackend=" + backend + "\nchecks=shared texture views,nested array subresources,view lifetime\n");
+                "PASS\nbackend=" + backend
+                        + "\nchecks=native client buffers,pixel-buffer row layout,shared texture views,nested array subresources,view lifetime\n");
     }
 }
