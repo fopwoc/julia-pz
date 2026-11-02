@@ -29,6 +29,6 @@ public final class GeometryProbe {
         Files.writeString(
                 output.resolve("result.txt"),
                 "PASS\nbackend=" + backend
-                        + "\nchecks=GPU geometry emission,six invocations,strip assembly,routing,overflow\n");
+                        + "\nchecks=GPU geometry emission,six invocations,strip assembly,raster replay,routing discard,overflow\n");
     }
 }

@@ -10,6 +10,9 @@ import static org.lwjgl.opengl.GL43.*;
 import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import com.gtnewhorizons.angelica.sdlgpu.geometry.GeometryAssembly;
 import com.gtnewhorizons.angelica.sdlgpu.geometry.GeometryCompute;
+import com.gtnewhorizons.angelica.sdlgpu.geometry.GeometryLayout;
+import com.gtnewhorizons.angelica.sdlgpu.geometry.GeometryRaster;
+import dev.fopwoc.julia.probe.adapter.ResourceReadback;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
@@ -52,7 +55,7 @@ public final class GeometryScene {
             if (glGetError() != GL_NO_ERROR) throw new IllegalStateException("Geometry probe GL error");
             Files.writeString(
                     output.resolve("geometry.txt"),
-                    "PASS\nchecks=GPU emission,six invocations,two input triangles,two strips,viewport/layer/primitive metadata,corner assembly,bounded overflow\n");
+                    "PASS\nchecks=GPU emission,six invocations,two input triangles,two strips,viewport/layer/primitive metadata,corner assembly,raster replay,routing discard,bounded overflow\n");
         } finally {
             backend.onFrameEnd();
         }
@@ -79,8 +82,8 @@ public final class GeometryScene {
                 for (int i = 0; i < 3; i++) {
                     int at = p * layout.inputStride() + i * 16;
                     inputBytes
-                            .putFloat(at, p * 4 + i)
-                            .putFloat(at + 4, i * .25f)
+                            .putFloat(at, p * 8 + (i == 1 ? 3 : -1))
+                            .putFloat(at + 4, i == 2 ? 3 : -1)
                             .putFloat(at + 8, 0)
                             .putFloat(at + 12, 1);
                     at = p * layout.inputStride() + 48 + i * 8;
@@ -108,8 +111,8 @@ public final class GeometryScene {
                 for (int i = 0; i < emitted; i++) {
                     int at = (job * layout.maxVertices() + i) * layout.outputStride();
                     int primitive = job / 6, invocation = job % 6, part = i / 3, vertex = i % 3;
-                    near(vertexBytes.getFloat(at), primitive * 4 + vertex, "position.x", job);
-                    near(vertexBytes.getFloat(at + 4), vertex * .25f + part * .1f, "position.y", job);
+                    near(vertexBytes.getFloat(at), primitive * 8 + (vertex == 1 ? 3 : -1), "position.x", job);
+                    near(vertexBytes.getFloat(at + 4), (vertex == 2 ? 3 : -1) + part * .1f, "position.y", job);
                     near(vertexBytes.getFloat(at + 8), invocation * .1f, "position.z", job);
                     near(vertexBytes.getFloat(at + 12), 1, "position.w", job);
                     require(vertexBytes.getInt(at + 16) == invocation, "viewport", job);
@@ -146,6 +149,7 @@ public final class GeometryScene {
                         require(cornerBytes.getInt(at + 12) == 100 + job / 6, "corner primitive", job);
                     }
                 }
+            if (!overflow) raster(layout, vertices, corners, control, parameters, sizes.jobs() * perJob);
         } finally {
             glUseProgram(0);
             for (int i = 0; i < 4; i++) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, 0);
@@ -178,24 +182,93 @@ public final class GeometryScene {
         glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, bytes);
     }
 
-    private static int program(String source) {
-        int shader = glCreateShader(GL_COMPUTE_SHADER), program = 0;
+    private static void raster(
+            GeometryLayout layout, int vertices, int corners, int control, ByteBuffer parameters, int count) {
+        String vertex = GeometryRaster.source(layout, new GeometryRaster.Bindings(1, 3, 4));
+        int program = program(new int[] {GL_VERTEX_SHADER, GL_FRAGMENT_SHADER}, new String[] {vertex, """
+                #version 460 core
+                flat in int face;
+                flat in int _geometry_primitive_id;
+                layout(location=0) out vec4 color;
+                void main() { color=vec4(float(face)/255.0,float(_geometry_primitive_id)/255.0,0,1); }
+                """});
+        int texture = glGenTextures(), fbo = glGenFramebuffers(), vao = glGenVertexArrays();
         try {
-            glShaderSource(shader, source);
-            glCompileShader(shader);
-            if (glGetShaderi(shader, GL_COMPILE_STATUS) == GL_FALSE)
-                throw new IllegalStateException(glGetShaderInfoLog(shader));
-            program = glCreateProgram();
-            glAttachShader(program, shader);
+            glBindTexture(GL_TEXTURE_2D, texture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 8, 8, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer) null);
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+            require(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "raster framebuffer", 0);
+            glBindVertexArray(vao);
+            glViewport(0, 0, 8, 8);
+            glDisable(GL_DEPTH_TEST);
+            glDisable(GL_CULL_FACE);
+            glDisable(GL_BLEND);
+            glDisable(GL_SCISSOR_TEST);
+            glDisable(GL_STENCIL_TEST);
+            glColorMask(true, true, true, true);
+            glUseProgram(program);
+            int block = glGetUniformBlockIndex(program, "_GeometryRasterControl");
+            require(block >= 0, "raster control block", 0);
+            glUniformBlockBinding(program, block, 4);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, vertices);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, corners);
+            for (int selected : new int[] {3, 6}) {
+                parameters.putInt(0, selected).putInt(4, 1).putInt(8, 0).putInt(12, 0);
+                glBindBuffer(GL_UNIFORM_BUFFER, control);
+                glBufferData(GL_UNIFORM_BUFFER, parameters, GL_DYNAMIC_DRAW);
+                glBindBufferBase(GL_UNIFORM_BUFFER, 4, control);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+                glDrawArrays(GL_TRIANGLES, 0, count);
+                byte[] image = ResourceReadback.layer(texture, 0);
+                int pixel = (4 * 8 + 4) * 4;
+                require(
+                        (image[pixel] & 255) == (selected == 3 ? 3 : 0)
+                                && (image[pixel + 1] & 255) == (selected == 3 ? 100 : 0)
+                                && (image[pixel + 2] & 255) == 0
+                                && (image[pixel + 3] & 255) == 255,
+                        "raster viewport selection " + selected + " rgba=" + (image[pixel] & 255) + ","
+                                + (image[pixel + 1] & 255) + "," + (image[pixel + 2] & 255) + ","
+                                + (image[pixel + 3] & 255),
+                        0);
+            }
+        } finally {
+            glUseProgram(0);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glBindVertexArray(0);
+            glDeleteVertexArrays(vao);
+            glDeleteFramebuffers(fbo);
+            glDeleteTextures(texture);
+            glDeleteProgram(program);
+        }
+    }
+
+    private static int program(String source) {
+        return program(new int[] {GL_COMPUTE_SHADER}, new String[] {source});
+    }
+
+    private static int program(int[] types, String[] sources) {
+        int program = glCreateProgram();
+        int[] shaders = new int[types.length];
+        try {
+            for (int i = 0; i < types.length; i++) {
+                shaders[i] = glCreateShader(types[i]);
+                glShaderSource(shaders[i], sources[i]);
+                glCompileShader(shaders[i]);
+                if (glGetShaderi(shaders[i], GL_COMPILE_STATUS) == GL_FALSE)
+                    throw new IllegalStateException(glGetShaderInfoLog(shaders[i]));
+                glAttachShader(program, shaders[i]);
+            }
             glLinkProgram(program);
             if (glGetProgrami(program, GL_LINK_STATUS) == GL_FALSE)
                 throw new IllegalStateException(glGetProgramInfoLog(program));
             return program;
         } catch (RuntimeException | Error failure) {
-            if (program != 0) glDeleteProgram(program);
+            glDeleteProgram(program);
             throw failure;
         } finally {
-            glDeleteShader(shader);
+            for (int shader : shaders) if (shader != 0) glDeleteShader(shader);
         }
     }
 
