@@ -53,7 +53,7 @@ Events.OnGameStart.Add(function()
     end)
 end)
 
-Events.OnTick.Add(function()
+Events.OnTickEvenPaused.Add(function()
     guarded(function()
         local now = getTimestampMs()
         if now - lastPoll < 500 then return end

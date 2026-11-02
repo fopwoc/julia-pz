@@ -80,6 +80,14 @@ class Scenario:
                 raise ValueError("Template already enables the reserved profiling companion")
             text = text[:match.end(1)] + "    mod = " + MOD_ID + ",\n" + text[match.end(1):]
             path.write_text(text)
+        # The runner has no input focus; background pausing would measure an idle simulation instead of the scene.
+        options = profile / "options.ini"
+        text = options.read_text() if options.exists() else ""
+        if re.search(r"^focusloss=.*$", text, flags=re.MULTILINE):
+            text = re.sub(r"^focusloss=.*$", "focusloss=false", text, flags=re.MULTILINE)
+        else:
+            text = text.rstrip("\n") + "\nfocusloss=false\n"
+        options.write_text(text)
         (profile / "Lua").mkdir(exist_ok=True)
         for filename in ("profile-scene.txt", "profile-command.txt"):
             (profile / "Lua" / filename).unlink(missing_ok=True)

@@ -104,7 +104,9 @@ run, alternates OpenGL/Julia order between repetitions, and performs:
 4. Position the player, wait for a loaded current square, then arm the observer's warmup and recording.
 5. Require a complete nonempty capture, request normal game exit, and proceed to the next fresh copy.
 
-The companion and loading-screen hook are enabled only for benchmark runs. Ordinary `launch`/`record` stays passive.
+Benchmark copies disable pause-on-focus-loss (`focusloss=false`) so background runs keep simulating. Quit-command
+polling uses PZ’s tick-even-when-paused event, so a pause cannot strand the exit handshake. Other graphics settings and
+the template are preserved. The companion and loading-screen hook are enabled only for benchmark runs. Ordinary `launch`/`record` stays passive.
 No `-debug` flag is required for this adapter. An unresolved dialog, missing/dead character, invalid hook, crash, frozen
 renderer or timeout fails the batch; no later repetition is launched. `--startup-timeout` defaults to 180 seconds.
 On error or Ctrl-C the runner terminates only the process it created. Use this while no other PZ session is active.

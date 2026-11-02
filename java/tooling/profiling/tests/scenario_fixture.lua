@@ -1,7 +1,7 @@
 -- Synthetic game API fixture. No game libraries or window are loaded.
 local callbacks = {}
 Events = {}
-for _, name in ipairs({"OnMainMenuEnter", "OnGameStart", "OnTick"}) do
+for _, name in ipairs({"OnMainMenuEnter", "OnGameStart", "OnTickEvenPaused"}) do
     Events[name] = { Add = function(fn) callbacks[name] = fn end }
 end
 local files = {}
@@ -43,17 +43,17 @@ callbacks.OnMainMenuEnter()
 assert(loaded == 1)
 callbacks.OnGameStart()
 assert(speed == 1 and hour == 12 and player.x == 100)
-callbacks.OnTick()
+callbacks.OnTickEvenPaused()
 assert(files["profile-scene.txt"] == "POSITIONING\n")
 player.square = {getX=function() return 100 end, getY=function() return 200 end, getZ=function() return 0 end}
-callbacks.OnTick()
+callbacks.OnTickEvenPaused()
 assert(files["profile-scene.txt"]:match("^READY "))
 files["profile-command.txt"] = "quit"
-callbacks.OnTick()
+callbacks.OnTickEvenPaused()
 assert(exited and files["profile-scene.txt"] == "EXITING\n")
 -- Unexpected adapter failures are surfaced once, never declared ready.
 dofile(arg[1])
 getPlayer = function() error("missing player") end
 assert(not pcall(callbacks.OnGameStart))
 assert(files["profile-scene.txt"]:match("^ERROR .*missing player"))
-assert(pcall(callbacks.OnTick))
+assert(pcall(callbacks.OnTickEvenPaused))

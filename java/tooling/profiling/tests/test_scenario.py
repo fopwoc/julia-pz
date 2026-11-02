@@ -45,10 +45,13 @@ class ScenarioTest(unittest.TestCase):
         active = "VERSION = 1,\nmods\n{\n    mod = Existing,\n}\nmaps\n{\n    map = ExistingMap,\n}\n"
         (self.template / "mods/default.txt").write_text(active)
         (self.template / "Saves/Sandbox/fixture/mods.txt").write_text(active)
+        (self.template / "options.ini").write_text("width=1800\nfocusloss=true\nframeRate=60\n")
         copied = self.root / "copy"
         shutil.copytree(self.template, copied)
         self.scenario().install(copied)
         self.assertEqual(active, (self.template / "mods/default.txt").read_text())
+        self.assertIn("focusloss=true", (self.template / "options.ini").read_text())
+        self.assertEqual("width=1800\nfocusloss=false\nframeRate=60\n", (copied / "options.ini").read_text())
         for path in (copied / "mods/default.txt", copied / "Saves/Sandbox/fixture/mods.txt"):
             text = path.read_text()
             self.assertIn("mod = Existing,", text)
