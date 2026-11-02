@@ -50,12 +50,13 @@ public final class GeometryScene {
         var backend = BackendManager.RENDER_BACKEND;
         backend.onFrameBegin();
         try {
+            GeometryDrawScene.run();
             check(SOURCE, false);
             check(SOURCE.replace("max_vertices=6", "max_vertices=3"), true);
             if (glGetError() != GL_NO_ERROR) throw new IllegalStateException("Geometry probe GL error");
             Files.writeString(
                     output.resolve("geometry.txt"),
-                    "PASS\nchecks=GPU emission,six invocations,two input triangles,two strips,viewport/layer/primitive metadata,corner assembly,raster replay,routing discard,bounded overflow\n");
+                    "PASS\nchecks=GL geometry link/draw integration,normalized/indexed/disabled vertex fetch,shared uniforms,matrix arrays,six viewports,flat varyings,fragment primitive IDs,state restoration,bounds failure,relink/delete,GPU emission,two triangles,two strips,layer metadata,corner assembly,raster replay,routing discard,bounded overflow\n");
         } finally {
             backend.onFrameEnd();
         }
@@ -152,7 +153,7 @@ public final class GeometryScene {
             if (!overflow) raster(layout, vertices, corners, control, parameters, sizes.jobs() * perJob);
         } finally {
             glUseProgram(0);
-            for (int i = 0; i < 4; i++) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, 0);
+            for (int i = 0; i < 5; i++) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, 0);
             glBindBufferBase(GL_UNIFORM_BUFFER, 4, 0);
             for (int buffer : new int[] {input, vertices, counts, corners, control}) glDeleteBuffers(buffer);
             if (expansion != 0) glDeleteProgram(expansion);
@@ -208,16 +209,14 @@ public final class GeometryScene {
             glDisable(GL_STENCIL_TEST);
             glColorMask(true, true, true, true);
             glUseProgram(program);
-            int block = glGetUniformBlockIndex(program, "_GeometryRasterControl");
-            require(block >= 0, "raster control block", 0);
-            glUniformBlockBinding(program, block, 4);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, control);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, vertices);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, corners);
             for (int selected : new int[] {3, 6}) {
                 parameters.putInt(0, selected).putInt(4, 1).putInt(8, 0).putInt(12, 0);
-                glBindBuffer(GL_UNIFORM_BUFFER, control);
-                glBufferData(GL_UNIFORM_BUFFER, parameters, GL_DYNAMIC_DRAW);
-                glBindBufferBase(GL_UNIFORM_BUFFER, 4, control);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, control);
+                glBufferData(GL_SHADER_STORAGE_BUFFER, parameters, GL_DYNAMIC_DRAW);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, control);
                 glClearColor(0, 0, 0, 1);
                 glClear(GL_COLOR_BUFFER_BIT);
                 glDrawArrays(GL_TRIANGLES, 0, count);

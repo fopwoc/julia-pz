@@ -21,7 +21,7 @@ public final class ProbeMain {
             "  --sampling <dir>                    mip alpha, atlas indexing, and fragment discard",
             "  --queries <dir>                     GPU timing and visibility queries",
             "  --textures <dir>                    shared texture-view and subresource checks",
-            "  --geometry <dir>                    GPU geometry emission and strip assembly",
+            "  --geometry <dir>                    GL geometry integration and GPU assembly",
             "  --vertices <dir>                    translated vertex-input and instancing checks",
             "  --adapter <dir>                     full GLSM adapter in an isolated runtime",
             "  --imgui-adapter <dir> <archive> <native-dir>  windowless archived ImGui renderer",

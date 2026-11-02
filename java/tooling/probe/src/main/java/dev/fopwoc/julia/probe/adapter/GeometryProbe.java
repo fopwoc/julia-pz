@@ -7,7 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.lwjgl.system.Configuration;
 
-/** Focused geometry emission and assembly checks independent of unrelated GL feature coverage. */
+/** Focused GL geometry integration and kernel checks independent of unrelated feature coverage. */
 public final class GeometryProbe {
     private GeometryProbe() {}
 
@@ -29,6 +29,6 @@ public final class GeometryProbe {
         Files.writeString(
                 output.resolve("result.txt"),
                 "PASS\nbackend=" + backend
-                        + "\nchecks=GPU geometry emission,six invocations,strip assembly,raster replay,routing discard,overflow\n");
+                        + "\nchecks=GL link/draw integration,GPU vertex/index fetch,shared uniforms,matrix arrays,six viewports,flat varyings,primitive IDs,state restoration,bounds failure,relink/delete,GPU emission/assembly,overflow\n");
     }
 }
