@@ -44,6 +44,11 @@ public final class ProbeLauncher {
         runtime().invoke("dev.fopwoc.julia.probe.adapter.VertexProbe", "run", OUTPUT, output);
     }
 
+    /** Geometry compute emission and strip assembly without a window. */
+    public static void runGeometry(Path output) throws Exception {
+        runtime().invoke("dev.fopwoc.julia.probe.adapter.GeometryProbe", "run", OUTPUT, output);
+    }
+
     /** Shared-storage texture views on the explicitly selected GPU backend. */
     public static void runTextures(Path output) throws Exception {
         runtime().invoke("dev.fopwoc.julia.probe.adapter.TextureProbe", "run", OUTPUT, output);
