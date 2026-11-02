@@ -98,6 +98,7 @@ public final class RuntimePreparation {
             }
             return null;
         }
+        if (isCpuTessellation(symbol)) return null;
         if (symbol.owner().startsWith("org/lwjgl/opengl/") || symbol.owner().startsWith("org/lwjgl/util/glu/")) {
             return "NATIVE_OPENGL " + key;
         }
@@ -111,5 +112,20 @@ public final class RuntimePreparation {
             return "LEGACY_OPENGL " + key;
         }
         return null;
+    }
+
+    private static boolean isCpuTessellation(GraphicsSymbol symbol) {
+        // LWJGL's Java tessellator emits user callbacks; unlike GLU quadrics/mipmaps it never calls native GL.
+        return switch (symbol.owner()) {
+            case "org/lwjgl/util/glu/GLUtessellator",
+                    "org/lwjgl/util/glu/GLUtessellatorCallback",
+                    "org/lwjgl/util/glu/GLUtessellatorCallbackAdapter",
+                    "org/lwjgl/util/glu/tessellation/GLUtessellatorImpl" -> true;
+            case "org/lwjgl/util/glu/GLU" ->
+                symbol.kind() == GraphicsSymbol.Kind.METHOD
+                        && symbol.name().equals("gluNewTess")
+                        && symbol.descriptor().equals("()Lorg/lwjgl/util/glu/GLUtessellator;");
+            default -> false;
+        };
     }
 }
