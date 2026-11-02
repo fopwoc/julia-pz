@@ -51,12 +51,13 @@ public final class GeometryScene {
         backend.onFrameBegin();
         try {
             GeometryDrawScene.run();
+            GeometryIndirectScene.run();
             check(SOURCE, false);
             check(SOURCE.replace("max_vertices=6", "max_vertices=3"), true);
             if (glGetError() != GL_NO_ERROR) throw new IllegalStateException("Geometry probe GL error");
             Files.writeString(
                     output.resolve("geometry.txt"),
-                    "PASS\nchecks=GL geometry link/draw integration,normalized/indexed/disabled vertex fetch,shared uniforms,matrix arrays,six viewports,flat varyings,fragment primitive IDs,state restoration,bounds failure,relink/delete,GPU emission,two triangles,two strips,layer metadata,corner assembly,raster replay,routing discard,bounded overflow\n");
+                    "PASS\nchecks=GPU-written indirect batches,instancing,divisors,base instance,draw IDs,GL geometry link/draw integration,normalized/indexed/disabled vertex fetch,shared uniforms,matrix arrays,six viewports,flat varyings,fragment primitive IDs,state restoration,bounds failure,relink/delete,GPU emission,two triangles,two strips,layer metadata,corner assembly,raster replay,routing discard,bounded overflow\n");
         } finally {
             backend.onFrameEnd();
         }

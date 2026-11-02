@@ -29,6 +29,6 @@ public final class GeometryProbe {
         Files.writeString(
                 output.resolve("result.txt"),
                 "PASS\nbackend=" + backend
-                        + "\nchecks=GL link/draw integration,GPU vertex/index fetch,shared uniforms,matrix arrays,six viewports,flat varyings,primitive IDs,state restoration,bounds failure,relink/delete,GPU emission/assembly,overflow\n");
+                        + "\nchecks=GPU-written indirect batches,instancing,divisors,base instance,draw IDs,GL link/draw integration,GPU vertex/index fetch,shared uniforms,matrix arrays,six viewports,flat varyings,primitive IDs,state restoration,bounds failure,relink/delete,GPU emission/assembly,overflow\n");
     }
 }
