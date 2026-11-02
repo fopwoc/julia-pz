@@ -12,7 +12,7 @@ from pathlib import Path
 from .control import request
 from .launch import LaunchPlan
 from .report import compare, properties
-from .scenario import Scenario
+from .scenario import MOD_ID, Scenario
 
 
 def read_status(path: Path) -> str:
@@ -57,9 +57,13 @@ def execute(selected: LaunchPlan, scenario: Scenario, startup_timeout: float) ->
     with (selected.run / "game-output.log").open("w") as output:
         process = subprocess.Popen(selected.command, cwd=selected.game, stdout=output, stderr=subprocess.STDOUT)
         try:
-            wait_until(process, selected.run, lambda: read_status(selected.run / "profile/Lua/profile-scene.txt").startswith("READY ")
-                       and read_status(selected.run / "status.txt") == "READY"
-                       and read_status(selected.run / "loading-hook.txt") == "READY", startup_timeout)
+            def scene_ready():
+                if "mod = " + MOD_ID + "," not in (selected.run / "profile/mods/default.txt").read_text():
+                    raise RuntimeError("PZ removed the scenario companion from default.txt; use a profile initialized by this game version, including mods/reset-mods-*.txt")
+                return (read_status(selected.run / "profile/Lua/profile-scene.txt").startswith("READY ")
+                        and read_status(selected.run / "status.txt") == "READY"
+                        and read_status(selected.run / "loading-hook.txt") == "READY")
+            wait_until(process, selected.run, scene_ready, startup_timeout)
             (selected.run / "scene-ready.txt").write_text(read_status(selected.run / "profile/Lua/profile-scene.txt") + "\n")
             identifier = request(selected.run, scenario.name, scenario.warmup, scenario.duration)
             capture = selected.run / "captures" / (identifier + "-" + scenario.name)

@@ -67,7 +67,9 @@ An observer installation/control error is reported in `status.txt` and stderr; n
 ## Automated comparisons
 
 Prepare a single-player profile with an existing living character, accepted startup dialogs, the desired graphics
-settings and mods, and a stationary test view. Both renderers must support that fixture. Write a scenario JSON:
+settings and mods, and a stationary test view. Preserve its `mods/reset-mods-*.txt` release markers: PZ resets the
+default mod list when the marker for the running game version is missing. Both renderers must support that fixture.
+Write a scenario JSON:
 
 ```json
 {

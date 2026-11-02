@@ -88,6 +88,12 @@ class ScenarioTest(unittest.TestCase):
             stages.append(timeout)
             if len(stages) == 1:
                 self.assertFalse(predicate())
+                active = run / "profile/mods/default.txt"
+                original = active.read_text()
+                active.write_text("VERSION = 1,\nmods\n{\n}\n")
+                with self.assertRaisesRegex(RuntimeError, "removed the scenario companion"):
+                    predicate()
+                active.write_text(original)
                 (run / "status.txt").write_text("READY\n")
                 (run / "environment.properties").touch()
                 (run / "profile/Lua/profile-scene.txt").write_text("READY 100 200 0\n")
