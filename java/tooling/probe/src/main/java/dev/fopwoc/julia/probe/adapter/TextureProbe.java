@@ -7,7 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.lwjgl.system.Configuration;
 
-/** Focused translated texture-view checks, runnable before a backend has every GL extension. */
+/** Focused translated texture storage, transfer and sampling checks, runnable before a backend has every GL extension. */
 public final class TextureProbe {
     private TextureProbe() {}
 
@@ -28,6 +28,6 @@ public final class TextureProbe {
         Files.writeString(
                 output.resolve("result.txt"),
                 "PASS\nbackend=" + backend
-                        + "\nchecks=unsigned texture names,typed incomplete samplers,native client buffers,pixel-buffer row layout,shared texture views,nested array subresources,view lifetime\n");
+                        + "\nchecks=RGB and floating-point conversion,named uploads,unsigned texture names,typed incomplete samplers,native client buffers,pixel-buffer row layout,shared texture views,nested array subresources,view lifetime\n");
     }
 }

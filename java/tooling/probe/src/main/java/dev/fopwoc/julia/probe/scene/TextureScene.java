@@ -7,7 +7,7 @@ import com.gtnewhorizons.angelica.glsm.backend.BackendManager;
 import java.io.IOException;
 import java.nio.file.Path;
 
-/** Focused texture-view checks through the same redirected GL calls as the complete adapter suite. */
+/** Focused texture storage, transfer and sampling checks through the same redirected GL calls as the complete adapter suite. */
 public final class TextureScene {
     private TextureScene() {}
 
@@ -15,6 +15,8 @@ public final class TextureScene {
         var backend = BackendManager.RENDER_BACKEND;
         backend.onFrameBegin();
         try {
+            ColorUploadChecks.run(output);
+            NamedTextureChecks.run(output);
             ClientBufferChecks.run(output);
             UnsignedTextureChecks.run(output);
             ViewChecks.run();
