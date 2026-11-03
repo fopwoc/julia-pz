@@ -7,6 +7,7 @@ import com.gtnewhorizons.angelica.glsm.profiling.DebugCounters;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 import com.gtnewhorizons.angelica.sdlgpu.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.diagnostic.GpuFaultLog;
 import com.gtnewhorizons.angelica.sdlgpu.frame.DefaultTarget;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameCommands;
 import com.gtnewhorizons.angelica.sdlgpu.frame.InitialFrame;
@@ -40,6 +41,7 @@ public final class GameRuntime {
         var runtime = new GameRuntime();
         current = runtime;
         runtime.output = output;
+        GpuFaultLog.configure(output);
         try {
             runtime.video = HostedVideo.start(foreign);
             runtime.window = BorrowedWindow.borrow(foreign);

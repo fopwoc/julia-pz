@@ -480,8 +480,10 @@ final class BufferTextureChecks {
             if (glGetProgrami(program, GL_LINK_STATUS) == GL_FALSE)
                 throw new IllegalStateException(glGetProgramInfoLog(program));
             glUseProgram(program);
-            // Only uTexture is assigned; both buffer samplers stay on their default unit 0.
+            // The 2D and float-buffer samplers share unit zero through separate targets.
+            // The integer sampler needs its own unbound unit once float storage is attached.
             glUniform1i(glGetUniformLocation(program, "uTexture"), 0);
+            glUniform1i(glGetUniformLocation(program, "uIndices"), 1);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, image);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -494,7 +496,6 @@ final class BufferTextureChecks {
             GL31.glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, buffer);
             glUniform1i(glGetUniformLocation(program, "uUse"), 1);
             draw(target, 204, 102, 153);
-            glUniform1i(glGetUniformLocation(program, "uIndices"), 1);
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_BUFFER, 0);
             glActiveTexture(GL_TEXTURE0);

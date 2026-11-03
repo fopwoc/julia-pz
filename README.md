@@ -377,11 +377,15 @@ tooling/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `-javaagent:julia-agent.jar=activate=<dir>` | Launch options | Same, with reports in `<dir>` |
 | `-javaagent:julia-agent.jar=<report.tsv>` | Launch options | Audit only: record which classes make graphics calls into a new file; rendering is unchanged |
 | `-agentlib:julia=<options>` | Launch options, Windows | Same as `-javaagent:julia-agent.jar=<options>`; needs `julia.dll` beside the jar |
+| `-Dangelica.sdlgpu.debug=true` | Launch options or probe JVM | GPU validation; Metal also records encoder errors and enables shader validation (slow) |
 | `-Djulia.drawTrace=true` | Launch options or probe JVM | Bounded CPU draw-state snapshots and compiler inputs beside renderer/probe reports; no GPU readbacks |
 | `-Djulia.gpu=metal\|vulkan` | Launch options or probe JVM | Override the platform's default SDL GPU driver |
 | `LOG_LEVEL=debug\|info\|warn\|error` | Environment | Julia and renderer log detail on stderr; default `error` |
 | `-PjuliaNatives=<dir>` | Gradle | Pack other hosts' SDL builds (`<os>/<arch>/<library>`) into the agent jar |
 | `-Djulia.probe.width=<px>`, `-Djulia.probe.height=<px>` | Probe JVM | Offscreen size of the adapter probe; default 32 × 32 |
+
+Native GPU errors are also saved as `gpu-errors.txt` in the current run directory, including Metal command and encoder
+details when GPU validation is enabled. GPU assertions log their condition and abort without an SDL dialog.
 
 With draw tracing enabled, create `draw-trace.request` inside the current run directory to restart capture at the next
 frame boundary. This replaces `draw-trace.txt` and resets its snapshot quota, so a stable in-game defect can be captured

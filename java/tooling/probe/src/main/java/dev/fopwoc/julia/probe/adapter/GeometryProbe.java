@@ -1,5 +1,6 @@
 package dev.fopwoc.julia.probe.adapter;
 
+import com.gtnewhorizons.angelica.sdlgpu.diagnostic.GpuFaultLog;
 import dev.fopwoc.julia.backend.runtime.GlsmSession;
 import dev.fopwoc.julia.backend.runtime.HostedVideo;
 import dev.fopwoc.julia.probe.scene.GeometryScene;
@@ -13,6 +14,7 @@ public final class GeometryProbe {
 
     public static void run(Path output) throws Exception {
         Files.createDirectories(output);
+        GpuFaultLog.configure(output);
         Files.deleteIfExists(output.resolve("result.txt"));
         if (Configuration.SHARED_LIBRARY_EXTRACT_PATH.get() == null)
             Configuration.SHARED_LIBRARY_EXTRACT_PATH.set(
