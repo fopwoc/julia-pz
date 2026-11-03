@@ -32,6 +32,7 @@ public final class BridgePipeline {
         } catch (IllegalArgumentException failure) {
             blockers.accept("APPROVAL_BOUNDARY " + failure.getMessage());
         }
+        FramebufferSizePass.adapt(node);
         try {
             ModLoadingPass.adapt(node);
             LuaStatusPass.adapt(node);
