@@ -51,9 +51,11 @@ public final class GeometryScene {
         backend.onFrameBegin();
         try {
             GeometryDrawScene.run();
+            GeometryPointScene.run(output);
             GeometryIndirectScene.run();
             check(SOURCE, false);
             check(SOURCE.replace("max_vertices=6", "max_vertices=3"), true);
+            CullingChecks.run();
             if (glGetError() != GL_NO_ERROR) throw new IllegalStateException("Geometry probe GL error");
             Files.writeString(
                     output.resolve("geometry.txt"),
