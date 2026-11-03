@@ -65,9 +65,9 @@
   backend classes.
 - Every class in `dev.fopwoc.julia.probe.scene` is redirected as it loads and must contain redirected GL calls. Put
   non-GL helpers elsewhere.
-- Prepared GLFW framebuffer-size queries use the borrowed window's logical size (`FramebufferSizePass`), matching
-  `HostWindow.useLogicalResolution`; native presentation applies display scaling once. Keep array, buffer, raw-pointer,
-  and method-reference forms consistent.
+- Prepared GLFW and legacy Display framebuffer-size queries use logical window dimensions (`FramebufferSizePass`),
+  matching `HostWindow.useLogicalResolution`; native presentation applies display scaling once. Keep array, buffer,
+  raw-pointer, and method-reference forms consistent, including final presentation queries.
 - OS specifics stay behind `Platform`, `ForeignWindow`, and `BorrowedWindow`, with implementations in per-OS packages
   such as `window.macos`. GPU-API specifics stay behind `GpuBackend` (Metal, Vulkan, Direct3D 12). Native SDL
   extensions are bound once in the fork's `sdlgpu.extension` and export the same C symbols for every GPU backend

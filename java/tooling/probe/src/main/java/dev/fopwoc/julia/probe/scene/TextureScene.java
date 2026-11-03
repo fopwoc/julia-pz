@@ -16,6 +16,7 @@ public final class TextureScene {
         backend.onFrameBegin();
         try {
             ColorUploadChecks.run(output);
+            ReadOnlyImageChecks.run(output);
             NamedTextureChecks.run(output);
             ClientBufferChecks.run(output);
             UnsignedTextureChecks.run(output);

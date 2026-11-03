@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.objectweb.asm.Opcodes.*;
 
 import java.nio.IntBuffer;
+import java.util.function.IntSupplier;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -71,6 +72,61 @@ class FramebufferSizePassTest {
         node.methods.add(method);
         method.instructions.add(new MethodInsnNode(INVOKESTATIC, GLFW, "glfwGetFramebufferSize", "(J)J", false));
         assertThrows(IllegalArgumentException.class, () -> FramebufferSizePass.adapt(node));
+    }
+
+    @Test
+    void legacyPresentationQueriesAgreeWithGlfwSceneQueries() throws Exception {
+        String display = "org/lwjglx/opengl/Display";
+        var node = new ClassNode();
+        node.version = V25;
+        node.access = ACC_PUBLIC;
+        node.name = "example/PresentationSize";
+        node.superName = "java/lang/Object";
+        for (String dimension : new String[] {"Width", "Height"}) {
+            var method = new MethodNode(ACC_PUBLIC | ACC_STATIC, dimension, "()I", null, null);
+            method.instructions.add(
+                    new MethodInsnNode(INVOKESTATIC, display, "getFramebuffer" + dimension, "()I", false));
+            method.visitInsn(IRETURN);
+            node.methods.add(method);
+        }
+        var reference = new MethodNode(
+                ACC_PUBLIC | ACC_STATIC, "heightReference", "()Ljava/util/function/IntSupplier;", null, null);
+        reference.visitInvokeDynamicInsn(
+                "getAsInt",
+                "()Ljava/util/function/IntSupplier;",
+                new Handle(
+                        H_INVOKESTATIC,
+                        "java/lang/invoke/LambdaMetafactory",
+                        "metafactory",
+                        "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
+                        false),
+                Type.getMethodType("()I"),
+                new Handle(H_INVOKESTATIC, display, "getFramebufferHeight", "()I", false),
+                Type.getMethodType("()I"));
+        reference.visitInsn(ARETURN);
+        node.methods.add(reference);
+        BridgePipeline.apply(node, reason -> fail(reason));
+        FramebufferSizePass.adapt(node);
+        var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        node.accept(writer);
+        var stub = new ClassWriter(0);
+        new ClassReader(Type.getInternalName(HighDpiDisplay.class))
+                .accept(
+                        new ClassRemapper(
+                                stub, new SimpleRemapper(ASM9, Type.getInternalName(HighDpiDisplay.class), display)),
+                        0);
+        var loader = new ClassLoader(null) {
+            Class<?> define(byte[] bytes) {
+                return defineClass(null, bytes, 0, bytes.length);
+            }
+        };
+        var nativeDisplay = loader.define(stub.toByteArray());
+        var consumer = loader.define(writer.toByteArray());
+        assertEquals(1800, consumer.getMethod("Width").invoke(null));
+        assertEquals(1102, consumer.getMethod("Height").invoke(null));
+        assertEquals(1102, ((IntSupplier) consumer.getMethod("heightReference").invoke(null)).getAsInt());
+        assertEquals(3600, nativeDisplay.getMethod("getFramebufferWidth").invoke(null));
+        assertEquals(2204, nativeDisplay.getMethod("getFramebufferHeight").invoke(null));
     }
 
     private static Class<?>[] fixture() throws Exception {
@@ -157,6 +213,24 @@ class FramebufferSizePassTest {
             window = handle;
             widthAddress = width;
             heightAddress = height;
+        }
+    }
+
+    public static final class HighDpiDisplay {
+        public static int getWidth() {
+            return 1800;
+        }
+
+        public static int getHeight() {
+            return 1102;
+        }
+
+        public static int getFramebufferWidth() {
+            return 3600;
+        }
+
+        public static int getFramebufferHeight() {
+            return 2204;
         }
     }
 }
