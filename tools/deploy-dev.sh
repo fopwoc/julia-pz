@@ -32,3 +32,9 @@ mv "$staging/Julia" "$target"
 unzip -p "$target/libs/julia-agent.jar" META-INF/MANIFEST.MF | grep Implementation-Version | tr -d '\r'
 echo "Installed $target"
 echo "Enable \"Julia (local dev)\" and disable the Workshop \"Julia\" in the mod manager."
+
+# The macOS launcher puts every jar beside the game on the class path, where classes win over the preload mod's.
+game_java="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java"
+if [[ -f "$game_java/julia-agent.jar" ]]; then
+    echo "WARNING: remove $game_java/julia-agent.jar: it shadows this build's classes." >&2
+fi
