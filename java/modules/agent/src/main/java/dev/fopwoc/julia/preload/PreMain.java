@@ -29,6 +29,13 @@ public final class PreMain {
             start();
         } catch (Throwable failure) {
             report(failure);
+            System.setProperty("julia.preload.failure", "see Zomboid/julia/preload-error.txt");
+            // The status line is how the player learns this happened; a second failure must not hide the first.
+            try {
+                exposeStatus();
+            } catch (Throwable reporting) {
+                failure.addSuppressed(reporting);
+            }
             throw failure;
         }
     }
@@ -40,9 +47,14 @@ public final class PreMain {
         var instrumentation = (Instrumentation) staticField(loader, "g_instrumentation");
         if (instrumentation == null) throw new IllegalStateException("ZombieBuddy exposes no instrumentation");
         JuliaAgent.activate("activate", instrumentation, archive(staticField(loader, "g_config")));
-        // ZombieBuddy has already loaded the Lua exposer, so Julia's own pass cannot add this global.
-        // Its one-argument form on purpose: given a name equal to the simple name, ZombieBuddy sets the global, then
-        // clears it.
+        exposeStatus();
+    }
+
+    /**
+     * ZombieBuddy has already loaded the Lua exposer, so Julia's own pass cannot add this global. This is its one-argument
+     * form on purpose: given a name equal to the simple name, ZombieBuddy sets the global and then clears it.
+     */
+    private static void exposeStatus() throws ReflectiveOperationException {
         Class.forName(BUDDY_EXPOSER).getMethod("exposeClass", Class.class).invoke(null, JuliaStatus.class);
     }
 

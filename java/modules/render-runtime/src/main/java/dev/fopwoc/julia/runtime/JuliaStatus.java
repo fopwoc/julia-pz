@@ -8,6 +8,11 @@ public final class JuliaStatus {
         return !getBackend().isEmpty();
     }
 
+    /** Why preload could not start the renderer, or null; ZombieBuddy would otherwise only log it to discarded output. */
+    public static String getFailure() {
+        return System.getProperty("julia.preload.failure");
+    }
+
     public static String getBackend() {
         return System.getProperty("julia.renderer.backend", "");
     }
