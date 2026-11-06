@@ -275,6 +275,7 @@ cd java
 ./gradlew :agent:jar       # → modules/agent/build/libs/julia-agent.jar
 ./gradlew :workshop:modZip # → modules/workshop/build/distributions/Julia.zip (Lua companion and agent jar)
 ./gradlew :workshop:stageAgent # → libs/julia-agent.jar and SOURCES.md in the mod root (Git ignores them)
+../tools/deploy-dev.sh     # → signed JuliaDev mod in ~/Zomboid/mods, usable beside a Workshop subscription
 ./gradlew :workshop:sourceZip # → modules/workshop/build/distributions/Julia-sources.zip (committed sources + forks)
 ```
 

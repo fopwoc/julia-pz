@@ -5,6 +5,7 @@ import dev.fopwoc.julia.runtime.JuliaStatus;
 import java.lang.instrument.Instrumentation;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.jar.JarFile;
 
 /**
  * ZombieBuddy's preload entry point, which runs Julia as a signed mod instead of a separate {@code -javaagent}.
@@ -14,7 +15,6 @@ import java.util.Map;
  * fails loudly rather than leaving the game on an untranslated renderer without saying why.
  */
 public final class PreMain {
-    private static final String MOD_ID = "Julia";
     private static final String BUDDY_LOADER = "me.zed_0xff.zombie_buddy.Loader";
     private static final String BUDDY_EXPOSER = "me.zed_0xff.zombie_buddy.Exposer";
 
@@ -33,11 +33,15 @@ public final class PreMain {
                 .invoke(null, JuliaStatus.class, "JuliaStatus");
     }
 
-    private static Path archive(Object config) throws ReflectiveOperationException {
-        var mods = (Map<?, ?>) accessor(config, "preload_mods");
-        var mod = mods.get(MOD_ID);
-        if (mod == null) throw new IllegalStateException("ZombieBuddy does not list " + MOD_ID + " as a preload mod");
-        return (Path) accessor(mod, "jarPath");
+    /** Found by content, not mod id, so a local development copy can run under its own id beside the Workshop item. */
+    private static Path archive(Object config) throws Exception {
+        for (var mod : ((Map<?, ?>) accessor(config, "preload_mods")).values()) {
+            var jar = (Path) accessor(mod, "jarPath");
+            try (var file = new JarFile(jar.toFile())) {
+                if (file.getEntry(PreMain.class.getName().replace('.', '/') + ".class") != null) return jar;
+            }
+        }
+        throw new IllegalStateException("ZombieBuddy lists no preload mod containing Julia");
     }
 
     private static Object staticField(Class<?> owner, String name) throws ReflectiveOperationException {
