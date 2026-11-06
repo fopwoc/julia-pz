@@ -14,11 +14,13 @@ public final class JuliaStatus {
 
     /** The agent jar's Git-derived build version; {@code dev} when running from classes outside the jar. */
     public static String getVersion() {
-        var version = JuliaStatus.class.getPackage().getImplementationVersion();
+        // ZombieBuddy injects preload mod classes without a package manifest, so activation records the jar's version.
+        var version = System.getProperty(
+                "julia.version", JuliaStatus.class.getPackage().getImplementationVersion());
         return version == null ? "dev" : version;
     }
 
-    /** The one-line status shown in PZ's main menu and in ZombieBuddy's mod approval window. */
+    /** The one-line status shown in PZ's main menu. */
     public static String label() {
         var state = switch (getBackend()) {
             case "" -> "inactive";

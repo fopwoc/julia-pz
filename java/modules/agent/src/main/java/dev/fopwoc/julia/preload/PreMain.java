@@ -41,9 +41,9 @@ public final class PreMain {
         if (instrumentation == null) throw new IllegalStateException("ZombieBuddy exposes no instrumentation");
         JuliaAgent.activate("activate", instrumentation, archive(staticField(loader, "g_config")));
         // ZombieBuddy has already loaded the Lua exposer, so Julia's own pass cannot add this global.
-        Class.forName(BUDDY_EXPOSER)
-                .getMethod("exposeClass", Class.class, String.class)
-                .invoke(null, JuliaStatus.class, "JuliaStatus");
+        // Its one-argument form on purpose: given a name equal to the simple name, ZombieBuddy sets the global, then
+        // clears it.
+        Class.forName(BUDDY_EXPOSER).getMethod("exposeClass", Class.class).invoke(null, JuliaStatus.class);
     }
 
     /**

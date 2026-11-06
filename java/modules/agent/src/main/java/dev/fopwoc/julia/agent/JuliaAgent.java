@@ -8,6 +8,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.jar.JarFile;
 
 /** Installs live graphics redirection before game loading, or inventories consumers in audit mode. */
 public final class JuliaAgent {
@@ -29,6 +30,10 @@ public final class JuliaAgent {
         }
         LOG.log(System.Logger.Level.INFO, "Preparing live renderer; output={0}", output);
         System.setProperty("julia.archive", archive.toRealPath().toString());
+        try (var jar = new JarFile(archive.toFile())) {
+            var version = jar.getManifest().getMainAttributes().getValue("Implementation-Version");
+            if (version != null) System.setProperty("julia.version", version);
+        }
         var loader = NestedLibraries.open(archive, output.resolve("runtime"), JuliaAgent.class.getClassLoader());
         Path[] inputs = StartupArchives.collect(
                         System.getProperty("java.class.path"),
