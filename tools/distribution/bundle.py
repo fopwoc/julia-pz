@@ -35,5 +35,8 @@ def workshop(snapshot: Snapshot, agent: Path, loader: Path, output: Path) -> Non
         raise ValueError(f"Agent identity {versions} does not match committed source {snapshot.version}; rebuild from a clean matching revision")
     files = snapshot.workshop()
     files["libs/julia-agent.jar"] = File(agent.read_bytes())
+    signature = agent.with_name(agent.name + ".zbs")
+    if signature.exists():
+        files["libs/julia-agent.jar.zbs"] = File(signature.read_bytes())
     files["libs/julia.dll"] = File(loader.read_bytes())
     write_zip(output, files)

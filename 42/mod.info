@@ -3,3 +3,6 @@ id=Julia
 poster=poster.png
 icon=icon.png
 description=Shows the Julia agent version and renderer status in the main menu, and warns when the agent is missing. Requires the separately installed Julia startup agent. ZombieBuddy is optional.
+javaJarFile=../libs/julia-agent.jar
+javaPkgName=dev.fopwoc.julia.preload
+javaPreload=true

@@ -3,6 +3,14 @@ name: Build
 # One pipeline for CI and releases, so a release ships exactly what CI builds and checks.
 on:
   workflow_call:
+    inputs:
+      sign:
+        description: Sign the agent jar for ZombieBuddy preload.
+        type: boolean
+        default: false
+    secrets:
+      ZBS_PRIVATE_KEY:
+        required: false
 
 permissions:
   contents: read
@@ -75,6 +83,9 @@ jobs:
 
       - name: Check and build the universal agent
         working-directory: java
+        env:
+          # Only release runs ask for this, so branch and pull-request code never sees the key.
+          ZBS_PRIVATE_KEY: ${{ inputs.sign && secrets.ZBS_PRIVATE_KEY || '' }}
         run: >-
           ./gradlew
           check
@@ -88,6 +99,9 @@ jobs:
         run: |
           mkdir -p dist
           cp java/modules/agent/build/libs/julia-agent.jar dist/julia-agent.jar
+          if [[ -f java/modules/agent/build/libs/julia-agent.jar.zbs ]]; then
+            cp java/modules/agent/build/libs/julia-agent.jar.zbs dist/julia-agent.jar.zbs
+          fi
           cp native/build/universal/natives/windows/x64/julia.dll dist/julia.dll
           cp java/modules/workshop/build/distributions/Julia.zip dist/julia-mod.zip
           cp java/modules/workshop/build/distributions/Julia-sources.zip dist/julia-sources.zip

@@ -161,9 +161,7 @@ report directory yourself, use `activate=/absolute/path/new-run` instead of `act
 
 ## FAQ
 
-**Why isn't Julia a ZombieBuddy mod?** Julia has to take over OpenGL before anything draws. ZombieBuddy draws its mod
-approval dialog with ImGui over OpenGL before any of its mods load, so a ZombieBuddy mod would start too late. As its
-own agent, loaded first, Julia also translates ZombieBuddy's UI and every Java mod ZombieBuddy approves.
+**Is Julia a ZombieBuddy mod?** It can be either. With ZombieBuddy, Julia can run as a signed preload mod: enable it, approve it in ZombieBuddy's dialog, and restart; it then starts during ZombieBuddy's startup, before anything draws. That first launch and its dialog run without Julia. Without ZombieBuddy, install it as its own agent as described above.
 
 **Will Julia raise my FPS?** Maybe. It is experimental: results so far range from a real gain to slower frames or a
 stopped game.

@@ -7,6 +7,7 @@ plugins {
 val modRoot: Directory = rootProject.layout.projectDirectory.dir("..")
 
 val agentJar = project(":agent").tasks.named<Jar>("jar").flatMap { it.archiveFile }
+val agentSignature = project(":agent").tasks.named("signJar").map { it.outputs.files.singleFile }
 // PZ's Windows launcher cannot start -javaagent itself; the -agentlib loader from the native build does it instead.
 val windowsLoader = providers.gradleProperty("juliaNatives").map { file(it).resolve("windows/x64/julia.dll") }
 
@@ -42,15 +43,21 @@ val stageAgent by tasks.registering {
     group = "distribution"
     description = "Copy the built agent jar into the mod root for a Workshop upload."
     val target = modRoot.file("libs/julia-agent.jar")
+    val signature = agentSignature
+    val signatureTarget = modRoot.file("libs/julia-agent.jar.zbs")
     val loaderTarget = modRoot.file("libs/julia.dll")
     val loader = windowsLoader.orNull
     dependsOn("sourceManifest")
     inputs.file(sourceManifestFile)
     inputs.file(agentJar)
+    inputs.files(signature)
     if (loader != null) inputs.file(loader)
     outputs.files(target, loaderTarget, modRoot.file("SOURCES.md"))
     doLast {
         agentJar.get().asFile.copyTo(target.asFile, overwrite = true)
+        // A stale signature would make ZombieBuddy reject the fresh jar, so an unsigned build removes it.
+        signatureTarget.asFile.delete()
+        signature.get().takeIf { it.isFile }?.copyTo(signatureTarget.asFile)
         loader?.copyTo(loaderTarget.asFile, overwrite = true)
         val source = sourceManifestFile.get().asFile
         val destination = modRoot.file("SOURCES.md").asFile
@@ -70,6 +77,7 @@ val modZip by tasks.registering(Zip::class) {
     from(sourceManifestFile) { into("Julia") }
     dependsOn(sourceManifest)
     from(agentJar) { into("Julia/libs") }
+    from(agentSignature) { into("Julia/libs") }
     // Local builds have no Windows natives; CI passes them and the zip then carries the loader.
     from(windowsLoader.map { listOf(it) }.orElse(emptyList())) { into("Julia/libs") }
 }

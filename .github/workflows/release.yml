@@ -26,6 +26,10 @@ jobs:
   build:
     needs: verify
     uses: ./.github/workflows/build.yml
+    with:
+      sign: true
+    secrets:
+      ZBS_PRIVATE_KEY: ${{ secrets.ZBS_PRIVATE_KEY }}
 
   publish:
     name: Attest and publish
@@ -52,6 +56,7 @@ jobs:
         run: |
           mkdir release
           mv dist/julia-agent.jar "release/julia-$GITHUB_REF_NAME-agent.jar"
+          mv dist/julia-agent.jar.zbs "release/julia-$GITHUB_REF_NAME-agent.jar.zbs"
           mv dist/julia.dll "release/julia-$GITHUB_REF_NAME-windows-loader.dll"
           mv dist/julia-mod.zip "release/julia-$GITHUB_REF_NAME-mod.zip"
           mv dist/julia-workshop.zip "release/julia-$GITHUB_REF_NAME-workshop.zip"

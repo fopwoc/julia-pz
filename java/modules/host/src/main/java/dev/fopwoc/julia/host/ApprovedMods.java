@@ -33,6 +33,8 @@ public final class ApprovedMods {
         String hash = "unknown";
         try {
             archive = archive.toRealPath();
+            // A preloaded Julia reaches this hook as an approved mod, with its own classes already running.
+            if (archive.toString().equals(System.getProperty("julia.archive"))) return;
             hash = Sha256.of(archive);
             if (request.approvedHash() != null && !hash.equals(request.approvedHash()))
                 throw new IllegalStateException("Archive changed after ZombieBuddy approval");

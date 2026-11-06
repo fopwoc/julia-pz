@@ -11,6 +11,9 @@ local.properties
 # Machine-local build and Steam deployment helper.
 /local-test.sh
 
+# ZombieBuddy signing key; CI holds the same key as the ZBS_PRIVATE_KEY secret.
+/signing/
+
 # Staged by :workshop:stageAgent for Workshop uploads.
 /libs/
 

@@ -15,6 +15,36 @@ public final class JuliaAgent {
 
     private JuliaAgent() {}
 
+    /** {@code archive} is this agent's own jar, passed in because a preload mod's classes have no code source. */
+    public static void activate(String arguments, Instrumentation instrumentation, Path archive) throws Exception {
+        LogConfiguration.configure();
+        Path output;
+        if (arguments.equals("activate")) {
+            Path root = Path.of(System.getProperty("user.home"), "Zomboid", "julia");
+            Files.createDirectories(root);
+            output = Files.createTempDirectory(root, "run-");
+        } else {
+            output = Path.of(arguments.substring("activate=".length())).toAbsolutePath();
+            Files.createDirectories(output);
+        }
+        LOG.log(System.Logger.Level.INFO, "Preparing live renderer; output={0}", output);
+        System.setProperty("julia.archive", archive.toRealPath().toString());
+        var loader = NestedLibraries.open(archive, output.resolve("runtime"), JuliaAgent.class.getClassLoader());
+        Path[] inputs = StartupArchives.collect(
+                        System.getProperty("java.class.path"),
+                        ManagementFactory.getRuntimeMXBean().getInputArguments(),
+                        archive,
+                        Path.of(System.getProperty("user.dir")))
+                .toArray(Path[]::new);
+        try {
+            Class.forName("dev.fopwoc.julia.host.GameStartup", true, loader)
+                    .getMethod("install", Instrumentation.class, Path.class, Path[].class, ClassLoader.class)
+                    .invoke(null, instrumentation, output, inputs, ClassLoader.getSystemClassLoader());
+        } catch (InvocationTargetException failure) {
+            throw new IllegalStateException("Cannot install Julia startup", failure.getCause());
+        }
+    }
+
     public static void premain(String arguments, Instrumentation instrumentation) throws Exception {
         LogConfiguration.configure();
         LOG.log(System.Logger.Level.INFO, "Starting Julia agent");
@@ -22,35 +52,12 @@ public final class JuliaAgent {
             throw new IllegalArgumentException("Supply activate, activate=/path/new-run, or an audit report path");
         }
         if (arguments.equals("activate") || arguments.startsWith("activate=")) {
-            Path output;
-            if (arguments.equals("activate")) {
-                Path root = Path.of(System.getProperty("user.home"), "Zomboid", "julia");
-                Files.createDirectories(root);
-                output = Files.createTempDirectory(root, "run-");
-            } else {
-                output = Path.of(arguments.substring("activate=".length())).toAbsolutePath();
-                Files.createDirectories(output);
-            }
-            LOG.log(System.Logger.Level.INFO, "Preparing live renderer; output={0}", output);
             Path archive = Path.of(JuliaAgent.class
                     .getProtectionDomain()
                     .getCodeSource()
                     .getLocation()
                     .toURI());
-            var loader = NestedLibraries.open(archive, output.resolve("runtime"), JuliaAgent.class.getClassLoader());
-            Path[] inputs = StartupArchives.collect(
-                            System.getProperty("java.class.path"),
-                            ManagementFactory.getRuntimeMXBean().getInputArguments(),
-                            archive,
-                            Path.of(System.getProperty("user.dir")))
-                    .toArray(Path[]::new);
-            try {
-                Class.forName("dev.fopwoc.julia.host.GameStartup", true, loader)
-                        .getMethod("install", Instrumentation.class, Path.class, Path[].class, ClassLoader.class)
-                        .invoke(null, instrumentation, output, inputs, ClassLoader.getSystemClassLoader());
-            } catch (InvocationTargetException failure) {
-                throw new IllegalStateException("Cannot install Julia startup", failure.getCause());
-            }
+            activate(arguments, instrumentation, archive);
             return;
         }
         var audit = new RuntimeAudit(Path.of(arguments));

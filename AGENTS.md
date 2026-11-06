@@ -34,6 +34,13 @@
   Test packaging changes with `python3 -m unittest discover -s tools/tests` and `:buildSrc:test`.
 - Keep game binaries, saves, Workshop files, extracted proprietary sources, and local machine paths out of Git.
 
+- Julia also runs as a ZombieBuddy preload mod through `dev.fopwoc.julia.preload.PreMain`, which reads ZombieBuddy
+  internals by reflection because its preload entry passes neither `Instrumentation` nor a code source. Its loaded
+  `Loader` is redefined in place, and its woven patch classes and the Lua exposer may already be loaded.
+- Preload needs `julia-agent.jar.zbs` beside the jar. `:agent:signJar` writes it from the Git-ignored
+  `signing/ed25519-private.der` or the `ZBS_PRIVATE_KEY` secret (base64 DER); only release CI receives the secret.
+  Never commit the key. The signer's SteamID64 must match the Workshop uploader.
+
 ## Code style
 
 - Formatting is palantir-java-format through Spotless and is part of `check`; run `./gradlew spotlessApply` rather
