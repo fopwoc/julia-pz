@@ -1,0 +1,78 @@
+{
+  "name": "kentucky-viewpoint",
+  "save": "Apocalypse/benchmark",
+  "jvmOptions": [
+    "-Xmx12g"
+  ],
+  "mods": [
+    "ZombieBuddy",
+    "Viewpoint"
+  ],
+  "firstPerson": true,
+  "spots": [
+    {
+      "name": "plain",
+      "position": [
+        12147,
+        5233,
+        0
+      ],
+      "hour": 12
+    },
+    {
+      "name": "water",
+      "position": [
+        12375,
+        5145,
+        0
+      ],
+      "hour": 12
+    },
+    {
+      "name": "forest",
+      "position": [
+        13322,
+        10191,
+        0
+      ],
+      "hour": 12
+    },
+    {
+      "name": "town",
+      "position": [
+        11918,
+        6898,
+        0
+      ],
+      "hour": 12
+    },
+    {
+      "name": "skyscrapers",
+      "position": [
+        12682,
+        1621,
+        0
+      ],
+      "hour": 12
+    },
+    {
+      "name": "vehicles",
+      "position": [
+        1938,
+        13410,
+        0
+      ],
+      "hour": 12
+    },
+    {
+      "name": "horde",
+      "position": [
+        12512,
+        4155,
+        0
+      ],
+      "hour": 12,
+      "scream": true
+    }
+  ]
+}

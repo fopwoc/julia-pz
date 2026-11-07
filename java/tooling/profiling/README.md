@@ -62,8 +62,9 @@ Each launch visits every spot once to look around, which gets shaders, textures 
 records it. `warmup` is the settling time before recording at a spot (default 5 seconds) and `duration` the recording (default
 10). Spots still reload their chunks on the second visit. Spot names must be unique, and without any `spots` it records
 wherever the save left the player. These launches start Java directly, so Steam launch options don't apply: put heap
-settings in `jvmOptions`, which are added after the game's own and so override them. `scenes/example.json` is a starting
-point.
+settings in `jvmOptions`, which are added after the game's own and so override them. `scenes/kentucky.json` holds a vanilla set of spots
+and `scenes/kentucky-viewpoint.json` the same spots with Viewpoint in first person. Both name the save
+`Apocalypse/benchmark`, so pass `--save` for yours.
 
 Runs use the widest zoom the game's options allow, since that draws the most. The character can't die, and turns around for a few seconds during the first visit so the fog of war clears. Player input is
 shut out for the whole run. A small panel in the center of the screen shows the run, spot, stage, FPS and elapsed time;
