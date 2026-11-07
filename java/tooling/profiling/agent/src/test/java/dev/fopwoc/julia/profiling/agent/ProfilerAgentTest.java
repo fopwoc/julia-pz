@@ -85,4 +85,23 @@ class ProfilerAgentTest {
         assertTrue(ClassFile.of().verify(transformed).isEmpty());
         assertThrows(IllegalArgumentException.class, () -> FrameInstrumentation.instrument(transformed));
     }
+
+    @Test
+    void inputHookLeavesAClassTheJvmCanLoad() throws Exception {
+        byte[] bytes;
+        try (var input = getClass().getResourceAsStream("/zombie/input/GameKeyboard.class")) {
+            assertNotNull(input);
+            bytes = input.readAllBytes();
+        }
+        byte[] transformed =
+                AutomationInstrumentation.instrument(bytes, getClass().getClassLoader());
+        assertTrue(ClassFile.of().verify(transformed).isEmpty());
+        // Defining it is what catches format errors, such as debug tables pointing into removed code.
+        var loaded = new ClassLoader(getClass().getClassLoader()) {
+            Class<?> define() {
+                return defineClass("zombie.input.GameKeyboard", transformed, 0, transformed.length);
+            }
+        }.define();
+        assertEquals("zombie.input.GameKeyboard", loaded.getName());
+    }
 }

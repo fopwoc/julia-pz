@@ -1,5 +1,6 @@
 package dev.fopwoc.julia.profiling.agent;
 
+import static java.lang.constant.ConstantDescs.CD_boolean;
 import static java.lang.constant.ConstantDescs.CD_void;
 
 import java.lang.classfile.ClassFile;
@@ -65,7 +66,11 @@ public final class AutomationInstrumentation {
                     public void atStart(CodeBuilder builder) {
                         switch (target.change()) {
                             case CALL_TICK_FIRST -> builder.invokestatic(HOOKS, "tick", NOTHING);
-                            case SKIP_BODY -> builder.return_();
+                            // Not a bare return: the class verifier rejects debug tables pointing into code left
+                            // unreachable.
+                            case SKIP_BODY ->
+                                builder.invokestatic(HOOKS, "inputBlocked", MethodTypeDesc.of(CD_boolean))
+                                        .ifThen(block -> block.return_());
                             case CALL_OVERLAY_LAST -> {}
                         }
                     }

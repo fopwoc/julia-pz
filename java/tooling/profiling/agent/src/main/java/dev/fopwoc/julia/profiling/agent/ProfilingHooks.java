@@ -25,6 +25,10 @@ public final class ProfilingHooks {
         if (driver != null) driver.tick(System.nanoTime());
     }
 
+    public static boolean inputBlocked() {
+        return automation != null;
+    }
+
     public static void overlay() {
         var driver = automation;
         if (driver != null) driver.overlay(System.nanoTime(), frames);
