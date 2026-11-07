@@ -159,7 +159,7 @@ final class ReflectiveGame implements Game {
 
     /**
      * The public setters do nothing without a debug or admin role, so this sets the cheats directly. God mode alone isn't
-     * enough, since a zombie's kill animation doesn't go through the damage it guards. Zombies still chase and crowd the
+     * enough, since not every way a zombie kills goes through the damage it guards. Zombies still chase and crowd the
      * character, so their load stays in the numbers.
      */
     @Override
@@ -170,6 +170,11 @@ final class ReflectiveGame implements Game {
             throw new IllegalStateException("The character died; these numbers aren't valid");
         cheat(player, "GOD_MODE", true);
         cheat(player, "ZOMBIES_DONT_ATTACK", true);
+        // Being dragged down by a crowd kills through neither of the above. It's a sandbox rule, and this run's copy of
+        // it.
+        var options = type("zombie.SandboxOptions").getField("instance").get(null);
+        var lore = options.getClass().getField("lore").get(options);
+        call(lore.getClass().getField("zombiesDragDown").get(lore), "setValue", false);
         forceField(player, "invincible", true);
         call(call(player, "getBodyDamage"), "RestoreToFullHealth");
     }

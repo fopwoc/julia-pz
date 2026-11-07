@@ -113,6 +113,8 @@ final class Automation {
             case POSITIONING -> {
                 if (!game.arrived(current())) {
                     long waited = now - stageStart;
+                    // Turning from the moment of the teleport looks continuous; the full turn still follows arrival.
+                    if (warmingUp) game.face(SURVEY_DEGREES_PER_SECOND * waited / SECOND % 360);
                     if (waited > ARRIVAL_TIMEOUT_NANOS)
                         throw new IllegalStateException(
                                 "Can't reach " + current().name() + ": at " + game.position());
