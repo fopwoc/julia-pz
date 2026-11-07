@@ -53,7 +53,7 @@ wherever the save left the player. These launches start Java directly, so Steam 
 settings in `jvmOptions`, which are added after the game's own and so override them. `scenes/example.json` is a starting
 point.
 
-The character can't die, and turns around for a few seconds during the first visit so the fog of war clears. Player input is
+Runs use the widest zoom the game's options allow, since that draws the most. The character can't die, and turns around for a few seconds during the first visit so the fog of war clears. Player input is
 shut out for the whole run. A small panel in the center of the screen shows the run, spot, stage, FPS and elapsed time;
 `"overlay": false` turns it off, and is worth checking once since drawing it has a small cost. `ghost` stops zombies reacting, for steadier scenes; leave it off where zombie load is what you're measuring. There are no camera routes, ViewPoint controls or scripted
 weather. Weather, streaming and simulation can still vary, so repeat a pair before trusting a small difference.

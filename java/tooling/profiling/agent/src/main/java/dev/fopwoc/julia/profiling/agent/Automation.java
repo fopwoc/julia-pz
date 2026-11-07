@@ -60,6 +60,7 @@ final class Automation {
     private long stageStart;
     private volatile long recordingStart;
     private volatile long fps;
+    private volatile int zoom;
     private long fpsFrames;
     private long fpsStart;
     private long runStart;
@@ -149,6 +150,8 @@ final class Automation {
 
     private void arrive() throws ReflectiveOperationException, IOException {
         game.arrive(current());
+        // Reapplied at each spot in case the game moves it, for example while loading.
+        zoom = game.zoomOut();
         stage = Stage.POSITIONING;
         report("POSITIONING " + current().name());
     }
@@ -208,7 +211,8 @@ final class Automation {
         lines.add(String.format(Locale.ROOT, "elapsed  %d:%02d", seconds / 60, seconds % 60));
         lines.add(String.format(
                 Locale.ROOT,
-                "args     heap %d MB, ZB %s, Steam %s",
+                "args     zoom %d%%, heap %d MB, ZB %s, Steam %s",
+                zoom,
                 Runtime.getRuntime().maxMemory() / (1024 * 1024),
                 scene.zombieBuddy() ? "on" : "off",
                 scene.steam() ? "on" : "off"));

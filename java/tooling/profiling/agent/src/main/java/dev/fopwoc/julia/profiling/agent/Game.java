@@ -15,6 +15,9 @@ interface Game {
 
     boolean arrived(Scene.Spot spot) throws ReflectiveOperationException;
 
+    /** The zoom level as a percentage, after moving it to the widest the game allows, which draws the most. */
+    int zoomOut() throws ReflectiveOperationException;
+
     /** Points the character somewhere, so what's around them is seen and not left behind fog. */
     void face(float degrees) throws ReflectiveOperationException;
 

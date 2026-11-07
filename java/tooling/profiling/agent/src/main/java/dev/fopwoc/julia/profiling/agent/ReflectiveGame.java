@@ -132,6 +132,15 @@ final class ReflectiveGame implements Game {
     }
 
     @Override
+    public int zoomOut() throws ReflectiveOperationException {
+        var coreType = type("zombie.core.Core");
+        var instance = coreType.getMethod("getInstance").invoke(null);
+        var widest = (float) call(instance, "getMaxZoom");
+        call(coreType.getField("offscreenBuffer").get(instance), "setZoomAndTargetZoom", 0, widest);
+        return Math.round(widest * 100);
+    }
+
+    @Override
     public void face(float degrees) throws ReflectiveOperationException {
         call(player(), "setDirectionAngle", degrees);
     }

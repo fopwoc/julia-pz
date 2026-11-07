@@ -57,6 +57,11 @@ class AutomationTest {
         }
 
         @Override
+        public int zoomOut() {
+            return 250;
+        }
+
+        @Override
         public void keepAlive() {
             kept++;
         }
@@ -163,7 +168,7 @@ class AutomationTest {
         recording = "OVERFLOW";
         var automation = automation(false);
         ticks(automation, 40);
-        assertFalse(log.contains("arrive b"));
+        assertFalse(log.contains("record b"));
         assertFalse(log.contains("quit"));
         assertTrue(status().startsWith("ERROR"), status());
     }
@@ -192,6 +197,7 @@ class AutomationTest {
         assertTrue(drawn.get(2).startsWith("stage    recording"), drawn.get(2));
         assertEquals("FPS      300 (avg 300)", drawn.get(3));
         assertEquals("elapsed  0:01", drawn.get(4));
+        assertTrue(drawn.get(5).startsWith("args     zoom 250%"), drawn.get(5));
         assertTrue(drawn.get(5).endsWith("ZB off, Steam off"), drawn.get(5));
     }
 }
