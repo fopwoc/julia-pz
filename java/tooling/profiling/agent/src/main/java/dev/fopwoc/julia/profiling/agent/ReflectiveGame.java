@@ -132,6 +132,17 @@ final class ReflectiveGame implements Game {
     }
 
     @Override
+    public String position() throws ReflectiveOperationException {
+        var player = player();
+        if (player == null) return "no player";
+        var square = call(player, "getCurrentSquare");
+        return call(player, "getX") + "," + call(player, "getY") + "," + call(player, "getZ") + " square "
+                + (square == null
+                        ? "none"
+                        : call(square, "getX") + "," + call(square, "getY") + "," + call(square, "getZ"));
+    }
+
+    @Override
     public int zoomOut() throws ReflectiveOperationException {
         var coreType = type("zombie.core.Core");
         var instance = coreType.getMethod("getInstance").invoke(null);

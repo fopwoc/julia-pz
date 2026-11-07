@@ -15,6 +15,9 @@ interface Game {
 
     boolean arrived(Scene.Spot spot) throws ReflectiveOperationException;
 
+    /** Where the character really is, for reports when a spot can't be reached. */
+    String position() throws ReflectiveOperationException;
+
     /** The zoom level as a percentage, after moving it to the widest the game allows, which draws the most. */
     int zoomOut() throws ReflectiveOperationException;
 

@@ -27,6 +27,8 @@ final class Automation {
     private static final System.Logger LOG = System.getLogger(Automation.class.getName());
     private static final long POLL_NANOS = Duration.ofMillis(200).toNanos();
     private static final long SECOND = Duration.ofSeconds(1).toNanos();
+    private static final long RETELEPORT_NANOS = Duration.ofSeconds(5).toNanos();
+    private static final long ARRIVAL_TIMEOUT_NANOS = Duration.ofSeconds(60).toNanos();
     // Long enough for two full turns, since the fog only clears where the character looks.
     private static final long SURVEY_NANOS = Duration.ofSeconds(8).toNanos();
     private static final float SURVEY_DEGREES_PER_SECOND = 90;
@@ -58,6 +60,7 @@ final class Automation {
     private volatile boolean warmingUp = true;
     private long nextPoll;
     private long stageStart;
+    private long lastTeleport;
     private volatile long recordingStart;
     private volatile long fps;
     private volatile int zoom;
@@ -108,7 +111,19 @@ final class Automation {
                 if (game.playerReady()) arrive();
             }
             case POSITIONING -> {
-                if (!game.arrived(current())) return;
+                if (!game.arrived(current())) {
+                    long waited = now - stageStart;
+                    if (waited > ARRIVAL_TIMEOUT_NANOS)
+                        throw new IllegalStateException(
+                                "Can't reach " + current().name() + ": at " + game.position());
+                    report("POSITIONING " + current().name() + ": at " + game.position());
+                    // A teleport into chunks that haven't loaded yet doesn't always stick.
+                    if (now - lastTeleport >= RETELEPORT_NANOS) {
+                        game.arrive(current());
+                        lastTeleport = now;
+                    }
+                    return;
+                }
                 if (warmingUp) {
                     stage = Stage.SURVEYING;
                     stageStart = now;
@@ -150,6 +165,8 @@ final class Automation {
 
     private void arrive() throws ReflectiveOperationException, IOException {
         game.arrive(current());
+        stageStart = nextPoll;
+        lastTeleport = nextPoll;
         // Reapplied at each spot in case the game moves it, for example while loading.
         zoom = game.zoomOut();
         stage = Stage.POSITIONING;

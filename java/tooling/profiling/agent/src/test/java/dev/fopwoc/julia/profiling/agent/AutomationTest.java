@@ -57,6 +57,11 @@ class AutomationTest {
         }
 
         @Override
+        public String position() {
+            return "1,2,0";
+        }
+
+        @Override
         public int zoomOut() {
             return 250;
         }
@@ -180,7 +185,7 @@ class AutomationTest {
         var automation = automation(false);
         ticks(automation, 5);
         assertFalse(log.contains("record a"));
-        assertEquals("POSITIONING a", status());
+        assertEquals("POSITIONING a: at 1,2,0", status());
     }
 
     @Test
@@ -199,5 +204,16 @@ class AutomationTest {
         assertEquals("elapsed  0:01", drawn.get(4));
         assertTrue(drawn.get(5).startsWith("args     zoom 250%"), drawn.get(5));
         assertTrue(drawn.get(5).endsWith("ZB off, Steam off"), drawn.get(5));
+    }
+
+    @Test
+    void aSpotItCantReachFailsWithWhereTheCharacterIs() throws Exception {
+        playerReady = true;
+        arrived = false;
+        var automation = automation(false);
+        ticks(automation, 70);
+        assertTrue(status().startsWith("ERROR"), status());
+        assertTrue(status().contains("Can't reach a: at 1,2,0"), status());
+        assertTrue(log.stream().filter("arrive a"::equals).count() > 2, "It must retry the teleport");
     }
 }
