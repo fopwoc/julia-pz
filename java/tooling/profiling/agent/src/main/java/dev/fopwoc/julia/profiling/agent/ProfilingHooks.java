@@ -6,6 +6,8 @@ import dev.fopwoc.julia.profiling.core.CaptureSession;
 public final class ProfilingHooks {
     private static volatile CaptureSession capture;
     private static volatile Automation automation;
+    // Written only by the render thread, so a plain increment is safe. Only the status line reads it.
+    private static volatile long frames;
     private static final ThreadLocal<long[]> START = ThreadLocal.withInitial(() -> new long[1]);
 
     private ProfilingHooks() {}
@@ -23,12 +25,18 @@ public final class ProfilingHooks {
         if (driver != null) driver.tick(System.nanoTime());
     }
 
+    public static void overlay() {
+        var driver = automation;
+        if (driver != null) driver.overlay(System.nanoTime(), frames);
+    }
+
     public static void begin() {
         var session = capture;
         if (session != null && session.active()) START.get()[0] = System.nanoTime();
     }
 
     public static void complete(boolean rendered) {
+        if (rendered) frames++;
         var session = capture;
         if (rendered && session != null && session.active()) {
             long now = System.nanoTime();

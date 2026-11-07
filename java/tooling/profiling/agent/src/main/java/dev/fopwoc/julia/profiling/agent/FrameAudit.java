@@ -5,6 +5,8 @@ import java.lang.classfile.ClassHierarchyResolver;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.ZipFile;
 
 /** Offline hook verification reads class resources only; it never initializes or launches game classes. */
@@ -17,9 +19,9 @@ public final class FrameAudit {
         try (var source = new ZipFile(path.toFile());
                 var resources =
                         new URLClassLoader(new URL[] {path.toUri().toURL()}, FrameAudit.class.getClassLoader())) {
-            for (String target : new String[] {
-                FrameInstrumentation.TARGET, LoadingInstrumentation.TARGET, LogicInstrumentation.TARGET
-            }) {
+            var all = new ArrayList<>(List.of(FrameInstrumentation.TARGET, LoadingInstrumentation.TARGET));
+            AutomationInstrumentation.targets().forEach(all::add);
+            for (String target : all) {
                 byte[] original;
                 try (var input = source.getInputStream(source.getEntry(target + ".class"))) {
                     original = input.readAllBytes();
@@ -27,7 +29,7 @@ public final class FrameAudit {
                 var transformed = switch (target) {
                     case FrameInstrumentation.TARGET -> FrameInstrumentation.instrument(original, resources);
                     case LoadingInstrumentation.TARGET -> LoadingInstrumentation.instrument(original, resources);
-                    default -> LogicInstrumentation.instrument(original, resources);
+                    default -> AutomationInstrumentation.instrument(original, resources);
                 };
                 var errors = ClassFile.of(ClassFile.ClassHierarchyResolverOption.of(
                                 ClassHierarchyResolver.ofResourceParsing(resources)))

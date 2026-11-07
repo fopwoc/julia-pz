@@ -20,6 +20,9 @@ class AutomationTest {
     private boolean menu = true, playerReady, arrived = true;
     private String recording = "COMPLETE";
     private String backend;
+    private int turns;
+    private long clock;
+    private String drawn;
 
     private final Game game = new Game() {
         @Override
@@ -48,6 +51,16 @@ class AutomationTest {
         }
 
         @Override
+        public void face(float degrees) {
+            turns++;
+        }
+
+        @Override
+        public void drawText(String text) {
+            drawn = text;
+        }
+
+        @Override
         public void quit() {
             log.add("quit");
         }
@@ -69,17 +82,18 @@ class AutomationTest {
         var file = run.resolve("scene.json");
         Files.writeString(
                 file,
-                "{\"name\":\"s\",\"save\":\"Sandbox/w\",\"spots\":[{\"name\":\"a\"},{\"name\":\"b\",\"ghost\":true}]}");
+                "{\"name\":\"s\",\"save\":\"Sandbox/w\",\"warmup\":20,\"duration\":60,\"spots\":[{\"name\":\"a\"},{\"name\":\"b\",\"ghost\":true}]}");
         return Scene.read(file);
     }
 
     private Automation automation(boolean julia) throws IOException {
-        return new Automation(scene(), game, recorder, run.resolve("automation.txt"), julia, () -> backend);
+        return new Automation(
+                scene(), game, recorder, run.resolve("automation.txt"), julia, () -> backend, "run 1/2 opengl");
     }
 
     private void ticks(Automation automation, int count) {
         for (int at = 0; at < count; at++)
-            automation.tick(at * Duration.ofSeconds(1).toNanos());
+            automation.tick(clock += Duration.ofSeconds(1).toNanos());
     }
 
     private String status() throws IOException {
@@ -93,8 +107,9 @@ class AutomationTest {
         assertEquals(List.of("load Sandbox/w"), log);
         assertEquals("LOADING", status());
         playerReady = true;
-        ticks(automation, 10);
+        ticks(automation, 40);
         assertEquals(List.of("load Sandbox/w", "arrive a", "record a", "arrive b", "record b", "quit"), log);
+        assertTrue(turns > 0, "The character must look around before recording");
         assertEquals("DONE", status());
     }
 
@@ -113,14 +128,14 @@ class AutomationTest {
     void refusesToRecordOnTheWrongRenderer() throws Exception {
         playerReady = true;
         var julia = automation(true);
-        ticks(julia, 5);
+        ticks(julia, 15);
         assertFalse(log.contains("record a"));
         assertTrue(status().contains("Julia is not rendering"), status());
 
         log.clear();
         backend = "metal";
         var baseline = automation(false);
-        ticks(baseline, 5);
+        ticks(baseline, 15);
         assertFalse(log.contains("record a"));
         assertTrue(status().contains("baseline run started Julia"), status());
     }
@@ -130,7 +145,7 @@ class AutomationTest {
         playerReady = true;
         recording = "OVERFLOW";
         var automation = automation(false);
-        ticks(automation, 8);
+        ticks(automation, 20);
         assertFalse(log.contains("arrive b"));
         assertFalse(log.contains("quit"));
         assertTrue(status().startsWith("ERROR"), status());
@@ -144,5 +159,23 @@ class AutomationTest {
         ticks(automation, 5);
         assertFalse(log.contains("record a"));
         assertEquals("POSITIONING a", status());
+    }
+
+    @Test
+    void statusLineSaysWhereTheRunIs() throws Exception {
+        playerReady = true;
+        recording = null;
+        var automation = automation(false);
+        ticks(automation, 14);
+        var seconds = Duration.ofSeconds(1).toNanos();
+        assertTrue(
+                automation.statusLine(clock + 5 * seconds).startsWith("run 1/2 opengl | a 1/2 | recording warmup "),
+                automation.statusLine(clock + 5 * seconds));
+        assertTrue(
+                automation.statusLine(clock + 40 * seconds).contains("recording 2"),
+                automation.statusLine(clock + 40 * seconds));
+        automation.overlay(clock + seconds, 0);
+        automation.overlay(clock + 2 * seconds, 300);
+        assertTrue(drawn.endsWith("| 300 FPS"), drawn);
     }
 }

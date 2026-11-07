@@ -65,11 +65,13 @@ class ProfilerAgentTest {
             assertNotNull(input);
             bytes = input.readAllBytes();
         }
-        byte[] transformed = LogicInstrumentation.instrument(bytes, getClass().getClassLoader());
+        byte[] transformed =
+                AutomationInstrumentation.instrument(bytes, getClass().getClassLoader());
         assertTrue(ClassFile.of().verify(transformed).isEmpty());
         assertThrows(
                 IllegalArgumentException.class,
-                () -> LogicInstrumentation.instrument(new byte[0], getClass().getClassLoader()));
+                () -> AutomationInstrumentation.instrument(
+                        new byte[0], getClass().getClassLoader()));
     }
 
     @Test

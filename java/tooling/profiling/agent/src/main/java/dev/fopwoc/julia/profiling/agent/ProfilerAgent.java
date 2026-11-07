@@ -36,7 +36,8 @@ public final class ProfilerAgent {
             if (loaded.getName().equals(FrameInstrumentation.TARGET.replace('/', '.'))
                     || automated
                             && (loaded.getName().equals(LoadingInstrumentation.TARGET.replace('/', '.'))
-                                    || loaded.getName().equals(LogicInstrumentation.TARGET.replace('/', '.'))))
+                                    || AutomationInstrumentation.targets(
+                                            loaded.getName().replace('.', '/'))))
                 throw new IllegalStateException("Profiling target loaded before observer installation");
         var controller = new CaptureController(run);
         if (automated) {
@@ -46,7 +47,8 @@ public final class ProfilerAgent {
                     controller,
                     run.resolve("automation.txt"),
                     julia,
-                    () -> System.getProperty("julia.renderer.backend")));
+                    () -> System.getProperty("julia.renderer.backend"),
+                    System.getProperty("profile.label", renderer)));
         }
         // Retransformation-capable observers follow the incapable transformers used by Julia's prepared classes.
         instrumentation.addTransformer(
@@ -55,10 +57,10 @@ public final class ProfilerAgent {
                     public byte[] transform(
                             ClassLoader loader, String name, Class<?> type, ProtectionDomain domain, byte[] bytes) {
                         boolean loading = automated && LoadingInstrumentation.TARGET.equals(name);
-                        boolean logic = automated && LogicInstrumentation.TARGET.equals(name);
+                        boolean logic = automated && AutomationInstrumentation.targets(name);
                         if (!loading && !logic && !FrameInstrumentation.TARGET.equals(name)) return null;
                         try {
-                            if (logic) return LogicInstrumentation.instrument(bytes, loader);
+                            if (logic) return AutomationInstrumentation.instrument(bytes, loader);
                             if (loading) {
                                 var instrumented = LoadingInstrumentation.instrument(bytes, loader);
                                 Files.writeString(run.resolve("loading-hook.txt"), "READY\n");

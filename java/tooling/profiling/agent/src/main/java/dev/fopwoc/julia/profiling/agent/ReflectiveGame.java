@@ -11,6 +11,10 @@ final class ReflectiveGame implements Game {
     private static final String MAIN_MENU = "zombie.gameStates.MainScreenState";
     private static final String INGAME = "zombie.gameStates.IngameState";
 
+    private Object textManager;
+    private Object smallFont;
+    private Method drawString;
+
     private Class<?> type(String name) throws ClassNotFoundException {
         return Class.forName(name, true, ClassLoader.getSystemClassLoader());
     }
@@ -88,8 +92,12 @@ final class ReflectiveGame implements Game {
         // The game's menu only offers this with a system flag; a capped run shows nothing about throughput.
         var performance = type("zombie.core.PerformanceSettings");
         call(performance.getField("instance").get(null), "setFramerateUncapped", true);
-        // A death would end the run. The game's own tutorial calls this outside debug mode.
-        call(player, "setInvincible", true);
+        // A death would end the run. The public setters do nothing without a debug or admin role, so set the state
+        // directly.
+        forceField(player, "invincible", true);
+        var cheat = type("zombie.characters.IsoGameCharacter").getDeclaredMethod("setGodModCheat", boolean.class);
+        cheat.setAccessible(true);
+        cheat.invoke(player, true);
         call(player, "setGhostMode", spot.ghost());
         if (spot.position() != null)
             call(
@@ -118,6 +126,44 @@ final class ReflectiveGame implements Game {
                 && Math.floor((float) call(player, "getZ")) == position.z()
                 && ((Number) call(square, "getX")).intValue() == (int) Math.floor(position.x())
                 && ((Number) call(square, "getY")).intValue() == (int) Math.floor(position.y());
+    }
+
+    @Override
+    public void face(float degrees) throws ReflectiveOperationException {
+        call(player(), "setDirectionAngle", degrees);
+    }
+
+    @Override
+    public void drawText(String text) throws ReflectiveOperationException {
+        if (textManager == null) {
+            textManager = type("zombie.ui.TextManager").getField("instance").get(null);
+            smallFont = type("zombie.ui.UIFont").getField("Small").get(null);
+            drawString = type("zombie.ui.TextManager")
+                    .getMethod(
+                            "DrawString",
+                            type("zombie.ui.UIFont"),
+                            double.class,
+                            double.class,
+                            String.class,
+                            double.class,
+                            double.class,
+                            double.class,
+                            double.class);
+        }
+        drawString.invoke(textManager, smallFont, 8d, 8d, text, 1d, 1d, 0d, 1d);
+    }
+
+    private static void forceField(Object target, String name, boolean value) throws ReflectiveOperationException {
+        for (Class<?> owner = target.getClass(); owner != null; owner = owner.getSuperclass()) {
+            for (var field : owner.getDeclaredFields()) {
+                if (field.getName().equals(name) && field.getType() == boolean.class) {
+                    field.setAccessible(true);
+                    field.setBoolean(target, value);
+                    return;
+                }
+            }
+        }
+        throw new NoSuchFieldException(target.getClass().getName() + "." + name);
     }
 
     @Override

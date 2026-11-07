@@ -11,7 +11,8 @@ import java.util.Set;
 
 /**
  * What one batch measures: a save, the spots visited in it, and how long each is recorded. {@code zombieBuddy} and
- * {@code steam} are off unless a scene needs them, so a plain comparison measures nothing but the renderer.
+ * {@code steam} are off unless a scene needs them, so a plain comparison measures nothing but the renderer. {@code overlay}
+ * is the status line, on unless turned off.
  */
 public record Scene(
         String name,
@@ -21,6 +22,7 @@ public record Scene(
         List<String> jvmOptions,
         boolean zombieBuddy,
         boolean steam,
+        boolean overlay,
         List<Spot> spots) {
     private static final String SAFE_NAME = "[A-Za-z0-9_.-]{1,64}";
     private static final String SAVE_PART = "[^/\\\\\\p{Cntrl}]+";
@@ -49,7 +51,7 @@ public record Scene(
         var data = (Map<String, Object>) raw;
         known(
                 data,
-                Set.of("name", "save", "warmup", "duration", "jvmOptions", "zombieBuddy", "steam", "spots"),
+                Set.of("name", "save", "warmup", "duration", "jvmOptions", "zombieBuddy", "steam", "overlay", "spots"),
                 "scene");
         String name = text(data, "name");
         if (!name.matches(SAFE_NAME)) throw new IllegalArgumentException("Scene needs a file-safe name");
@@ -84,6 +86,7 @@ public record Scene(
                 List.copyOf(options),
                 flag(data, "zombieBuddy"),
                 flag(data, "steam"),
+                !Boolean.FALSE.equals(data.get("overlay")),
                 List.copyOf(spots));
     }
 

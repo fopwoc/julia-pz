@@ -53,8 +53,9 @@ wherever the save left the player. These launches start Java directly, so Steam 
 settings in `jvmOptions`, which are added after the game's own and so override them. `scenes/example.json` is a starting
 point.
 
-The character is always invincible, so a run can't end in a death. `ghost` also stops zombies reacting, for steadier scenes;
-leave it off where zombie load is what you're measuring. There are no camera routes, ViewPoint controls or scripted
+The character can't die, and turns around for a few seconds at each spot before recording so the fog of war clears. Player
+input is shut out for the whole run. A line of text in the corner shows the run, spot, stage and FPS; `"overlay": false`
+turns it off. `ghost` stops zombies reacting, for steadier scenes; leave it off where zombie load is what you're measuring. There are no camera routes, ViewPoint controls or scripted
 weather. Weather, streaming and simulation can still vary, so repeat a pair before trusting a small difference.
 
 ## What a run does
@@ -67,7 +68,7 @@ For each renderer, the jar:
    scene asks for it. Only Julia differs between the two.
 3. Waits for the main menu, then loads the save through the game's own continue path, so validation and mod resets match a
    player's. The loading screen continues when its own checks allow it, without simulated input.
-4. For each spot, moves the player, waits for the current square, then records warmup and duration.
+4. For each spot, moves the player, waits for the current square, looks around, then records warmup and duration.
 5. Quits normally and starts the next run.
 
 The separate home matters because ZombieBuddy keeps its preload list there and ignores the game's `-cachedir`. Without it, a

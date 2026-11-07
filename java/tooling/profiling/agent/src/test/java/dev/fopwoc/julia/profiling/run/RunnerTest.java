@@ -34,6 +34,7 @@ class RunnerTest {
 
     private RunPlan plan(String renderer, GameInstall game, Path buddyHome) throws IOException {
         return RunPlan.of(
+                "label",
                 renderer,
                 root.resolve(renderer),
                 root.resolve("template"),
@@ -126,6 +127,7 @@ class RunnerTest {
         var scene = Scene.parse("{\"name\":\"s\",\"save\":\"Apocalypse/w\"}");
         assertFalse(scene.zombieBuddy());
         var plain = RunPlan.of(
+                "label",
                 "opengl",
                 root.resolve("plain"),
                 root.resolve("template"),
@@ -144,6 +146,7 @@ class RunnerTest {
         assertTrue(plain.command().stream().noneMatch(value -> value.startsWith("-Duser.home=")));
         var withSteam = Scene.parse("{\"name\":\"s\",\"save\":\"Apocalypse/w\",\"steam\":true}");
         assertTrue(RunPlan.of(
+                        "label",
                         "opengl",
                         root.resolve("steam"),
                         root.resolve("template"),

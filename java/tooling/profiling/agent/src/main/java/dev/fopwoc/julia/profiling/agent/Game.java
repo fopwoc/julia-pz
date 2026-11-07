@@ -14,5 +14,10 @@ interface Game {
 
     boolean arrived(Scene.Spot spot) throws ReflectiveOperationException;
 
+    /** Points the character somewhere, so what's around them is seen and not left behind fog. */
+    void face(float degrees) throws ReflectiveOperationException;
+
+    void drawText(String text) throws ReflectiveOperationException;
+
     void quit() throws ReflectiveOperationException;
 }

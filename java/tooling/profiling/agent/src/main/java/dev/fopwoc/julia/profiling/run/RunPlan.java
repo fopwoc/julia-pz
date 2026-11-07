@@ -16,6 +16,7 @@ record RunPlan(
     private static final String STEAM = "-Dzomboid.steam=";
 
     static RunPlan of(
+            String label,
             String renderer,
             Path run,
             Path template,
@@ -38,6 +39,7 @@ record RunPlan(
             command.add("-Duser.home=" + run.resolve("home"));
             command.add("-javaagent:" + buddy);
         }
+        command.add("-Dprofile.label=" + label);
         command.add("-cp");
         command.add(String.join(java.io.File.pathSeparator, game.classPath()));
         command.add(game.mainClass());
