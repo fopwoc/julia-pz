@@ -15,6 +15,12 @@ interface Game {
 
     boolean arrived(Scene.Spot spot) throws ReflectiveOperationException;
 
+    /** A loud world sound at the character, which draws zombies from a wide area. */
+    void scream() throws ReflectiveOperationException;
+
+    /** A description of the machine and display, for the report. */
+    String machine() throws ReflectiveOperationException;
+
     /** Where the character really is, for reports when a spot can't be reached. */
     String position() throws ReflectiveOperationException;
 

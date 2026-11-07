@@ -13,6 +13,8 @@ final class ReflectiveGame implements Game {
     private static final String INGAME = "zombie.gameStates.IngameState";
 
     private static final int PANEL_PADDING = 10;
+    private static final int SCREAM_RADIUS = 300;
+    private static final int SCREAM_VOLUME = 300;
 
     private Object textManager;
     private Object smallFont;
@@ -103,13 +105,10 @@ final class ReflectiveGame implements Game {
         keepAlive();
         // Like the setters above, setGhostMode is role-guarded. Being invisible is what stops zombies reacting.
         cheat(player, "INVISIBLE", spot.ghost());
-        if (spot.position() != null)
-            call(
-                    player,
-                    "teleportTo",
-                    spot.position().x(),
-                    spot.position().y(),
-                    spot.position().z());
+        cheat(player, "NO_CLIP", spot.levitate());
+        if (spot.position() != null) {
+            call(player, "teleportTo", spot.position().x(), spot.position().y(), level(spot));
+        }
         if (spot.hour() != null) {
             var time = type("zombie.GameTime").getMethod("getInstance").invoke(null);
             call(time, "setTimeOfDay", spot.hour().floatValue());
@@ -127,9 +126,36 @@ final class ReflectiveGame implements Game {
         if (position == null) return true;
         return Math.abs((float) call(player, "getX") - position.x()) < 1
                 && Math.abs((float) call(player, "getY") - position.y()) < 1
-                && Math.floor((float) call(player, "getZ")) == position.z()
+                && Math.floor((float) call(player, "getZ")) == level(spot)
                 && ((Number) call(square, "getX")).intValue() == (int) Math.floor(position.x())
                 && ((Number) call(square, "getY")).intValue() == (int) Math.floor(position.y());
+    }
+
+    private static int level(Scene.Spot spot) {
+        return spot.position().z() + (spot.levitate() ? 1 : 0);
+    }
+
+    @Override
+    public void scream() throws ReflectiveOperationException {
+        var player = player();
+        var manager = type("zombie.WorldSoundManager").getField("instance").get(null);
+        call(
+                manager,
+                "addSound",
+                player,
+                (int) (float) call(player, "getX"),
+                (int) (float) call(player, "getY"),
+                (int) (float) call(player, "getZ"),
+                SCREAM_RADIUS,
+                SCREAM_VOLUME);
+    }
+
+    @Override
+    public String machine() throws ReflectiveOperationException {
+        var instance = type("zombie.core.Core").getMethod("getInstance").invoke(null);
+        return System.getProperty("os.name") + " " + System.getProperty("os.version") + " "
+                + System.getProperty("os.arch") + " | " + call(instance, "getScreenWidth") + "x"
+                + call(instance, "getScreenHeight");
     }
 
     @Override

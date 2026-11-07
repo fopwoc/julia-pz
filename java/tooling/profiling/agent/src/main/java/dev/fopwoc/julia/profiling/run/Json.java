@@ -25,6 +25,59 @@ final class Json {
         return value;
     }
 
+    /** Writes what {@link #parse} reads, for scenes edited by command-line options. */
+    static String write(Object value) {
+        var out = new StringBuilder();
+        write(value, out);
+        return out.toString();
+    }
+
+    private static void write(Object value, StringBuilder out) {
+        switch (value) {
+            case null -> out.append("null");
+            case Map<?, ?> map -> {
+                out.append('{');
+                var separator = "";
+                for (var entry : map.entrySet()) {
+                    out.append(separator);
+                    write(entry.getKey(), out);
+                    out.append(':');
+                    write(entry.getValue(), out);
+                    separator = ",";
+                }
+                out.append('}');
+            }
+            case List<?> list -> {
+                out.append('[');
+                var separator = "";
+                for (var item : list) {
+                    out.append(separator);
+                    write(item, out);
+                    separator = ",";
+                }
+                out.append(']');
+            }
+            case String text -> {
+                out.append('"');
+                for (char next : text.toCharArray()) {
+                    switch (next) {
+                        case '"' -> out.append("\\\"");
+                        case '\\' -> out.append("\\\\");
+                        case '\n' -> out.append("\\n");
+                        case '\t' -> out.append("\\t");
+                        case '\r' -> out.append("\\r");
+                        default -> {
+                            if (next < ' ') out.append(String.format("\\u%04x", (int) next));
+                            else out.append(next);
+                        }
+                    }
+                }
+                out.append('"');
+            }
+            default -> out.append(value);
+        }
+    }
+
     private Object value() {
         space();
         if (at >= text.length()) throw invalid("unexpected end");

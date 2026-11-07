@@ -24,7 +24,8 @@ record RunPlan(
             Path buddy,
             Path buddyHome,
             Scene scene,
-            GameInstall game) {
+            GameInstall game,
+            List<String> diagnostics) {
         var command = new ArrayList<String>();
         command.add(game.java().toString());
         for (var option : game.options()) if (!option.startsWith(STEAM)) command.add(option);
@@ -40,6 +41,7 @@ record RunPlan(
             command.add("-javaagent:" + buddy);
         }
         command.add("-Dprofile.label=" + label);
+        command.addAll(diagnostics);
         command.add("-cp");
         command.add(String.join(java.io.File.pathSeparator, game.classPath()));
         command.add(game.mainClass());

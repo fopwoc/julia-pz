@@ -48,7 +48,9 @@ public final class ProfilerAgent {
                     run.resolve("automation.txt"),
                     julia,
                     () -> System.getProperty("julia.renderer.backend"),
-                    System.getProperty("profile.label", renderer)));
+                    System.getProperty("profile.label", renderer),
+                    ProfilingHooks::gpuName));
+            if (!julia) ProfilingHooks.readNativeGpuOnNextFrame();
         }
         // Retransformation-capable observers follow the incapable transformers used by Julia's prepared classes.
         instrumentation.addTransformer(

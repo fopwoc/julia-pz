@@ -42,7 +42,8 @@ class RunnerTest {
                 game.workingDirectory().resolve("ZombieBuddy.jar"),
                 buddyHome,
                 Scene.parse(SCENE),
-                game);
+                game,
+                List.of());
     }
 
     @Test
@@ -135,7 +136,8 @@ class RunnerTest {
                 null,
                 root.resolve("home"),
                 scene,
-                game);
+                game,
+                List.of());
         assertEquals(
                 1,
                 plain.command().stream()
@@ -154,7 +156,8 @@ class RunnerTest {
                         null,
                         root.resolve("home"),
                         withSteam,
-                        game)
+                        game,
+                        List.of())
                 .command()
                 .contains("-Dzomboid.steam=1"));
     }
@@ -255,5 +258,39 @@ class RunnerTest {
         var stopped = capture("town", "julia", 61);
         Files.writeString(stopped.directory().resolve("summary.properties"), "status=STOPPED\nframes=10\n");
         assertThrows(IllegalArgumentException.class, () -> Report.compare(baseline.directory(), stopped.directory()));
+    }
+
+    @Test
+    void singleSideAndBaselineTables() throws Exception {
+        var one = Report.summarize("s", List.of(capture("town", "julia", 60)));
+        assertTrue(one.contains("| town | 1 | - | 60.0 | - | - | 20.00 |"), one);
+
+        var batch = root.resolve("earlier");
+        var saved = Files.createDirectories(batch.resolve("01-julia/captures/town"));
+        Files.writeString(
+                saved.resolve("summary.properties"), "status=COMPLETE\nframes=10\naverage_fps=50\np99_ns=20000000\n");
+        Files.createDirectories(batch.resolve("01-opengl/captures/town"));
+        var compared = new java.util.ArrayList<>(Report.baseline(batch));
+        assertEquals(1, compared.size());
+        compared.add(capture("town", "julia", 60));
+        var table = Report.summarize("s", compared, Report.BUILDS, List.of("note"));
+        assertTrue(table.contains("Baseline FPS"), table);
+        assertTrue(table.contains("note"), table);
+        assertTrue(table.contains("| town | 1 | 50.0 | 60.0 | +20.0% |"), table);
+        assertThrows(
+                IllegalArgumentException.class, () -> Report.baseline(Files.createDirectories(root.resolve("empty"))));
+    }
+
+    @Test
+    void optionsNarrowTheSceneThatRunsRead() {
+        var text =
+                "{\"name\":\"s\",\"save\":\"Sandbox/w\",\"spots\":[{\"name\":\"a\"},{\"name\":\"b \\\"q\\\"\",\"ghost\":true},{\"name\":\"c\"}]}";
+        assertEquals(text, ProfileCli.editScene(text, Map.of()));
+        var edited = Scene.parse(ProfileCli.editScene(
+                text.replace("b \\\"q\\\"", "b"), Map.of("--spot", "c,a", "--save", "Sandbox/other")));
+        assertEquals("Sandbox/other", edited.save());
+        assertEquals(
+                List.of("a", "c"), edited.spots().stream().map(Scene.Spot::name).toList());
+        assertThrows(IllegalArgumentException.class, () -> ProfileCli.editScene(text, Map.of("--spot", "missing")));
     }
 }

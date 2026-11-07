@@ -8,6 +8,9 @@ public final class ProfilingHooks {
     private static volatile Automation automation;
     // Written only by the render thread, so a plain increment is safe. Only the status line reads it.
     private static volatile long frames;
+    private static final int GL_RENDERER = 0x1F01;
+    private static volatile String nativeGpu = "unknown";
+    private static boolean readGpu;
     private static final ThreadLocal<long[]> START = ThreadLocal.withInitial(() -> new long[1]);
 
     private ProfilingHooks() {}
@@ -18,6 +21,11 @@ public final class ProfilingHooks {
 
     static void automation(Automation driver) {
         automation = driver;
+    }
+
+    /** Only for native GL runs of the game: LWJGL aborts the JVM on a call without a current context. */
+    static void readNativeGpuOnNextFrame() {
+        readGpu = true;
     }
 
     public static void tick() {
@@ -39,8 +47,28 @@ public final class ProfilingHooks {
         if (session != null && session.active()) START.get()[0] = System.nanoTime();
     }
 
+    /** Julia reports its device; native GL only answers on the thread that owns the context, which is this one. */
+    static String gpuName() {
+        var device = System.getProperty("julia.renderer.device");
+        return device != null ? device : nativeGpu;
+    }
+
+    private static void readNativeGpu() {
+        try {
+            var gl = Class.forName("org.lwjgl.opengl.GL11", true, ClassLoader.getSystemClassLoader());
+            var name = gl.getMethod("glGetString", int.class).invoke(null, GL_RENDERER);
+            if (name != null) nativeGpu = name.toString();
+        } catch (ReflectiveOperationException | LinkageError unavailable) {
+            nativeGpu = "unknown";
+        }
+    }
+
     public static void complete(boolean rendered) {
         if (rendered) frames++;
+        if (rendered && readGpu) {
+            readGpu = false;
+            readNativeGpu();
+        }
         var session = capture;
         if (rendered && session != null && session.active()) {
             long now = System.nanoTime();

@@ -22,9 +22,21 @@ java/tooling/profiling/profile.sh run my-scene.json
 originals. It leaves out `mods/` folders, so mods in the list must be installed from the Workshop.
 
 **`run` launches the game.** It prints the comparison at the end and keeps everything in `~/Zomboid/profiling/`. Add
-`--dry-run` to see the launch commands without starting or writing anything. `--repetitions n` repeats the pair, alternating
+`--dry-run` to see the launch commands without starting or writing anything. `--spot town,forest` runs only those spots, `--save`
+overrides the scene's save, and `--renderer julia` runs one side. `--repetitions n` repeats the pair, alternating
 which renderer goes first; one pair is quick, but can't separate a real difference from run-to-run noise. Set `PZ_GAME` if
 the game isn't in Steam's default folder.
+
+## Optimizing
+
+For one change at a time, compare Julia builds on one spot, then confirm on the whole scene:
+
+```sh
+java/tooling/profiling/profile.sh run my-scene.json --spot town --repetitions 3 --baseline ~/Zomboid/profiling/earlier-run
+```
+
+`--java-profile` saves a Flight Recorder `profile.jfr` beside each capture, and `--gpu-stats` adds per-frame draws, pipeline
+binds, passes and uploads for Julia. Both add overhead, so the report marks those runs.
 
 ## Scenes
 
@@ -37,7 +49,8 @@ Plain scenes need nothing but the save: no ZombieBuddy and no Steam, so they com
   "jvmOptions": ["-Xmx8g"],
   "spots": [
     {"name": "forest", "position": [1000, 2000, 0], "hour": 12, "ghost": true},
-    {"name": "horde", "position": [3000, 4000, 0]}
+    {"name": "horde", "position": [3000, 4000, 0], "scream": true},
+    {"name": "town-high", "position": [5000, 6000, 0], "levitate": true}
   ]
 }
 ```
@@ -55,7 +68,7 @@ point.
 
 Runs use the widest zoom the game's options allow, since that draws the most. The character can't die, and turns around for a few seconds during the first visit so the fog of war clears. Player input is
 shut out for the whole run. A small panel in the center of the screen shows the run, spot, stage, FPS and elapsed time;
-`"overlay": false` turns it off, and is worth checking once since drawing it has a small cost. `ghost` stops zombies reacting, for steadier scenes; leave it off where zombie load is what you're measuring. There are no camera routes, ViewPoint controls or scripted
+`"overlay": false` turns it off, and is worth checking once since drawing it has a small cost. `scream` repeats a loud sound during the recording pass so zombies keep arriving, and `levitate` holds the character one level up, which shows more of the map and changes what's drawn, so treat those as separate spots. Crowds aren't repeatable, so expect more noise there. `ghost` stops zombies reacting, for steadier scenes; leave it off where zombie load is what you're measuring. There are no camera routes, ViewPoint controls or scripted
 weather. Weather, streaming and simulation can still vary, so repeat a pair before trusting a small difference.
 
 ## What a run does

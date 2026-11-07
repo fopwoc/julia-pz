@@ -8,6 +8,7 @@ import com.gtnewhorizons.angelica.glsm.profiling.DebugCounters;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
 import com.gtnewhorizons.angelica.sdlgpu.Upstream;
+import com.gtnewhorizons.angelica.sdlgpu.diagnostic.FrameCounters;
 import com.gtnewhorizons.angelica.sdlgpu.diagnostic.GpuFaultLog;
 import com.gtnewhorizons.angelica.sdlgpu.frame.DefaultTarget;
 import com.gtnewhorizons.angelica.sdlgpu.frame.FrameCommands;
@@ -62,6 +63,8 @@ public final class GameRuntime {
             InitialFrame.present(runtime.session.backend());
             beforeCall();
             System.setProperty("julia.renderer.backend", SDLGPUGate.device().getDriverName());
+            System.setProperty("julia.renderer.device", SDLGPUGate.device().getDeviceName());
+            if (FrameCounters.ENABLED) FrameCounters.open(output);
             runtime.status("READY");
             runtime.watchdog = new FrameWatchdog(output);
             LOG.log(
@@ -104,6 +107,7 @@ public final class GameRuntime {
         var runtime = require();
         Subsystems.current().drawTrace().frameBoundary();
         runtime.session.backend().onFrameEnd();
+        if (FrameCounters.ENABLED) FrameCounters.endFrame();
         int interval = PresentInterval.get();
         if (interval >= 0 && interval != runtime.presentInterval) {
             runtime.presentInterval = interval;
@@ -143,6 +147,8 @@ public final class GameRuntime {
         }
         current = null;
         System.clearProperty("julia.renderer.backend");
+        System.clearProperty("julia.renderer.device");
+        if (FrameCounters.ENABLED) FrameCounters.close();
         if (failure instanceof Error error) throw error;
         if (failure != null) throw new IllegalStateException("Game renderer cleanup failed", failure);
         LOG.log(System.Logger.Level.INFO, "Live renderer closed; borrowed window restored");

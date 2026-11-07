@@ -14,29 +14,50 @@ final class Batch {
 
     private Batch() {}
 
-    static String run(Path root, Path sceneFile, Scene scene, List<RunPlan> plans, Duration startupTimeout)
+    /** {@code sides} and {@code earlier} carry a comparison against a saved run, which then needs only one side here. */
+    static String run(
+            Path root,
+            String sceneText,
+            Scene scene,
+            List<RunPlan> plans,
+            Duration startupTimeout,
+            Report.Sides sides,
+            List<Report.Capture> earlier,
+            List<String> notes)
             throws Exception {
         Files.createDirectories(root);
-        var captures = new ArrayList<Report.Capture>();
+        var captures = new ArrayList<>(earlier);
+        var julia = new ArrayList<Path>();
+        var machines = new ArrayList<String>();
         for (var plan : plans) {
             System.out.println("Running " + plan.run().getFileName());
-            launch(plan, sceneFile, scene, startupTimeout);
+            launch(plan, sceneText, scene, startupTimeout);
+            if (plan.renderer().equals("julia")) julia.add(plan.run());
+            var machine = plan.run().resolve("machine.txt");
+            if (Files.isRegularFile(machine)) {
+                var line = plan.renderer() + ": " + Files.readString(machine).strip();
+                if (!machines.contains(line)) machines.add(line);
+            }
             for (var spot : scene.spots())
                 captures.add(new Report.Capture(
                         spot.name(),
                         plan.renderer(),
                         plan.run().resolve("captures").resolve(spot.name())));
         }
-        var summary = Report.summarize(scene.name(), captures);
+        var top = new ArrayList<>(machines);
+        top.addAll(notes);
+        var summary = Report.summarize(scene.name(), captures, sides, top);
+        var counters = Report.counters(julia);
+        if (!counters.isEmpty()) summary += "\n" + String.join("\n", counters) + "\n";
         Files.writeString(root.resolve("summary.md"), summary);
         return summary;
     }
 
-    private static void launch(RunPlan plan, Path sceneFile, Scene scene, Duration startupTimeout) throws Exception {
+    private static void launch(RunPlan plan, String sceneText, Scene scene, Duration startupTimeout) throws Exception {
         Files.createDirectories(plan.run());
         plan.prepare();
         // Presence switches the agent from passive observing to driving the game through this scene.
-        Files.copy(sceneFile, plan.run().resolve("scene.json"));
+        Files.writeString(plan.run().resolve("scene.json"), sceneText);
         var process = new ProcessBuilder(plan.command())
                 .directory(plan.game().workingDirectory().toFile())
                 .redirectErrorStream(true)

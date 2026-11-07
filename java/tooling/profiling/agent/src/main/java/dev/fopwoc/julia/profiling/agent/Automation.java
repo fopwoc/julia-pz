@@ -27,6 +27,7 @@ final class Automation {
     private static final System.Logger LOG = System.getLogger(Automation.class.getName());
     private static final long POLL_NANOS = Duration.ofMillis(200).toNanos();
     private static final long SECOND = Duration.ofSeconds(1).toNanos();
+    private static final long SCREAM_NANOS = Duration.ofSeconds(3).toNanos();
     private static final long RETELEPORT_NANOS = Duration.ofSeconds(5).toNanos();
     private static final long ARRIVAL_TIMEOUT_NANOS = Duration.ofSeconds(60).toNanos();
     // One full turn, since the fog only clears where the character looks.
@@ -55,12 +56,14 @@ final class Automation {
     private final boolean julia;
     private final Supplier<String> backend;
     private final String label;
+    private final Supplier<String> gpu;
     private volatile Stage stage = Stage.MENU;
     private volatile int spot;
     private volatile boolean warmingUp = true;
     private long nextPoll;
     private long stageStart;
     private long lastTeleport;
+    private long lastScream;
     private volatile long recordingStart;
     private volatile long fps;
     private volatile int zoom;
@@ -76,7 +79,8 @@ final class Automation {
             Path status,
             boolean julia,
             Supplier<String> backend,
-            String label) {
+            String label,
+            Supplier<String> gpu) {
         this.scene = scene;
         this.game = game;
         this.recorder = recorder;
@@ -84,13 +88,18 @@ final class Automation {
         this.julia = julia;
         this.backend = backend;
         this.label = label;
+        this.gpu = gpu;
     }
 
     void tick(long now) {
         if (stage == Stage.OVER || now - nextPoll < 0) return;
         nextPoll = now + POLL_NANOS;
         try {
-            if (stage.ordinal() >= Stage.POSITIONING.ordinal()) game.keepAlive();
+            if (stage.ordinal() >= Stage.POSITIONING.ordinal()) {
+                game.keepAlive();
+                holdLevel();
+                screamAt(now);
+            }
             step(now);
         } catch (Exception | LinkageError failure) {
             fail(failure.toString());
@@ -132,6 +141,7 @@ final class Automation {
                     report("SURVEYING " + current().name());
                 } else {
                     requireRenderer();
+                    writeMachine();
                     recorder.record(current().name(), scene.warmup(), scene.duration());
                     recordingStart = now;
                     stage = Stage.RECORDING;
@@ -163,6 +173,17 @@ final class Automation {
             }
             case OVER -> {}
         }
+    }
+
+    /** No-clip may not stop the fall, so a levitating character is put back whenever it drops. */
+    private void holdLevel() throws ReflectiveOperationException {
+        if (current().levitate() && stage != Stage.POSITIONING && !game.arrived(current())) game.arrive(current());
+    }
+
+    private void screamAt(long now) throws ReflectiveOperationException {
+        if (!current().scream() || warmingUp || now - lastScream < SCREAM_NANOS) return;
+        lastScream = now;
+        game.scream();
     }
 
     private void arrive() throws ReflectiveOperationException, IOException {
@@ -202,7 +223,8 @@ final class Automation {
         var active = backend.get();
         var current = stage;
         var lines = new ArrayList<String>();
-        lines.add(label + (active == null ? "" : " | " + active));
+        lines.add(label);
+        lines.add("gpu      " + gpu.get() + (active == null ? "" : " | " + active));
         if (current != Stage.MENU && current != Stage.LOADING)
             lines.add(String.format(
                     Locale.ROOT,
@@ -254,6 +276,11 @@ final class Automation {
             LOG.log(System.Logger.Level.ERROR, "Cannot report automation failure", failure);
         }
         // The batch stops this process once it reads the error.
+    }
+
+    private void writeMachine() throws ReflectiveOperationException, IOException {
+        if (spot == 0)
+            Files.writeString(status.resolveSibling("machine.txt"), gpu.get() + " | " + game.machine() + "\n");
     }
 
     private void report(String value) throws IOException {

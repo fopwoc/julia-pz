@@ -24,6 +24,7 @@ class AutomationTest {
     private long clock;
     private List<String> drawn;
     private int kept;
+    private int screams;
 
     private final Game game = new Game() {
         @Override
@@ -54,6 +55,16 @@ class AutomationTest {
         @Override
         public void face(float degrees) {
             turns++;
+        }
+
+        @Override
+        public void scream() {
+            screams++;
+        }
+
+        @Override
+        public String machine() {
+            return "machine";
         }
 
         @Override
@@ -104,7 +115,14 @@ class AutomationTest {
 
     private Automation automation(boolean julia) throws IOException {
         return new Automation(
-                scene(), game, recorder, run.resolve("automation.txt"), julia, () -> backend, "run 1/2 opengl");
+                scene(),
+                game,
+                recorder,
+                run.resolve("automation.txt"),
+                julia,
+                () -> backend,
+                "run 1/2 opengl",
+                () -> "Test GPU");
     }
 
     private void ticks(Automation automation, int count) {
@@ -198,12 +216,13 @@ class AutomationTest {
         automation.overlay(clock, 0);
         automation.overlay(clock + seconds, 300);
         assertEquals("run 1/2 opengl", drawn.get(0));
-        assertEquals("spot     a (1/2)", drawn.get(1));
-        assertTrue(drawn.get(2).startsWith("stage    recording"), drawn.get(2));
-        assertEquals("FPS      300 (avg 300)", drawn.get(3));
-        assertEquals("elapsed  0:01", drawn.get(4));
-        assertTrue(drawn.get(5).startsWith("args     zoom 250%"), drawn.get(5));
-        assertTrue(drawn.get(5).endsWith("ZB off, Steam off"), drawn.get(5));
+        assertEquals("gpu      Test GPU", drawn.get(1));
+        assertEquals("spot     a (1/2)", drawn.get(2));
+        assertTrue(drawn.get(3).startsWith("stage    recording"), drawn.get(3));
+        assertEquals("FPS      300 (avg 300)", drawn.get(4));
+        assertEquals("elapsed  0:01", drawn.get(5));
+        assertTrue(drawn.get(6).startsWith("args     zoom 250%"), drawn.get(6));
+        assertTrue(drawn.get(6).endsWith("ZB off, Steam off"), drawn.get(6));
     }
 
     @Test
@@ -215,5 +234,30 @@ class AutomationTest {
         assertTrue(status().startsWith("ERROR"), status());
         assertTrue(status().contains("Can't reach a: at 1,2,0"), status());
         assertTrue(log.stream().filter("arrive a"::equals).count() > 2, "It must retry the teleport");
+    }
+
+    @Test
+    void screamsOnlyOnTheRecordingPassAndRecordsTheMachine() throws Exception {
+        Files.writeString(
+                run.resolve("scene.json"),
+                "{\"name\":\"s\",\"save\":\"Sandbox/w\",\"spots\":[{\"name\":\"a\",\"scream\":true}]}");
+        playerReady = true;
+        recording = null;
+        var automation = new Automation(
+                Scene.read(run.resolve("scene.json")),
+                game,
+                recorder,
+                run.resolve("automation.txt"),
+                false,
+                () -> backend,
+                "x",
+                () -> "Test GPU");
+        ticks(automation, 7);
+        assertEquals(0, screams);
+        ticks(automation, 10);
+        assertTrue(screams > 0);
+        assertEquals(
+                "Test GPU | machine",
+                Files.readString(run.resolve("machine.txt")).strip());
     }
 }

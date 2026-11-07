@@ -7,11 +7,14 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.text.ParseException;
 import java.time.Duration;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import jdk.jfr.Configuration;
+import jdk.jfr.Recording;
 
 /** Owns recordings: the frame hook fills them, and this thread flushes them so no file IO lands on a frame. */
 final class CaptureController implements AutoCloseable, Automation.Recorder {
@@ -23,7 +26,11 @@ final class CaptureController implements AutoCloseable, Automation.Recorder {
         thread.setDaemon(true);
         return thread;
     });
+    private static final String COUNTERS = "angelica.debug.counters";
+    private static final String COUNTER_LABEL = "angelica.debug.counters.label";
+    private static final String JAVA_PROFILE = "profile.java";
     private String captureName;
+    private Recording flight;
     private String lastResult;
     private CaptureSession active;
     private boolean ready;
@@ -81,6 +88,14 @@ final class CaptureController implements AutoCloseable, Automation.Recorder {
 
     @Override
     public synchronized void record(String name, Duration warmup, Duration duration) throws IOException {
+        try {
+            arm(name, warmup, duration);
+        } catch (ParseException failure) {
+            throw new IOException("Unreadable profiling settings", failure);
+        }
+    }
+
+    private void arm(String name, Duration warmup, Duration duration) throws IOException, ParseException {
         if (!ready) throw new IllegalStateException("The frame hook is not installed yet");
         if (active != null) throw new IllegalStateException("A recording is already active");
         captureName = name;
@@ -89,6 +104,11 @@ final class CaptureController implements AutoCloseable, Automation.Recorder {
         settings = Files.isRegularFile(options) ? Files.readAllBytes(options) : null;
         gcCount = gc(false);
         gcTime = gc(true);
+        if (Boolean.getBoolean(COUNTERS)) System.setProperty(COUNTER_LABEL, name);
+        if (Boolean.getBoolean(JAVA_PROFILE)) {
+            flight = new Recording(Configuration.getConfiguration("profile"));
+            flight.start();
+        }
         active = new CaptureSession(new CapturePlan(name, warmup, duration), MAX_SAMPLES);
         ProfilingHooks.capture(active);
         status("ARMED " + captureName);
@@ -116,6 +136,12 @@ final class CaptureController implements AutoCloseable, Automation.Recorder {
         }
         active = null;
         ProfilingHooks.capture(null);
+        System.clearProperty(COUNTER_LABEL);
+        if (flight != null) {
+            flight.dump(directory.resolve("captures").resolve(captureName).resolve("profile.jfr"));
+            flight.close();
+            flight = null;
+        }
         status(result.state() + " " + captureName);
         lastResult = result.state().toString();
     }

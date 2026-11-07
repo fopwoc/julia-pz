@@ -15,31 +15,54 @@ final class Report {
 
     private Report() {}
 
+    /** Which two sides a table compares, by the renderer name on their captures. */
+    record Sides(String left, String leftTitle, String right, String rightTitle) {}
+
+    static final Sides RENDERERS = new Sides("opengl", "OpenGL", "julia", "Julia");
+    static final Sides BUILDS = new Sides("baseline", "Baseline", "julia", "Julia");
+
     static String summarize(String scene, Collection<Capture> captures) throws IOException {
+        return summarize(scene, captures, RENDERERS, List.of());
+    }
+
+    static String summarize(String scene, Collection<Capture> captures, Sides sides, List<String> notes)
+            throws IOException {
         var lines = new ArrayList<String>();
         lines.add("# " + scene);
         lines.add("");
-        lines.add("| Spot | Runs | OpenGL FPS | Julia FPS | Julia vs OpenGL | OpenGL p99 ms | Julia p99 ms |");
+        lines.addAll(notes);
+        if (!notes.isEmpty()) lines.add("");
+        lines.add(String.format(
+                "| Spot | Runs | %s FPS | %s FPS | Difference | %s p99 ms | %s p99 ms |",
+                sides.leftTitle(), sides.rightTitle(), sides.leftTitle(), sides.rightTitle()));
         lines.add("| --- | ---: | ---: | ---: | ---: | ---: | ---: |");
         int runs = 0;
         for (var spot : captures.stream().map(Capture::spot).distinct().toList()) {
-            var opengl = metrics(captures, spot, "opengl");
-            var julia = metrics(captures, spot, "julia");
-            runs = Math.max(runs, Math.min(opengl.size(), julia.size()));
-            double baseline = median(opengl, "average_fps"), candidate = median(julia, "average_fps");
+            var left = metrics(captures, spot, sides.left());
+            var right = metrics(captures, spot, sides.right());
+            int pairs = left.isEmpty() || right.isEmpty()
+                    ? Math.max(left.size(), right.size())
+                    : Math.min(left.size(), right.size());
+            runs = Math.max(runs, pairs);
+            var change = left.isEmpty() || right.isEmpty()
+                    ? "-"
+                    : String.format(
+                            Locale.ROOT,
+                            "%+.1f%%",
+                            (median(right, "average_fps") / median(left, "average_fps") - 1) * 100);
             lines.add(String.format(
                     Locale.ROOT,
-                    "| %s | %d | %s | %s | %+.1f%% | %.2f | %.2f |",
+                    "| %s | %d | %s | %s | %s | %s | %s |",
                     spot,
-                    Math.min(opengl.size(), julia.size()),
-                    fps(opengl, baseline),
-                    fps(julia, candidate),
-                    (candidate / baseline - 1) * 100,
-                    median(opengl, "p99_ns") / 1e6,
-                    median(julia, "p99_ns") / 1e6));
+                    pairs,
+                    fps(left),
+                    fps(right),
+                    change,
+                    p99(left),
+                    p99(right)));
         }
         lines.add("");
-        if (runs < 2) lines.add("One pair of runs: this can't separate a real difference from run-to-run noise.");
+        if (runs < 2) lines.add("One run per side: this can't separate a real difference from run-to-run noise.");
         else lines.add("FPS is the median with its range across runs. Trust a difference only beyond those ranges.");
         lines.add("Runs are uncapped with VSync off. CPU wall timings only, not GPU timestamps.");
         return String.join("\n", lines) + "\n";
@@ -59,13 +82,39 @@ final class Report {
                         new Capture(first.getProperty("scenario"), "julia", candidate)));
     }
 
+    /** The Julia captures of an earlier batch, as the baseline side of a build comparison. */
+    static List<Capture> baseline(Path root) throws IOException {
+        var result = new ArrayList<Capture>();
+        try (var runs = Files.newDirectoryStream(root, "*-julia")) {
+            for (var run : runs) {
+                try (var spots = Files.newDirectoryStream(run.resolve("captures"))) {
+                    for (var spot : spots)
+                        result.add(new Capture(spot.getFileName().toString(), "baseline", spot));
+                }
+            }
+        }
+        if (result.isEmpty()) throw new IllegalArgumentException("No Julia captures under " + root);
+        return result;
+    }
+
+    /** The per-frame renderer counters of each Julia run, medians not being meaningful for a count this steady. */
+    static List<String> counters(List<Path> runs) throws IOException {
+        var lines = new ArrayList<String>();
+        for (var run : runs) {
+            var file = run.resolve("renderer/counters.txt");
+            if (!Files.isRegularFile(file)) continue;
+            lines.add(run.getFileName().toString() + " per frame:");
+            for (var line : Files.readAllLines(file)) lines.add("  " + line);
+        }
+        return lines;
+    }
+
     private static List<Properties> metrics(Collection<Capture> captures, String spot, String renderer)
             throws IOException {
         var result = new ArrayList<Properties>();
         for (var capture : captures)
             if (capture.spot().equals(spot) && capture.renderer().equals(renderer))
                 result.add(read(capture.directory()));
-        if (result.isEmpty()) throw new IllegalArgumentException("No " + renderer + " capture for " + spot);
         return result;
     }
 
@@ -80,13 +129,19 @@ final class Report {
         return properties;
     }
 
-    private static String fps(List<Properties> runs, double median) {
+    private static String fps(List<Properties> runs) {
+        if (runs.isEmpty()) return "-";
+        double median = median(runs, "average_fps");
         if (runs.size() == 1) return String.format(Locale.ROOT, "%.1f", median);
         var values = runs.stream()
                 .mapToDouble(run -> Double.parseDouble(run.getProperty("average_fps")))
                 .sorted()
                 .toArray();
         return String.format(Locale.ROOT, "%.1f (%.1f-%.1f)", median, values[0], values[values.length - 1]);
+    }
+
+    private static String p99(List<Properties> runs) {
+        return runs.isEmpty() ? "-" : String.format(Locale.ROOT, "%.2f", median(runs, "p99_ns") / 1e6);
     }
 
     private static double median(List<Properties> runs, String key) {

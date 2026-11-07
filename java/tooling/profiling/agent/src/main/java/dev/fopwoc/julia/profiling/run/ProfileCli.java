@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,7 +17,7 @@ import java.util.Set;
 public final class ProfileCli {
     private static final Path ZOMBOID = Path.of(System.getProperty("user.home"), "Zomboid");
     private static final Path TEMPLATE = ZOMBOID.resolve("profiling-template");
-    private static final Set<String> SWITCHES = Set.of("--dry-run");
+    private static final Set<String> SWITCHES = Set.of("--dry-run", "--java-profile", "--gpu-stats");
 
     private ProfileCli() {}
 
@@ -49,8 +50,8 @@ public final class ProfileCli {
     }
 
     private static void run(String sceneArgument, Map<String, String> options) throws Exception {
-        var sceneFile = Path.of(sceneArgument).toAbsolutePath();
-        var scene = Scene.read(sceneFile);
+        var sceneText = editScene(Files.readString(Path.of(sceneArgument)), options);
+        var scene = Scene.parse(sceneText);
         int repetitions = Integer.parseInt(options.getOrDefault("--repetitions", "1"));
         if (repetitions < 1 || repetitions > 100) throw new IllegalArgumentException("Use 1..100 repetitions");
         var template =
@@ -77,13 +78,31 @@ public final class ProfileCli {
             if (!Files.isRegularFile(buddy))
                 throw new IllegalArgumentException("The scene needs ZombieBuddy, but there's no " + buddy);
         }
+        var baseline = options.containsKey("--baseline")
+                ? Path.of(options.get("--baseline")).toAbsolutePath()
+                : null;
+        var single = options.get("--renderer");
+        if (baseline != null && single == null) single = "julia";
+        if (single != null && !single.equals("opengl") && !single.equals("julia"))
+            throw new IllegalArgumentException("--renderer is opengl or julia");
+        if (baseline != null && single.equals("opengl"))
+            throw new IllegalArgumentException("A baseline compares Julia builds");
+        var diagnostics = new ArrayList<String>();
+        var notes = new ArrayList<String>();
+        if (options.containsKey("--java-profile")) diagnostics.add("-Dprofile.java=true");
+        if (options.containsKey("--gpu-stats")) diagnostics.add("-Dangelica.debug.counters=true");
+        // Their overhead lands inside the measured frames.
+        if (!diagnostics.isEmpty()) notes.add("Profilers were on: don't compare or publish these frame times.");
         var plans = new ArrayList<RunPlan>();
         for (int repeat = 0; repeat < repetitions; repeat++) {
             // Alternating keeps warm OS caches from always favoring whichever renderer runs second.
-            var order = repeat % 2 == 0 ? new String[] {"opengl", "julia"} : new String[] {"julia", "opengl"};
+            var order = single != null
+                    ? new String[] {single}
+                    : repeat % 2 == 0 ? new String[] {"opengl", "julia"} : new String[] {"julia", "opengl"};
             for (var renderer : order) {
                 plans.add(RunPlan.of(
-                        String.format("run %d/%d %s", plans.size() + 1, repetitions * 2, renderer),
+                        String.format(
+                                "run %d/%d %s", plans.size() + 1, repetitions * (single == null ? 2 : 1), renderer),
                         renderer,
                         root.resolve(String.format("%02d-%s", repeat + 1, renderer)),
                         template,
@@ -91,7 +110,8 @@ public final class ProfileCli {
                         buddy,
                         ZOMBOID.getParent().resolve(".zombie_buddy"),
                         scene,
-                        game));
+                        game,
+                        diagnostics));
             }
         }
         if (options.containsKey("--dry-run")) {
@@ -101,8 +121,27 @@ public final class ProfileCli {
         if (sessionRunning())
             throw new IllegalStateException("Close the game first: a batch needs the machine to itself");
         var timeout = Duration.ofSeconds(Long.parseLong(options.getOrDefault("--startup-timeout", "300")));
-        System.out.print(Batch.run(root, sceneFile, scene, plans, timeout));
+        var earlier = baseline == null ? List.<Report.Capture>of() : Report.baseline(baseline);
+        var sides = baseline == null ? Report.RENDERERS : Report.BUILDS;
+        System.out.print(Batch.run(root, sceneText, scene, plans, timeout, sides, earlier, notes));
         System.out.println("Results in " + root);
+    }
+
+    /** Options that narrow a scene are applied to its text, because each run reads the scene from its own folder. */
+    @SuppressWarnings("unchecked")
+    static String editScene(String text, Map<String, String> options) {
+        var scene = (Map<String, Object>) Json.parse(text);
+        if (options.containsKey("--save")) scene.put("save", options.get("--save"));
+        if (options.containsKey("--spot")) {
+            var wanted = List.of(options.get("--spot").split(","));
+            var spots = new ArrayList<Object>();
+            for (var spot : (List<Object>) scene.getOrDefault("spots", List.of()))
+                if (wanted.contains(((Map<String, Object>) spot).get("name"))) spots.add(spot);
+            if (spots.size() != wanted.size())
+                throw new IllegalArgumentException("The scene doesn't have every spot in " + wanted);
+            scene.put("spots", spots);
+        }
+        return Json.write(scene);
     }
 
     private static boolean sessionRunning() {
@@ -145,6 +184,8 @@ public final class ProfileCli {
         return """
                 Commands:
                   run <scene.json> --game <folder> [--repetitions n] [--template dir] [--out dir] [--dry-run]
+                      [--spot a,b] [--save Mode/Name] [--renderer opengl|julia] [--baseline earlier-run]
+                      [--java-profile] [--gpu-stats]
                   bake <Mode/SaveName> [--source dir] [--out dir]
                   compare <opengl capture> <julia capture>
                   audit <projectzomboid.jar>""";
