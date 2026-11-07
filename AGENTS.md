@@ -76,6 +76,8 @@
   backend classes.
 - Every class in `dev.fopwoc.julia.probe.scene` is redirected as it loads and must contain redirected GL calls. Put
   non-GL helpers elsewhere.
+- Startup loads every prepared class right after adding the transformer. A class first loaded while another agent's
+  transformer runs on that thread skips all transformers, so it would silently keep native GL.
 - Prepared GLFW and legacy Display framebuffer-size queries use logical window dimensions (`FramebufferSizePass`),
   matching `HostWindow.useLogicalResolution`; native presentation applies display scaling once. Keep array, buffer,
   raw-pointer, and method-reference forms consistent, including final presentation queries.

@@ -18,4 +18,19 @@ class GameStartupTest {
         assertEquals(List.of(), GameStartup.loadedConsumers(candidates, Stream.of(EXPOSER, patch, "java.lang.String")));
         assertEquals(List.of(RENDERER), GameStartup.loadedConsumers(candidates, Stream.of(EXPOSER, patch, RENDERER)));
     }
+
+    @Test
+    void loadsPreparedClassesWithoutInitializingThemAndSkipsMissingOnes() {
+        GameStartup.loadPrepared(
+                List.of("does.not.Exist", LoadOnly.class.getName()), getClass().getClassLoader());
+        assertFalse(loadOnlyInitialized);
+    }
+
+    private static boolean loadOnlyInitialized;
+
+    private static final class LoadOnly {
+        static {
+            loadOnlyInitialized = true;
+        }
+    }
 }

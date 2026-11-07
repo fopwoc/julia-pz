@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,6 +41,22 @@ public final class GameStartup {
                 .filter(candidates::contains)
                 .sorted()
                 .toList();
+    }
+
+    /**
+     * The JVM hides a class from every transformer if it first loads while a transformer is already running on that
+     * thread. Agents such as ZombieBuddy resolve game types mid-transform, so a planned class could otherwise skip its
+     * rewrite and silently keep native GL calls. Loading them now, without initializing them, closes that window.
+     */
+    static void loadPrepared(Collection<String> names, ClassLoader loader) {
+        for (String name : names) {
+            try {
+                Class.forName(name, false, loader);
+            } catch (ClassNotFoundException | LinkageError unavailable) {
+                // Planned archives can hold classes this launch never reaches, such as optional integrations.
+                LOG.log(System.Logger.Level.DEBUG, "Prepared class not loaded: " + name, unavailable);
+            }
+        }
     }
 
     /**
@@ -104,6 +121,7 @@ public final class GameStartup {
             var mods = new ApprovedMods(plan, transformer, instrumentation::getAllLoadedClasses, output);
             ModApprovalHooks.install(mods::prepare);
             instrumentation.addTransformer(transformer);
+            loadPrepared(candidates, host);
             System.setProperty("julia.startup", "active");
             LOG.log(
                     System.Logger.Level.INFO,
