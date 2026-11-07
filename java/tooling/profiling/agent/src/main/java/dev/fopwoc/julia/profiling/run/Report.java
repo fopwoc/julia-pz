@@ -62,8 +62,8 @@ final class Report {
                     p99(right)));
         }
         lines.add("");
+        // Ends with its own blank line when it has rows.
         lines.addAll(resources(captures, sides));
-        lines.add("");
         if (runs < 2) lines.add("One run per side: this can't separate a real difference from run-to-run noise.");
         else lines.add("FPS is the median with its range across runs. Trust a difference only beyond those ranges.");
         lines.add("Runs are uncapped with VSync off. CPU wall timings only, not GPU timestamps.");
