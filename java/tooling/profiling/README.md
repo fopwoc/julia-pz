@@ -1,122 +1,106 @@
 # In-game profiling tooling
 
-This is a separate development tool, not a Workshop mod or a production-agent dependency. It works with native
-OpenGL and Julia. The observer uses only JDK 25 APIs; it does not need Angelica, ZombieBuddy, or native graphics libraries.
+A development tool, not part of the Workshop mod. One command launches the game with and without Julia, records the same
+spots in a save, exits, and compares the results.
 
-`core` is a callable timing recorder with externally supplied monotonic timestamps. `agent` adapts PZ's
-`RenderThread.lockStepRenderStep()Z`, counting only returns that report a rendered frame. The Python `runner` builds
-launch plans from the installed macOS bundle or Linux JSON settings, copies disposable profiles, controls recordings,
-and compares reports. Probe executables remain available separately at `java/tooling/probe` through the usual `:probe` tasks.
+`core` is a timing recorder with externally supplied timestamps. `agent` builds `profiling-agent.jar`, a separate Julia
+entry used only for measurements: it holds the frame observer and Julia's startup, so both sides of a comparison launch
+the same jar and one argument picks the renderer. `<run>` observes native OpenGL and `julia=<run>` also starts Julia.
+The Python `runner` builds launch plans from the installed macOS bundle or Linux JSON settings and controls each run.
+Probe executables remain separate at `java/tooling/probe`.
 
-## Build and inspect
+## Quick start
 
-From the repository root:
+Make a single-player save with a living character, accepted startup dialogs, and the graphics settings and mods you want
+to test. Then, from the repository root with the game closed:
 
 ```sh
 ./java/gradlew -p java :tooling:profiling:agent:jar
-# Optional standalone ZIP: observer, callable core JAR, runner and instructions
-./java/gradlew -p java :tooling:profiling:toolingZip
-python3 java/tooling/profiling/profile.py plan \
-  --game '/path/to/ProjectZomboid' --run /tmp/forest-opengl --renderer opengl
+python3 java/tooling/profiling/profile.py bake Apocalypse/my-save
+python3 java/tooling/profiling/profile.py run java/tooling/profiling/scenes/example.json
 ```
 
-`plan` prints JSON and does not create a profile or launch a process. On macOS, `--game` accepts the installed `.app`
-or its parent directory. On Linux it accepts the directory containing `ProjectZomboid64.json`. The bundled JVM,
-main class, memory/GC flags and classpath are reused. `--java` overrides the JVM; JDK 25 is required.
+`bake` copies that save, `options.ini` and the mod list files to `~/Zomboid/profiling-template`, without changing the
+originals. It leaves out `mods/` folders, so local mods must be in the save's list and installed elsewhere. Edit the
+scene's `save` to match. **`run` launches the game** several times and needs the machine to itself. Add `--dry-run` to
+see every launch without starting or writing anything. The summary prints at the end, and everything is under
+`java/tooling/profiling/build/runs/`.
 
-The standalone ZIP is written under `java/tooling/profiling/build/distributions/`; extract it and run its `profile.py`.
-Use `--julia` explicitly when running outside the source checkout.
+## Scenes
 
-An offline bytecode audit reads resources without initializing game classes:
+```json
+{
+  "name": "muldraugh",
+  "save": "Apocalypse/my-save",
+  "warmup": 20,
+  "duration": 60,
+  "repetitions": 3,
+  "spots": [
+    {"name": "forest", "position": [1000, 2000, 0], "hour": 12, "ghost": true},
+    {"name": "horde", "position": [3000, 4000, 0], "direction": "SE"}
+  ]
+}
+```
+
+Each launch visits every spot in order and records it. Spot `name` must be unique. `position`, `direction` and `hour`
+are optional; without any `spots` it records wherever the save left the player. `direction` is the character's facing,
+not a first-person camera angle, and this tool has no camera routes, ViewPoint controls or scripted weather.
+
+The character is always invincible, so a run cannot end in a death. `ghost` also stops zombies reacting, for steadier
+scenes; leave it off where zombie load is what you are measuring. Weather, streaming and simulation can still vary, so
+read the FPS range across repetitions before trusting a difference.
+
+## What a batch does
+
+For each repetition, in alternating renderer order, the runner:
+
+1. Copies the template to a fresh `<run>/profile`, with its own home folder holding a copy of ZombieBuddy's settings.
+2. Enables a Lua companion in the copied mod lists and removes any Julia mod from them.
+3. Loads the save through PZ's normal validation and mod-reset path, and continues the loading screen when its own checks
+   allow it, without simulated input.
+4. For each spot, moves the player, waits for the current square, then records warmup and duration.
+5. Requires complete nonempty captures, requests a normal game exit, and starts the next copy.
+
+ZombieBuddy runs in both modes when `ZombieBuddy.jar` is beside the game, so only Julia differs. The separate home matters
+because ZombieBuddy keeps its preload list there: without it a baseline would still load an installed Julia mod, and the
+batch would rewrite the player's real list. A Julia run also fails unless Julia reports it is rendering, so a batch can't
+quietly compare OpenGL with itself.
+
+Runs set `focusloss=false` so they keep simulating in the background. Other graphics settings and the template are
+preserved. An unresolved dialog, dead character, invalid hook, crash, frozen renderer or timeout fails the batch and no
+later run starts. `--startup-timeout` defaults to 300 seconds. On error or Ctrl-C the runner stops only the process it
+created. It never creates saves, approves Java mods, or modifies installed game files. Java mods in a copied profile
+still go through ZombieBuddy's normal approval using the copied settings, so approve them in a normal launch first.
+
+The batch writes `summary.md`, `results.json`, `benchmark.json`, a final `status.txt`, and one `comparison-NN.md` per
+completed pair. Match FPS limits and VSync: capped results don't show maximum throughput. Julia always presents with VSync
+for now, so a display-rate cap hides differences above it. Treat first-visit streaming and warmed stationary measurements
+as separate scenes.
+
+## Manual runs
+
+`plan` prints a single launch as JSON without doing anything. `launch` starts it passively, with no companion or loading
+hook. Prepare the view yourself, then control it from another terminal:
+
+```sh
+python3 java/tooling/profiling/profile.py launch --run /tmp/forest-opengl --renderer opengl \
+  --profile-template ~/Zomboid/profiling-template
+python3 java/tooling/profiling/profile.py record /tmp/forest-opengl --scenario forest --warmup 20 --duration 60
+python3 java/tooling/profiling/profile.py stop /tmp/forest-opengl
+```
+
+The first rendered frame starts warmup; after warmup, the first completed frame sets the interval baseline. `stop` and game
+shutdown keep partial results as `STOPPED`, and buffer exhaustion gives `OVERFLOW`; neither is a valid full run. `--debug`
+adds the game's debug flag, which changes the code that runs, so results with it aren't comparable to normal play.
+
+An offline bytecode audit checks the hooks against the installed game without loading its classes:
 
 ```sh
 java -cp java/tooling/profiling/agent/build/libs/profiling-agent.jar \
   dev.fopwoc.julia.profiling.agent.FrameAudit /path/to/projectzomboid.jar
 ```
 
-## Run and control
-
-The following command **launches the game**. Use it manually when ready:
-
-```sh
-python3 java/tooling/profiling/profile.py launch \
-  --game '/path/to/ProjectZomboid' --run /tmp/forest-opengl \
-  --renderer opengl --profile-template /path/to/prepared-test-profile
-```
-
-The run directory must not exist. The template is copied to `<run>/profile`; the original profile and saves are never
-modified. Without a template, a fresh empty profile is created. This starts Java directly instead of invoking Steam's
-launch button; the game's own Steam/native runtime requirements still apply.
-
-For Julia, replace `--renderer opengl` with `--renderer julia`. `--julia /path/to/julia-agent.jar` overrides its default
-build output. `--buddy /path/to/ZombieBuddy.jar` adds ZombieBuddy in either mode. The observer is placed after these
-agents. Julia reports are routed into `<run>/renderer`, separate from normal game reports. `--debug` adds the game's debug flag; it is not needed for timing. Match it between compared runs.
-
-Load the same test save and prepare the same view, then use another terminal:
-
-```sh
-python3 java/tooling/profiling/profile.py record /tmp/forest-opengl --scenario forest --warmup 20 --duration 60
-python3 java/tooling/profiling/profile.py stop /tmp/forest-opengl
-```
-
-The first rendered frame starts warmup. After warmup, the first completed frame establishes the interval baseline;
-subsequent completed frames are sampled. Results flush on the controller thread after the window ends. `stop` and game
-shutdown preserve partial results as `STOPPED`; buffer exhaustion produces `OVERFLOW`. Neither is a valid full run.
-An observer installation/control error is reported in `status.txt` and stderr; no renderer recovery is attempted.
-
-## Automated comparisons
-
-Prepare a single-player profile with an existing living character, accepted startup dialogs, the desired graphics
-settings and mods, and a stationary test view. Preserve its `mods/reset-mods-*.txt` release markers: PZ resets the
-default mod list when the marker for the running game version is missing. Both renderers must support that fixture.
-Write a scenario JSON:
-
-```json
-{
-  "name": "forest",
-  "save": "Sandbox/benchmark-save",
-  "warmup": 20,
-  "duration": 60
-}
-```
-
-`save` is relative to the profile's `Saves/` folder. Optional `position: [x, y, z]` teleports the player after loading;
-`direction: "SE"` sets their facing, and `hour: 12` sets the initial time of day. Omit them to preserve the saved state.
-Facing is not a first-person camera angle. This first adapter supports stationary vanilla scenes; camera routes,
-ViewPoint controls, scripted weather and deterministic simulation replay are not implemented. Weather, zombies,
-streaming and simulation can still vary: use a suitable prepared save and inspect repeated results.
-
-Inspect the whole batch without launching or writing anything:
-
-```sh
-python3 java/tooling/profiling/profile.py benchmark-plan \
-  --game '/path/to/ProjectZomboid' --run /tmp/forest-comparison \
-  --profile-template /path/to/prepared-test-profile --scenario /path/to/forest.json \
-  --repetitions 3
-```
-
-Replace **`benchmark-plan` with `benchmark`** to explicitly launch the batch. It creates a fresh profile copy for every
-run, alternates OpenGL/Julia order between repetitions, and performs:
-
-1. Enable a development-only Lua companion in the copied default/save mod lists.
-2. Load the selected save through PZ's normal save validation and mod-reset path.
-3. Continue the loading screen when its original loading checks permit it, without simulated input.
-4. Position the player, wait for a loaded current square, then arm the observer's warmup and recording.
-5. Require a complete nonempty capture, request normal game exit, and proceed to the next fresh copy.
-
-Benchmark copies disable pause-on-focus-loss (`focusloss=false`) so background runs keep simulating. Quit-command
-polling uses PZ’s tick-even-when-paused event, so a pause cannot strand the exit handshake. Other graphics settings and
-the template are preserved. The companion and loading-screen hook are enabled only for benchmark runs. Ordinary `launch`/`record` stays passive.
-No `-debug` flag is required for this adapter. An unresolved dialog, missing/dead character, invalid hook, crash, frozen
-renderer or timeout fails the batch; no later repetition is launched. `--startup-timeout` defaults to 180 seconds.
-On error or Ctrl-C the runner terminates only the process it created. Use this while no other PZ session is active.
-It does not create saves, approve Java mods, or modify installed game files. Prepare those prerequisites manually.
-
-The batch writes `benchmark.json`, `results.json`, a final `status.txt`, and one `comparison-NN.md` for each completed
-pair. Per-run `scenario.json`, `scene-ready.txt`, `loading-hook.txt` and `profile/Lua/profile-scene.txt` record the scene
-contract and its handshake. Original templates are never changed, and all captures remain available after a failure.
-Match FPS limits and VSync; capped results do not show maximum throughput. Treat first-visit streaming and warmed
-stationary measurements as separate scenarios.
+`./java/gradlew -p java :tooling:profiling:toolingZip` also builds a portable ZIP under `build/distributions/`.
 
 ## Results
 
@@ -149,9 +133,6 @@ identical game state: inspect `options.ini`, launch/environment metadata, and yo
 python3 -m unittest discover -s java/tooling/profiling/tests
 ```
 
-The agent integration test runs a synthetic JVM fixture, not PZ. The direct-launch tests mock process execution.
-The scenario adapter also has a Lua fixture with mocked game APIs (install `lua` to run it); batch tests use synthetic
-processes, never PZ. `FrameAudit` verifies both frame and loading hooks against the installed archive without loading
-game classes. The adapter follows the installed game's `MainScreen.continueLatestSave` path and public
-[PZ Lua file APIs](https://projectzomboid.com/modding/zombie/Lua/LuaManager.GlobalObject.html).
-No tests launch the game or a graphics window. Automated in-game collection still needs its first manual smoke test.
+The agent test uses a synthetic JVM fixture, the runner tests mock process execution, and the Lua companion runs against
+mocked game APIs when `lua` is installed. None of them launch the game or open a window, and Julia mode is only exercised
+in a real run.

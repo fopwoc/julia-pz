@@ -18,13 +18,15 @@
   extensions. Both forks target LWJGL3 only, with no lwjgl3ify or Minecraft classes. Julia owns the host side: agent,
   isolated loader, game and mod bytecode passes, window borrowing, startup, and the Workshop package. Fork rules (merge
   model, tracked and owned files, hook list) live in `third_party/angelica/AGENTS.md`.
-- `:probe` maps to `java/tooling/probe`; its CLI/task names stay unchanged. Profiling core and standalone agent live
-  under `java/tooling/profiling`, with the Python runner beside them. Production projects must never depend on tooling.
-  The Workshop excludes `java/tooling`; the complete source archive retains it. Profiling hooks observe completed
-  render steps, never GL behavior; CPU wall durations are not GPU timestamps. Direct launch runs only on explicit
-  user request. `profile.py plan`, `benchmark-plan` and `FrameAudit` are safe offline checks. The opt-in benchmark
-  companion lives only in copied profiles; its loading-screen continuation hook must preserve the original loading
-  checks. Keep scenario control independent of renderer code. Batch failures stop subsequent runs.
+- `:probe` maps to `java/tooling/probe`; its CLI/task names stay unchanged. Profiling lives under `java/tooling/profiling`:
+  `core`, the Python runner, and `agent`, a third Julia entry (`profiling-agent.jar`) with the observer and `:launch`, so
+  both sides of a comparison run one jar. Production projects must never depend on tooling. The Workshop excludes
+  `java/tooling`; the complete source archive retains it. Profiling hooks observe completed render steps, never GL
+  behavior; CPU wall durations are not GPU timestamps. Launching runs only on explicit user request. `profile.py plan`,
+  `run --dry-run` and `FrameAudit` are safe offline checks. The opt-in scenario companion lives only in copied profiles;
+  its loading-screen continuation hook must preserve the original loading checks. Keep scenario control independent of
+  renderer code. Batch failures stop subsequent runs. Runs get their own home folder, since ZombieBuddy keeps its preload
+  list there and ignores `-cachedir`.
 - Agent and probe packaging uses `buildSrc/packaging` to reduce Fastutil by static dependency closure, including nested
   classes. Compilation retains the full API. Audit new reflective Fastutil usage explicitly. `:buildSrc:test` covers
   closure behavior; run it when changing this packaging logic.

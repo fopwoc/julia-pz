@@ -1,6 +1,7 @@
 """Compare completed recordings using common frame metrics, with no renderer-specific counters."""
 from __future__ import annotations
 
+import statistics
 from pathlib import Path
 
 
@@ -20,3 +21,19 @@ def compare(baseline: Path, candidate: Path) -> str:
     for label, key in (("Median", "median_ns"), ("p95", "p95_ns"), ("p99", "p99_ns"), ("Maximum", "max_ns")):
         lines.append(f"| {label} frame time (ms) | {int(first[key])/1e6:.3f} | {int(second[key])/1e6:.3f} |")
     return "\n".join(lines) + "\n\nCPU wall timings only. Compare identical saves, views, resolution, settings, debug mode, and FPS limits.\n"
+
+
+def summarize(scenario: str, results: list[dict]) -> str:
+    """Medians over repetitions per spot; the range shows whether a difference is larger than run-to-run noise."""
+    lines = ["# " + scenario + " summary", "", "| Spot | Renderer | Runs | Average FPS (median) | FPS range | p99 frame time (ms, median) |",
+             "| --- | --- | ---: | ---: | ---: | ---: |"]
+    for spot in dict.fromkeys(item["spot"] for item in results):
+        for renderer in ("opengl", "julia"):
+            runs = [properties(Path(item["capture"]) / "summary.properties") for item in results
+                    if item["renderer"] == renderer and item["spot"] == spot]
+            if not runs:
+                continue
+            fps = [float(run["average_fps"]) for run in runs]
+            p99 = [int(run["p99_ns"]) / 1e6 for run in runs]
+            lines.append(f"| {spot} | {renderer} | {len(runs)} | {statistics.median(fps):.2f} | {min(fps):.2f}-{max(fps):.2f} | {statistics.median(p99):.3f} |")
+    return "\n".join(lines) + "\n"

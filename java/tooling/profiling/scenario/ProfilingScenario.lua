@@ -1,7 +1,7 @@
 -- Development-only adapter. All files and mutations belong to the runner's copied profile.
 local config = require "ProfilingConfig"
 local started = false
-local prepared = false
+local current = nil
 local ready = false
 local failed = false
 local lastPoll = 0
@@ -30,6 +30,20 @@ local function guarded(action)
     end
 end
 
+local function arrive(index)
+    local spot = assert(config.spots[index], "Unknown scenario spot")
+    local player = assert(getPlayer(), "Scenario needs the existing single-player character")
+    -- A death would end the run, and the game calls this outside debug mode itself (Tutorial1.lua).
+    player:setInvincible(true)
+    player:setGhostMode(spot.ghost == true)
+    if spot.x then player:teleportTo(spot.x, spot.y, spot.z) end
+    if spot.hour then getGameTime():setTimeOfDay(spot.hour) end
+    if spot.direction then player:setDir(IsoDirections[spot.direction]) end
+    current = index
+    ready = false
+    status("POSITIONING " .. index)
+end
+
 Events.OnMainMenuEnter.Add(function()
     guarded(function()
         -- The game's normal mod-reset path reloads this file. Its continuation owns loading after a reset.
@@ -43,13 +57,8 @@ end)
 
 Events.OnGameStart.Add(function()
     guarded(function()
-        local player = assert(getPlayer(), "Scenario needs the existing single-player character")
-        if config.x then player:teleportTo(config.x, config.y, config.z) end
-        if config.hour then getGameTime():setTimeOfDay(config.hour) end
-        if config.direction then player:setDir(IsoDirections[config.direction]) end
         setGameSpeed(1)
-        prepared = true
-        status("POSITIONING")
+        arrive(1)
     end)
 end)
 
@@ -58,23 +67,28 @@ Events.OnTickEvenPaused.Add(function()
         local now = getTimestampMs()
         if now - lastPoll < 500 then return end
         lastPoll = now
-        if prepared and not ready then
+        if current and not ready then
+            local spot = config.spots[current]
             local player = assert(getPlayer(), "Scenario player disappeared")
             local square = player:getCurrentSquare()
-            if square and (not config.x or (
-                math.abs(player:getX() - config.x) < 1
-                and math.abs(player:getY() - config.y) < 1
-                and player:getZ() == config.z
-                and square:getX() == math.floor(config.x)
-                and square:getY() == math.floor(config.y)
-                and square:getZ() == config.z)) then
+            if square and (not spot.x or (
+                math.abs(player:getX() - spot.x) < 1
+                and math.abs(player:getY() - spot.y) < 1
+                and player:getZ() == spot.z
+                and square:getX() == math.floor(spot.x)
+                and square:getY() == math.floor(spot.y)
+                and square:getZ() == spot.z)) then
                 ready = true
-                status("READY " .. player:getX() .. " " .. player:getY() .. " " .. player:getZ())
+                status("READY " .. current .. " " .. player:getX() .. " " .. player:getY() .. " " .. player:getZ())
             end
         end
-        if read("profile-command.txt") == "quit" then
+        local command = read("profile-command.txt")
+        if command == "quit" then
             status("EXITING")
             getCore():quitToDesktop()
+        elseif command and command:sub(1, 5) == "spot " then
+            local index = tonumber(command:sub(6))
+            if current and index ~= current then arrive(index) end
         end
     end)
 end)

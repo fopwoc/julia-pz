@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from runner.scenario import Scenario
-from runner.benchmark import Benchmark, execute, wait_until
+from runner.benchmark import Benchmark, execute, require_renderer, wait_until
 from runner.launch import LaunchPlan
 
 
@@ -27,7 +27,8 @@ class ScenarioTest(unittest.TestCase):
         self.config = self.root / "scenario.json"
 
     def scenario(self, **changes):
-        data = {"name": "forest", "save": "Sandbox/fixture", "position": [100, 200, 0], "direction": "SE"}
+        data = {"name": "forest", "save": "Sandbox/fixture",
+                "spots": [{"name": "forest", "position": [100, 200, 0], "direction": "SE"}]}
         data.update(changes)
         self.config.write_text(json.dumps(data))
         return Scenario.read(self.config)
@@ -35,8 +36,11 @@ class ScenarioTest(unittest.TestCase):
     def test_validates_scene_and_save_before_launch(self):
         self.scenario().validate_template(self.template)
         for changes in ({"save": "../fixture"}, {"save": "Sandbox/../fixture"}, {"save": "Multiplayer/fixture"},
-                        {"warmup": -1}, {"duration": 0}, {"position": [1, 2, .5]}, {"direction": "oops"},
-                        {"hour": float("nan")}, {"unexpected": True}):
+                        {"warmup": -1}, {"duration": 0}, {"repetitions": 0}, {"unexpected": True}, {"spots": []},
+                        {"spots": [{"name": "a"}, {"name": "a"}]}, {"spots": [{"name": "../a"}]},
+                        {"spots": [{"name": "a", "position": [1, 2, .5]}]}, {"spots": [{"name": "a", "direction": "oops"}]},
+                        {"spots": [{"name": "a", "hour": float("nan")}]}, {"spots": [{"name": "a", "ghost": 1}]},
+                        {"spots": [{"name": "a", "unexpected": True}]}):
             with self.subTest(changes=changes), self.assertRaises(ValueError): self.scenario(**changes)
         with self.assertRaises(ValueError): self.scenario(save="Sandbox/missing").validate_template(self.template)
 
@@ -57,7 +61,10 @@ class ScenarioTest(unittest.TestCase):
             self.assertIn("mod = Existing,", text)
             self.assertIn("mod = ProfilingScenario,", text.split("maps")[0])
             self.assertEqual(active.split("maps")[1], text.split("maps")[1])
-        self.assertTrue((copied / "mods/ProfilingScenario/common/media/lua/client/ProfilingConfig.lua").is_file())
+        config = (copied / "mods/ProfilingScenario/common/media/lua/client/ProfilingConfig.lua").read_text()
+        self.assertIn('spots = {', config)
+        self.assertIn('x = 100', config)
+        self.assertNotIn('ghost', config)
         with self.assertRaises(ValueError): self.scenario().install(copied)
 
     def test_adapter_lifecycle_with_mocked_game_apis(self):
@@ -99,7 +106,7 @@ class ScenarioTest(unittest.TestCase):
                 active.write_text(original)
                 (run / "status.txt").write_text("READY\n")
                 (run / "environment.properties").touch()
-                (run / "profile/Lua/profile-scene.txt").write_text("READY 100 200 0\n")
+                (run / "profile/Lua/profile-scene.txt").write_text("READY 1 100 200 0\n")
                 self.assertFalse(predicate())  # All hooks, not just the Lua scene, must be installed.
                 (run / "loading-hook.txt").write_text("READY\n")
                 self.assertTrue(predicate())
@@ -112,12 +119,49 @@ class ScenarioTest(unittest.TestCase):
                 (run / "status.txt").write_text("COMPLETE " + capture.name + "\n")
                 self.assertTrue(predicate())
         with patch("runner.benchmark.subprocess.Popen", return_value=process), patch("runner.benchmark.wait_until", side_effect=wait):
-            capture = execute(selected, self.scenario(), 180)
-        self.assertTrue((capture / "summary.properties").is_file())
+            captures = execute(selected, self.scenario(), 180)
+        self.assertTrue((captures["forest"] / "summary.properties").is_file())
         self.assertEqual("quit\n", (run / "profile/Lua/profile-command.txt").read_text())
         self.assertTrue((run / "scenario.json").is_file())
         process.terminate.assert_not_called()
         self.assertEqual([180, 140], stages)
+
+    def test_execute_visits_each_spot_in_one_launch_and_stops_on_missing_julia(self):
+        from unittest.mock import Mock
+        run = self.root / "run"
+        selected = LaunchPlan(["synthetic-java"], self.root, run, self.template, "opengl", False)
+        process = Mock()
+        process.poll.return_value = None
+        process.wait.side_effect = lambda **kwargs: setattr(process.poll, "return_value", 0) or 0
+        commands = []
+        def wait(process, folder, predicate, timeout):
+            command = run / "profile/Lua/profile-command.txt"
+            control = run / "control.properties"
+            if timeout == 180:
+                commands.append(command.read_text().strip() if command.exists() else None)
+                index = len(commands)
+                (run / "status.txt").write_text("READY\n")
+                (run / "environment.properties").touch()
+                (run / "loading-hook.txt").write_text("READY\n")
+                (run / "profile/Lua/profile-scene.txt").write_text(f"READY {index} 1 2 0\n")
+                self.assertTrue(predicate())
+            else:
+                values = dict(line.split("=", 1) for line in control.read_text().splitlines())
+                capture = run / "captures" / (values["id"] + "-" + values["scenario"])
+                capture.mkdir(parents=True)
+                (capture / "summary.properties").write_text("status=COMPLETE\nframes=20\n")
+                (run / "status.txt").write_text("COMPLETE " + capture.name + "\n")
+                self.assertTrue(predicate())
+        scene = self.scenario(spots=[{"name": "forest", "position": [1, 2, 0]}, {"name": "town", "position": [3, 4, 0], "ghost": True}])
+        with patch("runner.benchmark.subprocess.Popen", return_value=process) as popen, patch("runner.benchmark.wait_until", side_effect=wait):
+            captures = execute(selected, scene, 180)
+        popen.assert_called_once()
+        self.assertEqual(["forest", "town"], list(captures))
+        self.assertEqual([None, "spot 2"], commands)
+
+        missing = LaunchPlan(["synthetic-java"], self.root, self.root / "julia", self.template, "julia", False)
+        with self.assertRaisesRegex(RuntimeError, "not rendering"):
+            require_renderer(missing)
 
     def test_execute_terminates_only_its_process_on_failed_handshake(self):
         from unittest.mock import Mock
@@ -138,9 +182,9 @@ class ScenarioTest(unittest.TestCase):
         self.scenario()
         run = self.root / "never-created"
         cli = Path(__file__).resolve().parents[1] / "profile.py"
-        result = subprocess.run([sys.executable, str(cli), "benchmark-plan", "--game", str(fixture.game),
-                                 "--run", str(run), "--profile-template", str(self.template), "--scenario", str(self.config),
-                                 "--observer", str(fixture.observer), "--julia", str(fixture.julia), "--repetitions", "2"],
+        result = subprocess.run([sys.executable, str(cli), "run", str(self.config), "--dry-run", "--game", str(fixture.game),
+                                 "--out", str(run), "--profile-template", str(self.template),
+                                 "--observer", str(fixture.observer), "--repetitions", "2"],
                                 text=True, capture_output=True)
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertEqual(["opengl", "julia", "julia", "opengl"], [run["renderer"] for run in json.loads(result.stdout)["runs"]])
@@ -151,11 +195,11 @@ class ScenarioTest(unittest.TestCase):
         root = self.root / "benchmark"
         runs = tuple(LaunchPlan([], self.root, root / str(i), self.template, renderer, False)
                      for i, renderer in enumerate(("opengl", "julia", "julia", "opengl")))
-        captures = [self.root / (str(i) + "-capture") for i in range(4)]
-        with patch("runner.benchmark.execute", side_effect=captures) as run, patch("runner.benchmark.compare", return_value="comparison") as compare:
+        captures = [{"forest": self.root / (str(i) + "-capture")} for i in range(4)]
+        with patch("runner.benchmark.execute", side_effect=captures) as run, patch("runner.benchmark.compare", return_value="comparison") as compare, patch("runner.benchmark.summarize", return_value="summary"):
             Benchmark(root, self.scenario(), runs).launch()
         self.assertEqual(4, run.call_count)
-        self.assertEqual([(captures[0], captures[1]), (captures[3], captures[2])], [call.args for call in compare.call_args_list])
+        self.assertEqual([(captures[0]["forest"], captures[1]["forest"]), (captures[3]["forest"], captures[2]["forest"])], [call.args for call in compare.call_args_list])
         self.assertEqual("COMPLETE\n", (root / "status.txt").read_text())
 
     def test_failed_run_stops_batch_and_records_error(self):

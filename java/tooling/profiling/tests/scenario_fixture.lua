@@ -12,7 +12,7 @@ function getFileReader(name)
     if not files[name] then return nil end
     return {readLine = function() return files[name] end, close = function() end}
 end
-local config = {mode="Sandbox", save="fixture", x=100, y=200, z=0, hour=12, direction="SE"}
+local config = {mode="Sandbox", save="fixture", spots={{x=100, y=200, z=0, hour=12, direction="SE"}, {x=300, y=400, z=0, ghost=true}}}
 package.preload.ProfilingConfig = function() return config end
 local loaded, exited, speed, hour, polls = 0, false, 0, 0, 0
 MainScreen = {continueLatestSave = function(mode, save)
@@ -24,6 +24,8 @@ local player = {x=0,y=0,z=0}
 function player:teleportTo(x,y,z) self.x=x; self.y=y; self.z=z end
 function player:setDir(dir) assert(dir == 9) end
 function player:getCurrentSquare() return self.square end
+function player:setInvincible(value) self.invincible=value end
+function player:setGhostMode(value) self.ghost=value end
 function player:getX() return self.x end
 function player:getY() return self.y end
 function player:getZ() return self.z end
@@ -42,12 +44,19 @@ dofile(arg[1])
 callbacks.OnMainMenuEnter()
 assert(loaded == 1)
 callbacks.OnGameStart()
-assert(speed == 1 and hour == 12 and player.x == 100)
+assert(speed == 1 and hour == 12 and player.x == 100 and player.invincible == true and player.ghost == false)
 callbacks.OnTickEvenPaused()
-assert(files["profile-scene.txt"] == "POSITIONING\n")
+assert(files["profile-scene.txt"] == "POSITIONING 1\n")
 player.square = {getX=function() return 100 end, getY=function() return 200 end, getZ=function() return 0 end}
 callbacks.OnTickEvenPaused()
-assert(files["profile-scene.txt"]:match("^READY "))
+assert(files["profile-scene.txt"]:match("^READY 1 "))
+files["profile-command.txt"] = "spot 2"
+callbacks.OnTickEvenPaused()
+assert(player.x == 300 and player.ghost == true and files["profile-scene.txt"] == "POSITIONING 2\n")
+player.square = {getX=function() return 300 end, getY=function() return 400 end, getZ=function() return 0 end}
+files["profile-command.txt"] = nil
+callbacks.OnTickEvenPaused()
+assert(files["profile-scene.txt"]:match("^READY 2 "))
 files["profile-command.txt"] = "quit"
 callbacks.OnTickEvenPaused()
 assert(exited and files["profile-scene.txt"] == "EXITING\n")
