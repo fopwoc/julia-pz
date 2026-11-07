@@ -19,6 +19,12 @@ final class Bake {
         copyTree(world, output.resolve("Saves").resolve(save));
         Files.createDirectories(output.resolve("mods"));
         copyIfPresent(source.resolve("options.ini"), output.resolve("options.ini"));
+        // Mods keep their settings beside options.ini. Without them a mod can open its first-run setup, which nothing
+        // in
+        // a batch would answer.
+        try (DirectoryStream<Path> settings = Files.newDirectoryStream(source, "*.properties")) {
+            for (var file : settings) copyIfPresent(file, output.resolve(file.getFileName()));
+        }
         copyIfPresent(source.resolve("mods/default.txt"), output.resolve("mods/default.txt"));
         // PZ resets the default mod list when the marker for the running game version is missing.
         if (Files.isDirectory(source.resolve("mods"))) {

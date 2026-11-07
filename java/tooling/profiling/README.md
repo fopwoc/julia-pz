@@ -18,7 +18,7 @@ java/tooling/profiling/profile.sh bake Apocalypse/my-save
 java/tooling/profiling/profile.sh run my-scene.json
 ```
 
-`bake` copies that save, `options.ini` and the mod list files to `~/Zomboid/profiling-template`, and doesn't change the
+`bake` copies that save, `options.ini`, mod settings files (`*.properties`) and the mod list files to `~/Zomboid/profiling-template`, and doesn't change the
 originals. It leaves out `mods/` folders, so mods in the list must be installed from the Workshop.
 
 **`run` launches the game.** It prints the comparison at the end and keeps everything in `~/Zomboid/profiling/`. Add

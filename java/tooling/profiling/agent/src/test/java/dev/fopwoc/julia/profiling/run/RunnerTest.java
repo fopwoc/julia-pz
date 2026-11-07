@@ -214,11 +214,13 @@ class RunnerTest {
         Files.createFile(source.resolve("mods/default.txt"));
         Files.createFile(source.resolve("mods/reset-mods-42_00.txt"));
         Files.createFile(source.resolve("options.ini"));
+        Files.createFile(source.resolve("viewpoint.properties"));
         var output = root.resolve("template");
         Bake.bake(source, "Apocalypse/w", output);
         assertTrue(Files.isRegularFile(output.resolve("Saves/Apocalypse/w/map_ver.bin")));
         assertTrue(Files.isRegularFile(output.resolve("mods/reset-mods-42_00.txt")));
         assertTrue(Files.isRegularFile(output.resolve("options.ini")));
+        assertTrue(Files.isRegularFile(output.resolve("viewpoint.properties")));
         assertFalse(Files.exists(output.resolve("Saves/Apocalypse/other")));
         assertFalse(Files.exists(output.resolve("mods/LocalMod")));
         assertThrows(IllegalArgumentException.class, () -> Bake.bake(source, "Apocalypse/w", output));
