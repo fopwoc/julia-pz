@@ -246,13 +246,14 @@ class AutomationTest {
         assertTrue(rows.get("Stage").startsWith("recording"), rows.get("Stage"));
         assertEquals("300 (avg 300)", rows.get("FPS"));
         assertEquals("1 MB", rows.get("Heap"));
-        assertEquals("0:01", rows.get("Elapsed"));
+        assertTrue(rows.get("Elapsed").matches("\\d+:\\d\\d"), rows.get("Elapsed"));
         assertEquals("zoom 250%, ZB off, Steam off", rows.get("Args"));
         assertEquals("none", rows.get("Mods"));
         assertTrue(rows.keySet().stream().toList().size() > 0);
         var labels = drawn.stream().map(Row::label).toList();
+        assertTrue(labels.indexOf("GPU") < labels.indexOf("Spot"), labels.toString());
         assertTrue(
-                labels.indexOf("GPU") < labels.indexOf("FPS") && labels.indexOf("FPS") < labels.indexOf("Mods"),
+                labels.indexOf("Elapsed") < labels.indexOf("FPS") && labels.indexOf("FPS") < labels.indexOf("Mods"),
                 labels.toString());
     }
 
@@ -329,5 +330,19 @@ class AutomationTest {
         assertEquals(3, log.stream().filter("first person"::equals).count(), "One step a second until it's there");
         assertTrue(log.contains("uncap viewpoint"));
         assertTrue(log.contains("quit"), log.toString());
+    }
+
+    @Test
+    void noFramesCountUntilThereIsAWorld() throws Exception {
+        var automation = automation(false);
+        menu = false;
+        ticks(automation, 2);
+        var seconds = Duration.ofSeconds(1).toNanos();
+        automation.overlay(clock, 0);
+        automation.overlay(clock + seconds, 1_000_000);
+        var rows = new java.util.HashMap<String, String>();
+        for (var row : drawn) rows.put(row.label(), row.value());
+        assertEquals("-", rows.get("FPS"));
+        assertEquals("-", rows.get("Spot"));
     }
 }

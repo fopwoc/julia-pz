@@ -27,7 +27,7 @@ final class LiveResources implements Supplier<List<Row>> {
                         "Heap",
                         RunMetrics.heapUsed() / RunMetrics.MEGABYTE + " / "
                                 + Runtime.getRuntime().maxMemory() / RunMetrics.MEGABYTE + " MB"),
-                new Row("CPU", first ? "-" : percent(process - lastProcess, elapsed) + " of a core"),
+                new Row("CPU", first ? "-" : percent(process - lastProcess, elapsed)),
                 new Row(
                         "Threads",
                         first

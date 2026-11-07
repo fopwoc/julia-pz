@@ -80,7 +80,9 @@ final class Automation {
     private long fpsFrames;
     private long fpsStart;
     private long runStart;
-    private long runFrames;
+    private volatile long spotStart;
+    private volatile long spotFrames;
+    private volatile boolean restartAverage;
 
     Automation(
             Scene scene,
@@ -203,6 +205,8 @@ final class Automation {
 
     private void arrive() throws ReflectiveOperationException, IOException {
         game.arrive(current());
+        // The panel's average covers the current spot only; it's restarted on the next UI pass.
+        restartAverage = true;
         if (!viewApplied) {
             viewApplied = true;
             mods = game.loadedMods();
@@ -229,9 +233,14 @@ final class Automation {
     void overlay(long now, long frames) {
         if (!scene.overlay()) return;
         try {
-            if (runStart == 0) {
-                runStart = now;
-                runFrames = frames;
+            if (runStart == 0) runStart = now;
+            if (restartAverage) {
+                restartAverage = false;
+                spotStart = now;
+                spotFrames = frames;
+                fpsStart = now;
+                fpsFrames = frames;
+                fps = 0;
             }
             if (now - fpsStart >= SECOND) {
                 if (fpsStart != 0) fps = (frames - fpsFrames) * SECOND / (now - fpsStart);
@@ -255,15 +264,17 @@ final class Automation {
         rows.add(new Row("GPU", gpu.get()));
         if (machine != null) rows.add(new Row("System", machine));
         rows.add(Row.GAP);
-        if (current != Stage.MENU && current != Stage.LOADING)
-            rows.add(new Row(
-                    "Spot",
-                    String.format(
-                            Locale.ROOT,
-                            "%s (%d/%d)",
-                            current().name(),
-                            spot + 1,
-                            scene.spots().size())));
+        boolean playing = current != Stage.MENU && current != Stage.LOADING;
+        rows.add(new Row(
+                "Spot",
+                playing
+                        ? String.format(
+                                Locale.ROOT,
+                                "%s (%d/%d)",
+                                current().name(),
+                                spot + 1,
+                                scene.spots().size())
+                        : "-"));
         var state = new StringBuilder(warmingUp || current != Stage.POSITIONING ? current.label : "settling");
         if (current == Stage.RECORDING) {
             long elapsed = (now - recordingStart) / SECOND;
@@ -278,10 +289,13 @@ final class Automation {
         }
         rows.add(new Row("Stage", state.toString()));
         long seconds = (now - runStart) / SECOND;
-        long average = seconds > 0 ? (frames - runFrames) / seconds : 0;
-        rows.add(new Row("FPS", String.format(Locale.ROOT, "%d (avg %d)", fps, average)));
-        rows.addAll(resources.get());
         rows.add(new Row("Elapsed", String.format(Locale.ROOT, "%d:%02d", seconds / 60, seconds % 60)));
+        rows.add(Row.GAP);
+        // Menus and loading report steps that barely draw, so the numbers only start once there's a world to draw.
+        long spotSeconds = (now - spotStart) / SECOND;
+        long average = playing && spotSeconds > 0 ? (frames - spotFrames) / spotSeconds : 0;
+        rows.add(new Row("FPS", playing && fps > 0 ? String.format(Locale.ROOT, "%d (avg %d)", fps, average) : "-"));
+        rows.addAll(resources.get());
         rows.add(Row.GAP);
         rows.add(new Row(
                 "Args",
