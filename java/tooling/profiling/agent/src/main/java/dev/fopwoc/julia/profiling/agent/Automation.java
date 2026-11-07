@@ -24,6 +24,9 @@ final class Automation {
         String finished();
     }
 
+    // Both sides launch this same jar, so its version is the Julia build under test either way.
+    private static final String BUILD =
+            String.valueOf(Automation.class.getPackage().getImplementationVersion());
     private static final System.Logger LOG = System.getLogger(Automation.class.getName());
     private static final long POLL_NANOS = Duration.ofMillis(200).toNanos();
     private static final long SECOND = Duration.ofSeconds(1).toNanos();
@@ -246,11 +249,9 @@ final class Automation {
         var active = backend.get();
         var current = stage;
         var rows = new ArrayList<Row>();
+        rows.add(new Row("", "Julia " + BUILD));
         rows.add(new Row("Run", label));
-        var version = System.getProperty("julia.version");
-        rows.add(new Row(
-                "Renderer",
-                active == null ? "native OpenGL" : "Julia " + (version == null ? "" : version + " ") + "on " + active));
+        rows.add(new Row("Renderer", active == null ? "OpenGL" : active));
         rows.add(new Row("GPU", gpu.get()));
         if (machine != null) rows.add(new Row("System", machine));
         rows.add(Row.GAP);

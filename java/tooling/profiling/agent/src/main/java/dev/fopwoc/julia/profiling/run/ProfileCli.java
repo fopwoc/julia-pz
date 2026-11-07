@@ -106,8 +106,7 @@ public final class ProfileCli {
                     : repeat % 2 == 0 ? new String[] {"opengl", "julia"} : new String[] {"julia", "opengl"};
             for (var renderer : order) {
                 plans.add(RunPlan.of(
-                        String.format(
-                                "run %d/%d %s", plans.size() + 1, repetitions * (single == null ? 2 : 1), renderer),
+                        String.format("%d/%d", plans.size() + 1, repetitions * (single == null ? 2 : 1)),
                         renderer,
                         root.resolve(String.format("%02d-%s", repeat + 1, renderer)),
                         template,

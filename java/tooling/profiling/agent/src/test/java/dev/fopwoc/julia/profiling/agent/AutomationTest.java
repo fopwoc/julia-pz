@@ -236,9 +236,11 @@ class AutomationTest {
         automation.overlay(clock + seconds, 300);
         var rows = new java.util.HashMap<String, String>();
         for (var row : drawn) rows.put(row.label(), row.value());
-        assertEquals("run 1/2 opengl", rows.get("Run"));
+        assertEquals("1/2", rows.get("Run"));
         assertEquals("Test GPU", rows.get("GPU"));
-        assertEquals("native OpenGL", rows.get("Renderer"));
+        assertEquals("OpenGL", rows.get("Renderer"));
+        assertTrue(
+                drawn.getFirst().value().startsWith("Julia "), drawn.getFirst().value());
         assertEquals("machine", rows.get("System"));
         assertEquals("a (1/2)", rows.get("Spot"));
         assertTrue(rows.get("Stage").startsWith("recording"), rows.get("Stage"));
