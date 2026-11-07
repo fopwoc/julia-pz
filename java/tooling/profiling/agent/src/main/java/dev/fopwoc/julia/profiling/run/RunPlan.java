@@ -4,13 +4,25 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /** One launch of the game in a throwaway profile. Building it touches nothing; {@link #prepare} writes only inside the run. */
 record RunPlan(
-        String renderer, Path run, Path template, Path buddyHome, Scene scene, GameInstall game, List<String> command) {
+        String renderer,
+        Path run,
+        Path template,
+        Path buddyHome,
+        Scene scene,
+        GameInstall game,
+        List<String> command,
+        List<ModCatalog.Mod> mods) {
     // Whichever copy a template carries: this agent decides whether Julia runs, not the mod list.
     private static final List<String> JULIA_IDS = List.of("Julia", "JuliaDev");
     private static final String STEAM = "-Dzomboid.steam=";
@@ -25,7 +37,8 @@ record RunPlan(
             Path buddyHome,
             Scene scene,
             GameInstall game,
-            List<String> diagnostics) {
+            List<String> diagnostics,
+            List<ModCatalog.Mod> mods) {
         var command = new ArrayList<String>();
         command.add(game.java().toString());
         for (var option : game.options()) if (!option.startsWith(STEAM)) command.add(option);
@@ -47,14 +60,15 @@ record RunPlan(
         command.add(game.mainClass());
         command.add("-cachedir=" + run.resolve("profile"));
         return new RunPlan(
-                renderer, run, template, buddy == null ? null : buddyHome, scene, game, List.copyOf(command));
+                renderer, run, template, buddy == null ? null : buddyHome, scene, game, List.copyOf(command), mods);
     }
 
     void prepare() throws IOException {
         var profile = run.resolve("profile");
         Bake.copyTree(template, profile);
-        ActiveMods.remove(profile.resolve("mods/default.txt"), JULIA_IDS);
         var saveMods = profile.resolve("Saves").resolve(scene.save()).resolve("mods.txt");
+        if (!scene.mods().isEmpty()) ActiveMods.set(saveMods, scene.mods());
+        ActiveMods.remove(profile.resolve("mods/default.txt"), JULIA_IDS);
         ActiveMods.remove(saveMods, JULIA_IDS);
         // The default list applies from startup, before the save loads. Left alone, mods the save doesn't use would
         // still
@@ -94,6 +108,32 @@ record RunPlan(
         // Rewritten by hand so unknown settings survive exactly as ZombieBuddy wrote them.
         var cleared = clearPreload(text);
         Files.writeString(config, cleared);
+        approveMods(home);
+    }
+
+    /**
+     * A batch can't click ZombieBuddy's dialog, so the run's own copy approves exactly the Java mods the scene names, at the
+     * hash installed now. The player's real approvals are left alone, and a changed mod still needs nothing else.
+     */
+    private void approveMods(Path home) throws IOException {
+        var entries = new ArrayList<Object>();
+        for (var mod : mods) {
+            if (mod.jar() == null) continue;
+            entries.add(Map.of("id", mod.id(), "jar_hash", sha256(mod.jar()), "decision", true));
+        }
+        if (entries.isEmpty()) return;
+        var approvals = new LinkedHashMap<String, Object>();
+        approvals.put("formatVersion", 2);
+        approvals.put("mods", entries);
+        Files.writeString(home.resolve("mod_approvals.json"), Json.write(approvals));
+    }
+
+    private static String sha256(Path file) throws IOException {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file)));
+        } catch (NoSuchAlgorithmException failure) {
+            throw new IllegalStateException(failure);
+        }
     }
 
     static String clearPreload(String config) {

@@ -57,6 +57,9 @@ final class Automation {
     private final Supplier<String> backend;
     private final String label;
     private final Supplier<String> gpu;
+    private final Supplier<List<Row>> resources;
+    private List<String> mods = List.of();
+    private boolean viewApplied;
     private volatile Stage stage = Stage.MENU;
     private volatile int spot;
     private volatile boolean warmingUp = true;
@@ -80,7 +83,8 @@ final class Automation {
             boolean julia,
             Supplier<String> backend,
             String label,
-            Supplier<String> gpu) {
+            Supplier<String> gpu,
+            Supplier<List<Row>> resources) {
         this.scene = scene;
         this.game = game;
         this.recorder = recorder;
@@ -89,6 +93,7 @@ final class Automation {
         this.backend = backend;
         this.label = label;
         this.gpu = gpu;
+        this.resources = resources;
     }
 
     void tick(long now) {
@@ -182,6 +187,14 @@ final class Automation {
 
     private void arrive() throws ReflectiveOperationException, IOException {
         game.arrive(current());
+        if (!viewApplied) {
+            viewApplied = true;
+            mods = game.loadedMods();
+            for (var wanted : scene.mods())
+                if (!mods.contains(wanted))
+                    throw new IllegalStateException("Mod didn't load: " + wanted + "; loaded " + mods);
+            if (scene.firstPerson()) game.firstPerson();
+        }
         stageStart = nextPoll;
         lastTeleport = nextPoll;
         // Reapplied at each spot in case the game moves it, for example while loading.
@@ -213,21 +226,25 @@ final class Automation {
         }
     }
 
-    List<String> panel(long now, long frames) {
+    /** Adding a number to the panel is one more row here. */
+    List<Row> panel(long now, long frames) {
         var active = backend.get();
         var current = stage;
-        var lines = new ArrayList<String>();
-        lines.add(label);
-        lines.add("gpu      " + gpu.get() + (active == null ? "" : " | " + active));
+        var rows = new ArrayList<Row>();
+        rows.add(new Row("Run", label));
+        rows.add(new Row("GPU", gpu.get() + (active == null ? "" : " | " + active)));
+        if (!mods.isEmpty()) rows.add(new Row("Mods", String.join(", ", mods)));
+        rows.add(Row.GAP);
         if (current != Stage.MENU && current != Stage.LOADING)
-            lines.add(String.format(
-                    Locale.ROOT,
-                    "spot     %s (%d/%d)",
-                    current().name(),
-                    spot + 1,
-                    scene.spots().size()));
-        var state = new StringBuilder("stage    ")
-                .append(warmingUp || current != Stage.POSITIONING ? current.label : "settling");
+            rows.add(new Row(
+                    "Spot",
+                    String.format(
+                            Locale.ROOT,
+                            "%s (%d/%d)",
+                            current().name(),
+                            spot + 1,
+                            scene.spots().size())));
+        var state = new StringBuilder(warmingUp || current != Stage.POSITIONING ? current.label : "settling");
         if (current == Stage.RECORDING) {
             long elapsed = (now - recordingStart) / SECOND;
             long warmup = scene.warmup().toSeconds();
@@ -239,19 +256,23 @@ final class Automation {
                         elapsed - warmup,
                         scene.duration().toSeconds()));
         }
-        lines.add(state.toString());
+        rows.add(new Row("Stage", state.toString()));
+        rows.add(Row.GAP);
         long seconds = (now - runStart) / SECOND;
         long average = seconds > 0 ? (frames - runFrames) / seconds : 0;
-        lines.add(String.format(Locale.ROOT, "FPS      %d (avg %d)", fps, average));
-        lines.add(String.format(Locale.ROOT, "elapsed  %d:%02d", seconds / 60, seconds % 60));
-        lines.add(String.format(
-                Locale.ROOT,
-                "args     zoom %d%%, heap %d MB, ZB %s, Steam %s",
-                zoom,
-                Runtime.getRuntime().maxMemory() / (1024 * 1024),
-                scene.zombieBuddy() ? "on" : "off",
-                scene.steam() ? "on" : "off"));
-        return lines;
+        rows.add(new Row("FPS", String.format(Locale.ROOT, "%d (avg %d)", fps, average)));
+        rows.addAll(resources.get());
+        rows.add(Row.GAP);
+        rows.add(new Row("Elapsed", String.format(Locale.ROOT, "%d:%02d", seconds / 60, seconds % 60)));
+        rows.add(new Row(
+                "Args",
+                String.format(
+                        Locale.ROOT,
+                        "zoom %d%%, ZB %s, Steam %s",
+                        zoom,
+                        scene.zombieBuddy() ? "on" : "off",
+                        scene.steam() ? "on" : "off")));
+        return rows;
     }
 
     /** A run that quietly ended up on the wrong renderer would compare one renderer with itself. */

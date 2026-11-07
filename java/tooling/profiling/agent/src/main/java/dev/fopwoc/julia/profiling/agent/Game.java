@@ -15,6 +15,12 @@ interface Game {
 
     boolean arrived(Scene.Spot spot) throws ReflectiveOperationException;
 
+    /** The mods the game actually loaded, which is what a report should list. */
+    List<String> loadedMods() throws ReflectiveOperationException;
+
+    /** Puts the Viewpoint mod in first person. */
+    void firstPerson() throws ReflectiveOperationException;
+
     /** A loud world sound at the character, which draws zombies from a wide area. */
     void scream() throws ReflectiveOperationException;
 
@@ -33,7 +39,7 @@ interface Game {
     /** Reapplied for the whole run, because something in the game can clear it again after it's set. */
     void keepAlive() throws ReflectiveOperationException;
 
-    void drawPanel(List<String> lines) throws ReflectiveOperationException;
+    void drawPanel(List<Row> rows) throws ReflectiveOperationException;
 
     void quit() throws ReflectiveOperationException;
 }

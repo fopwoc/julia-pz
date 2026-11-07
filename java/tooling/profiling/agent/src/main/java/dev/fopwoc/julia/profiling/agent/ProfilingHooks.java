@@ -11,6 +11,8 @@ public final class ProfilingHooks {
     private static final int GL_RENDERER = 0x1F01;
     private static volatile String nativeGpu = "unknown";
     private static boolean readGpu;
+    private static volatile long renderThread;
+    private static volatile long logicThread;
     private static final ThreadLocal<long[]> START = ThreadLocal.withInitial(() -> new long[1]);
 
     private ProfilingHooks() {}
@@ -28,7 +30,16 @@ public final class ProfilingHooks {
         readGpu = true;
     }
 
+    static long renderThread() {
+        return renderThread;
+    }
+
+    static long logicThread() {
+        return logicThread;
+    }
+
     public static void tick() {
+        logicThread = Thread.currentThread().threadId();
         var driver = automation;
         if (driver != null) driver.tick(System.nanoTime());
     }
@@ -65,6 +76,7 @@ public final class ProfilingHooks {
 
     public static void complete(boolean rendered) {
         if (rendered) frames++;
+        renderThread = Thread.currentThread().threadId();
         if (rendered && readGpu) {
             readGpu = false;
             readNativeGpu();

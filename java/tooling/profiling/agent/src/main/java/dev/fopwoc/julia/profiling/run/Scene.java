@@ -23,6 +23,9 @@ public record Scene(
         boolean zombieBuddy,
         boolean steam,
         boolean overlay,
+        List<String> mods,
+        boolean firstPerson,
+        boolean needsModernGl,
         List<Spot> spots) {
     private static final String SAFE_NAME = "[A-Za-z0-9_.-]{1,64}";
     private static final String SAVE_PART = "[^/\\\\\\p{Cntrl}]+";
@@ -54,7 +57,19 @@ public record Scene(
         var data = (Map<String, Object>) raw;
         known(
                 data,
-                Set.of("name", "save", "warmup", "duration", "jvmOptions", "zombieBuddy", "steam", "overlay", "spots"),
+                Set.of(
+                        "name",
+                        "save",
+                        "warmup",
+                        "duration",
+                        "jvmOptions",
+                        "zombieBuddy",
+                        "steam",
+                        "overlay",
+                        "mods",
+                        "firstPerson",
+                        "needsModernGl",
+                        "spots"),
                 "scene");
         String name = text(data, "name");
         if (!name.matches(SAFE_NAME)) throw new IllegalArgumentException("Scene needs a file-safe name");
@@ -67,11 +82,7 @@ public record Scene(
         }
         var warmup = seconds(data, "warmup", 5, 0);
         var duration = seconds(data, "duration", 10, 0.001);
-        var options = new ArrayList<String>();
-        for (var option : list(data, "jvmOptions")) {
-            if (!(option instanceof String value)) throw new IllegalArgumentException("JVM options must be strings");
-            options.add(value);
-        }
+        var options = strings(data, "jvmOptions");
         var spots = new ArrayList<Spot>();
         var listed = data.containsKey("spots") ? list(data, "spots") : List.<Object>of(Map.of("name", name));
         for (var entry : listed) {
@@ -86,10 +97,13 @@ public record Scene(
                 save,
                 warmup,
                 duration,
-                List.copyOf(options),
+                options,
                 flag(data, "zombieBuddy"),
                 flag(data, "steam"),
                 !Boolean.FALSE.equals(data.get("overlay")),
+                strings(data, "mods"),
+                flag(data, "firstPerson"),
+                flag(data, "needsModernGl"),
                 List.copyOf(spots));
     }
 
@@ -123,6 +137,15 @@ public record Scene(
     private static void known(Map<String, Object> data, Set<String> fields, String kind) {
         for (var field : data.keySet())
             if (!fields.contains(field)) throw new IllegalArgumentException("Unknown " + kind + " field: " + field);
+    }
+
+    private static List<String> strings(Map<String, Object> data, String field) {
+        var result = new ArrayList<String>();
+        for (var entry : list(data, field)) {
+            if (!(entry instanceof String value)) throw new IllegalArgumentException(field + " must be strings");
+            result.add(value);
+        }
+        return List.copyOf(result);
     }
 
     private static boolean flag(Map<String, Object> data, String field) {

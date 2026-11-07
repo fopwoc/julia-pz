@@ -50,26 +50,30 @@ public final class ProfileCli {
     }
 
     private static void run(String sceneArgument, Map<String, String> options) throws Exception {
-        var sceneText = editScene(Files.readString(Path.of(sceneArgument)), options);
-        var scene = Scene.parse(sceneText);
+        var edited = editScene(Files.readString(Path.of(sceneArgument)), options);
+        var named = Scene.parse(edited);
         int repetitions = Integer.parseInt(options.getOrDefault("--repetitions", "1"));
         if (repetitions < 1 || repetitions > 100) throw new IllegalArgumentException("Use 1..100 repetitions");
         var template =
                 Path.of(options.getOrDefault("--template", TEMPLATE.toString())).toAbsolutePath();
-        if (!Files.isRegularFile(template.resolve("Saves").resolve(scene.save()).resolve("map_ver.bin")))
+        if (!Files.isRegularFile(template.resolve("Saves").resolve(named.save()).resolve("map_ver.bin")))
             throw new IllegalArgumentException(
-                    "No Saves/" + scene.save() + " in " + template + "; run: bake " + scene.save());
+                    "No Saves/" + named.save() + " in " + template + "; run: bake " + named.save());
         var stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
         var root = Path.of(options.getOrDefault(
                         "--out",
                         ZOMBOID.resolve("profiling")
-                                .resolve(scene.name() + "-" + stamp)
+                                .resolve(named.name() + "-" + stamp)
                                 .toString()))
                 .toAbsolutePath();
         if (Files.exists(root)) throw new IllegalArgumentException("Choose a fresh output folder: " + root);
         if (!options.containsKey("--game"))
             throw new IllegalArgumentException("Supply --game; the launch scripts find it");
         var game = GameInstall.read(Path.of(options.get("--game")), System.getProperty("os.arch"));
+        var catalog = ModCatalog.scan(workshopFolder(game), ZOMBOID.resolve("mods"));
+        var mods = catalog.resolve(named.mods());
+        var sceneText = requireFor(edited, mods);
+        var scene = Scene.parse(sceneText);
         Path buddy = null;
         if (scene.zombieBuddy()) {
             buddy = options.containsKey("--buddy")
@@ -82,13 +86,20 @@ public final class ProfileCli {
                 ? Path.of(options.get("--baseline")).toAbsolutePath()
                 : null;
         var single = options.get("--renderer");
+        var notes = new ArrayList<String>();
+        if (!mods.isEmpty()) notes.add("Mods: " + String.join(", ", scene.mods()));
+        // Apple's OpenGL stops at 4.1, so such a mod would crash the native side there.
+        if (scene.needsModernGl() && System.getProperty("os.name").startsWith("Mac")) {
+            if ("opengl".equals(single)) throw new IllegalArgumentException("This scene can't run on macOS OpenGL");
+            single = "julia";
+            notes.add("Julia only: macOS OpenGL can't run this scene.");
+        }
         if (baseline != null && single == null) single = "julia";
         if (single != null && !single.equals("opengl") && !single.equals("julia"))
             throw new IllegalArgumentException("--renderer is opengl or julia");
         if (baseline != null && single.equals("opengl"))
             throw new IllegalArgumentException("A baseline compares Julia builds");
         var diagnostics = new ArrayList<String>();
-        var notes = new ArrayList<String>();
         if (options.containsKey("--java-profile")) diagnostics.add("-Dprofile.java=true");
         if (options.containsKey("--gpu-stats")) diagnostics.add("-Dangelica.debug.counters=true");
         // Their overhead lands inside the measured frames.
@@ -111,7 +122,8 @@ public final class ProfileCli {
                         ZOMBOID.getParent().resolve(".zombie_buddy"),
                         scene,
                         game,
-                        diagnostics));
+                        diagnostics,
+                        mods));
             }
         }
         if (options.containsKey("--dry-run")) {
@@ -142,6 +154,24 @@ public final class ProfileCli {
             scene.put("spots", spots);
         }
         return Json.write(scene);
+    }
+
+    /** Java mods need ZombieBuddy and Workshop mods need Steam, so a scene doesn't have to repeat what its list implies. */
+    @SuppressWarnings("unchecked")
+    private static String requireFor(String text, List<ModCatalog.Mod> mods) {
+        var scene = (Map<String, Object>) Json.parse(text);
+        for (var mod : mods) {
+            if (mod.jar() != null) scene.put("zombieBuddy", true);
+            if (mod.workshop()) scene.put("steam", true);
+        }
+        return Json.write(scene);
+    }
+
+    private static Path workshopFolder(GameInstall game) {
+        for (var at = game.workingDirectory(); at != null; at = at.getParent())
+            if (at.getFileName() != null && at.getFileName().toString().equals("steamapps"))
+                return at.resolve("workshop/content/108600");
+        return Path.of(System.getProperty("user.home"), ".no-steam-workshop");
     }
 
     private static boolean sessionRunning() {

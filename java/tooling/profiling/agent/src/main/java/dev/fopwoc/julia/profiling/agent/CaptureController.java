@@ -29,6 +29,7 @@ final class CaptureController implements AutoCloseable, Automation.Recorder {
     private static final String COUNTERS = "angelica.debug.counters";
     private static final String COUNTER_LABEL = "angelica.debug.counters.label";
     private static final String JAVA_PROFILE = "profile.java";
+    private final RunMetrics resources = new RunMetrics();
     private String captureName;
     private Recording flight;
     private String lastResult;
@@ -71,6 +72,7 @@ final class CaptureController implements AutoCloseable, Automation.Recorder {
 
     private synchronized void pollSafely() {
         try {
+            if (active != null) resources.sample();
             flush();
         } catch (RuntimeException | IOException failure) {
             control.shutdown();
@@ -109,6 +111,7 @@ final class CaptureController implements AutoCloseable, Automation.Recorder {
             flight = new Recording(Configuration.getConfiguration("profile"));
             flight.start();
         }
+        resources.start();
         active = new CaptureSession(new CapturePlan(name, warmup, duration), MAX_SAMPLES);
         ProfilingHooks.capture(active);
         status("ARMED " + captureName);
@@ -130,9 +133,10 @@ final class CaptureController implements AutoCloseable, Automation.Recorder {
         metrics.setProperty("gc_collections", Long.toString(completedGcCount - gcCount));
         metrics.setProperty("gc_time_ms", Long.toString(completedGcTime - gcTime));
         metrics.setProperty("gc_scope", "whole JVM from arming to completion polling; includes warmup");
+        resources.write(metrics);
         try (var writer = Files.newBufferedWriter(
-                directory.resolve("captures").resolve(captureName).resolve("gc.properties"))) {
-            metrics.store(writer, "GC counters");
+                directory.resolve("captures").resolve(captureName).resolve("metrics.properties"))) {
+            metrics.store(writer, "Memory, CPU and GC over the recording");
         }
         active = null;
         ProfilingHooks.capture(null);

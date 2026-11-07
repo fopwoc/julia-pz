@@ -22,7 +22,8 @@ class AutomationTest {
     private String backend;
     private int turns;
     private long clock;
-    private List<String> drawn;
+    private List<Row> drawn;
+    private List<String> loaded = List.of();
     private int kept;
     private int screams;
 
@@ -58,6 +59,16 @@ class AutomationTest {
         }
 
         @Override
+        public List<String> loadedMods() {
+            return loaded;
+        }
+
+        @Override
+        public void firstPerson() {
+            log.add("first person");
+        }
+
+        @Override
         public void scream() {
             screams++;
         }
@@ -83,8 +94,8 @@ class AutomationTest {
         }
 
         @Override
-        public void drawPanel(List<String> lines) {
-            drawn = lines;
+        public void drawPanel(List<Row> rows) {
+            drawn = rows;
         }
 
         @Override
@@ -122,7 +133,8 @@ class AutomationTest {
                 julia,
                 () -> backend,
                 "run 1/2 opengl",
-                () -> "Test GPU");
+                () -> "Test GPU",
+                () -> List.of(new Row("Heap", "1 MB")));
     }
 
     private void ticks(Automation automation, int count) {
@@ -215,14 +227,17 @@ class AutomationTest {
         var seconds = Duration.ofSeconds(1).toNanos();
         automation.overlay(clock, 0);
         automation.overlay(clock + seconds, 300);
-        assertEquals("run 1/2 opengl", drawn.get(0));
-        assertEquals("gpu      Test GPU", drawn.get(1));
-        assertEquals("spot     a (1/2)", drawn.get(2));
-        assertTrue(drawn.get(3).startsWith("stage    recording"), drawn.get(3));
-        assertEquals("FPS      300 (avg 300)", drawn.get(4));
-        assertEquals("elapsed  0:01", drawn.get(5));
-        assertTrue(drawn.get(6).startsWith("args     zoom 250%"), drawn.get(6));
-        assertTrue(drawn.get(6).endsWith("ZB off, Steam off"), drawn.get(6));
+        var rows = new java.util.HashMap<String, String>();
+        for (var row : drawn) rows.put(row.label(), row.value());
+        assertEquals("run 1/2 opengl", rows.get("Run"));
+        assertEquals("Test GPU", rows.get("GPU"));
+        assertEquals("a (1/2)", rows.get("Spot"));
+        assertTrue(rows.get("Stage").startsWith("recording"), rows.get("Stage"));
+        assertEquals("300 (avg 300)", rows.get("FPS"));
+        assertEquals("1 MB", rows.get("Heap"));
+        assertEquals("0:01", rows.get("Elapsed"));
+        assertEquals("zoom 250%, ZB off, Steam off", rows.get("Args"));
+        assertFalse(rows.containsKey("Mods"));
     }
 
     @Test
@@ -251,7 +266,8 @@ class AutomationTest {
                 false,
                 () -> backend,
                 "x",
-                () -> "Test GPU");
+                () -> "Test GPU",
+                () -> List.of(new Row("Heap", "1 MB")));
         ticks(automation, 7);
         assertEquals(0, screams);
         ticks(automation, 10);
@@ -259,5 +275,42 @@ class AutomationTest {
         assertEquals(
                 "Test GPU | machine",
                 Files.readString(run.resolve("machine.txt")).strip());
+    }
+
+    @Test
+    void requiredModsMustLoadAndFirstPersonIsAskedForOnce() throws Exception {
+        var file = run.resolve("mods.json");
+        Files.writeString(
+                file,
+                "{\"name\":\"s\",\"save\":\"Sandbox/w\",\"mods\":[\"Viewpoint\"],\"firstPerson\":true,\"spots\":[{\"name\":\"a\"},{\"name\":\"b\"}]}");
+        playerReady = true;
+        var missing = new Automation(
+                Scene.read(file),
+                game,
+                recorder,
+                run.resolve("automation.txt"),
+                false,
+                () -> backend,
+                "x",
+                () -> "g",
+                List::of);
+        ticks(missing, 5);
+        assertTrue(status().contains("Mod didn't load: Viewpoint"), status());
+
+        log.clear();
+        loaded = List.of("Viewpoint");
+        var present = new Automation(
+                Scene.read(file),
+                game,
+                recorder,
+                run.resolve("automation2.txt"),
+                false,
+                () -> backend,
+                "x",
+                () -> "g",
+                List::of);
+        ticks(present, 40);
+        assertEquals(1, log.stream().filter("first person"::equals).count());
+        assertTrue(log.contains("quit"), log.toString());
     }
 }

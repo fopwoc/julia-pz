@@ -2,6 +2,7 @@ package dev.fopwoc.julia.profiling.agent;
 
 import dev.fopwoc.julia.profiling.run.Scene;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -13,6 +14,7 @@ final class ReflectiveGame implements Game {
     private static final String INGAME = "zombie.gameStates.IngameState";
 
     private static final int PANEL_PADDING = 10;
+    private static final int PANEL_COLUMN_GAP = 16;
     private static final int SCREAM_RADIUS = 300;
     private static final int SCREAM_VOLUME = 300;
 
@@ -211,7 +213,7 @@ final class ReflectiveGame implements Game {
     }
 
     @Override
-    public void drawPanel(List<String> lines) throws ReflectiveOperationException {
+    public void drawPanel(List<Row> rows) throws ReflectiveOperationException {
         if (textManager == null) {
             var textType = type("zombie.ui.TextManager");
             var fontType = type("zombie.ui.UIFont");
@@ -234,9 +236,14 @@ final class ReflectiveGame implements Game {
             core = type("zombie.core.Core").getMethod("getInstance").invoke(null);
         }
         int lineHeight = (int) fontHeight.invoke(textManager, smallFont);
-        int width = 0;
-        for (var line : lines) width = Math.max(width, (int) measure.invoke(textManager, smallFont, line));
-        int height = lineHeight * lines.size();
+        int labels = 0;
+        int values = 0;
+        for (var row : rows) {
+            labels = Math.max(labels, (int) measure.invoke(textManager, smallFont, row.label()));
+            values = Math.max(values, (int) measure.invoke(textManager, smallFont, row.value()));
+        }
+        int width = labels + PANEL_COLUMN_GAP + values;
+        int height = lineHeight * rows.size();
         int x = ((int) call(core, "getScreenWidth") - width) / 2;
         int y = ((int) call(core, "getScreenHeight") - height) / 2;
         call(
@@ -252,9 +259,34 @@ final class ReflectiveGame implements Game {
                 0f,
                 0.75f,
                 null);
-        for (int at = 0; at < lines.size(); at++)
+        for (int at = 0; at < rows.size(); at++) {
+            double line = y + at * lineHeight;
             drawString.invoke(
-                    textManager, smallFont, (double) x, (double) (y + at * lineHeight), lines.get(at), 1d, 1d, 1d, 1d);
+                    textManager, smallFont, (double) x, line, rows.get(at).label(), .6d, .6d, .6d, 1d);
+            drawString.invoke(
+                    textManager,
+                    smallFont,
+                    (double) (x + labels + PANEL_COLUMN_GAP),
+                    line,
+                    rows.get(at).value(),
+                    1d,
+                    1d,
+                    1d,
+                    1d);
+        }
+    }
+
+    @Override
+    public List<String> loadedMods() throws ReflectiveOperationException {
+        var system = type("zombie.ZomboidFileSystem").getField("instance").get(null);
+        var result = new ArrayList<String>();
+        for (var id : (Iterable<?>) call(system, "getModIDs")) result.add(id.toString());
+        return result;
+    }
+
+    @Override
+    public void firstPerson() throws ReflectiveOperationException {
+        ViewpointDriver.firstPerson();
     }
 
     private static void forceField(Object target, String name, boolean value) throws ReflectiveOperationException {

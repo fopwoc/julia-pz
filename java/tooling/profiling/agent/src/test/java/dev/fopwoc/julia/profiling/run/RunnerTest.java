@@ -43,6 +43,7 @@ class RunnerTest {
                 buddyHome,
                 Scene.parse(SCENE),
                 game,
+                List.of(),
                 List.of());
     }
 
@@ -137,6 +138,7 @@ class RunnerTest {
                 root.resolve("home"),
                 scene,
                 game,
+                List.of(),
                 List.of());
         assertEquals(
                 1,
@@ -157,6 +159,7 @@ class RunnerTest {
                         root.resolve("home"),
                         withSteam,
                         game,
+                        List.of(),
                         List.of())
                 .command()
                 .contains("-Dzomboid.steam=1"));
@@ -292,5 +295,78 @@ class RunnerTest {
         assertEquals(
                 List.of("a", "c"), edited.spots().stream().map(Scene.Spot::name).toList());
         assertThrows(IllegalArgumentException.class, () -> ProfileCli.editScene(text, Map.of("--spot", "missing")));
+    }
+
+    @Test
+    void findsInstalledModsAndWhatTheyNeed() throws Exception {
+        var workshop = root.resolve("workshop");
+        var viewpoint = workshop.resolve("111/mods/Viewpoint");
+        Files.createDirectories(viewpoint.resolve("common"));
+        Files.createDirectories(viewpoint.resolve("42/media/java"));
+        Files.writeString(viewpoint.resolve("common/mod.info"), "id=Viewpoint\njavaJarFile=media/java/v.jar\n");
+        Files.createFile(viewpoint.resolve("42/media/java/v.jar"));
+        var local = root.resolve("mods");
+        Files.createDirectories(local.resolve("LuaOnly/42"));
+        Files.writeString(local.resolve("LuaOnly/42/mod.info"), "id=LuaOnly\n");
+        var catalog = ModCatalog.scan(workshop, local);
+        var mods = catalog.resolve(List.of("Viewpoint", "LuaOnly"));
+        assertTrue(mods.get(0).workshop());
+        assertTrue(mods.get(0).jar().endsWith("42/media/java/v.jar"));
+        assertFalse(mods.get(1).workshop());
+        assertNull(mods.get(1).jar());
+        assertThrows(IllegalArgumentException.class, () -> catalog.resolve(List.of("Nope")));
+    }
+
+    @Test
+    void sceneModsBecomeTheActiveListAndJavaOnesApprovedInTheRunOnly() throws Exception {
+        var template = root.resolve("template");
+        var save = template.resolve("Saves/Apocalypse/w");
+        Files.createDirectories(save);
+        Files.createDirectories(template.resolve("mods"));
+        Files.writeString(save.resolve("mods.txt"), ACTIVE);
+        var home = root.resolve("real home");
+        Files.createDirectories(home);
+        Files.writeString(home.resolve("mod_approvals.json"), "real");
+        Files.writeString(home.resolve("config.json"), "{}");
+        var jar = Files.writeString(root.resolve("v.jar"), "content");
+        var scene = Scene.parse(
+                "{\"name\":\"s\",\"save\":\"Apocalypse/w\",\"mods\":[\"Viewpoint\",\"LuaOnly\"],\"zombieBuddy\":true}");
+        var game = linuxGame();
+        var plan = RunPlan.of(
+                "label",
+                "julia",
+                root.resolve("run"),
+                template,
+                root.resolve("agent.jar"),
+                game.workingDirectory().resolve("ZombieBuddy.jar"),
+                home,
+                scene,
+                game,
+                List.of(),
+                List.of(new ModCatalog.Mod("Viewpoint", true, jar), new ModCatalog.Mod("LuaOnly", false, null)));
+        plan.prepare();
+        var active = Files.readString(plan.run().resolve("profile/mods/default.txt"));
+        assertTrue(active.contains("mod = Viewpoint,\n    mod = LuaOnly,"), active);
+        assertFalse(active.contains("mod = Other"), active);
+        var approvals = Files.readString(plan.run().resolve("home/.zombie_buddy/mod_approvals.json"));
+        assertTrue(approvals.contains("Viewpoint"), approvals);
+        assertTrue(approvals.contains("ed7002b439e9ac845f22357d822bac1444730fbdb6016d3ec9432297b9ec9f73"), approvals);
+        assertFalse(approvals.contains("LuaOnly"), approvals);
+        assertEquals("real", Files.readString(home.resolve("mod_approvals.json")));
+    }
+
+    @Test
+    void resourcesTableReadsWhatWasRecorded() throws Exception {
+        var left = capture("town", "opengl", 50);
+        var right = capture("town", "julia", 60);
+        Files.writeString(
+                left.directory().resolve("metrics.properties"),
+                "heap_peak_mb=1000\nrss_mb=3000\ncpu_process_pct=210\ncpu_render_pct=90\ncpu_logic_pct=60\n");
+        Files.writeString(
+                right.directory().resolve("metrics.properties"),
+                "heap_peak_mb=1200\ncpu_process_pct=190\ncpu_render_pct=70\ncpu_logic_pct=65\n");
+        var table = Report.summarize("s", List.of(left, right));
+        assertTrue(table.contains("| town | opengl | 1000 | 3000 | 210 | 90 | 60 |"), table);
+        assertTrue(table.contains("| town | julia | 1200 | - | 190 | 70 | 65 |"), table);
     }
 }

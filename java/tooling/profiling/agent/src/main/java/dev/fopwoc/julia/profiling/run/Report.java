@@ -62,10 +62,55 @@ final class Report {
                     p99(right)));
         }
         lines.add("");
+        lines.addAll(resources(captures, sides));
+        lines.add("");
         if (runs < 2) lines.add("One run per side: this can't separate a real difference from run-to-run noise.");
         else lines.add("FPS is the median with its range across runs. Trust a difference only beyond those ranges.");
         lines.add("Runs are uncapped with VSync off. CPU wall timings only, not GPU timestamps.");
         return String.join("\n", lines) + "\n";
+    }
+
+    /** Broad differences only: these vary between runs far more than frame times do. */
+    private static List<String> resources(Collection<Capture> captures, Sides sides) throws IOException {
+        var lines = new ArrayList<String>();
+        lines.add("| Spot | Side | Heap peak MB | Process MB | CPU % | Render thread % | Logic thread % |");
+        lines.add("| --- | --- | ---: | ---: | ---: | ---: | ---: |");
+        boolean any = false;
+        for (var spot : captures.stream().map(Capture::spot).distinct().toList()) {
+            for (var side : List.of(sides.left(), sides.right())) {
+                var runs = new ArrayList<Properties>();
+                for (var capture : captures) {
+                    var file = capture.directory().resolve("metrics.properties");
+                    if (capture.spot().equals(spot) && capture.renderer().equals(side) && Files.isRegularFile(file)) {
+                        var metrics = new Properties();
+                        try (var reader = Files.newBufferedReader(file)) {
+                            metrics.load(reader);
+                        }
+                        runs.add(metrics);
+                    }
+                }
+                if (runs.isEmpty()) continue;
+                any = true;
+                lines.add(String.format(
+                        Locale.ROOT,
+                        "| %s | %s | %s | %s | %s | %s | %s |",
+                        spot,
+                        side,
+                        whole(runs, "heap_peak_mb"),
+                        whole(runs, "rss_mb"),
+                        whole(runs, "cpu_process_pct"),
+                        whole(runs, "cpu_render_pct"),
+                        whole(runs, "cpu_logic_pct")));
+            }
+        }
+        if (!any) return List.of();
+        lines.add("");
+        return lines;
+    }
+
+    private static String whole(List<Properties> runs, String key) {
+        var present = runs.stream().filter(run -> run.containsKey(key)).toList();
+        return present.isEmpty() ? "-" : String.format(Locale.ROOT, "%.0f", median(present, key));
     }
 
     /** Two captures named on the command line, checked to be comparable. */
