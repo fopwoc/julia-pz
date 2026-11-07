@@ -139,7 +139,7 @@ class AutomationTest {
                 run.resolve("automation.txt"),
                 julia,
                 () -> backend,
-                "run 1/2 opengl",
+                "1/2",
                 () -> "Test GPU",
                 () -> List.of(new Row("Heap", "1 MB")));
     }
