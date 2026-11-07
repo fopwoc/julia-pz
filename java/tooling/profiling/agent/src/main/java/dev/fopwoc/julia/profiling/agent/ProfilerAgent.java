@@ -1,6 +1,7 @@
 package dev.fopwoc.julia.profiling.agent;
 
 import dev.fopwoc.julia.launch.Launcher;
+import dev.fopwoc.julia.profiling.run.Scene;
 import dev.fopwoc.julia.utils.logging.LogConfiguration;
 import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
@@ -10,13 +11,12 @@ import java.nio.file.Path;
 import java.security.ProtectionDomain;
 
 /**
- * Measurement entry: {@code <run>} observes the native renderer, {@code julia=<run>} also starts Julia. Both sides of a
- * comparison use this one jar. The observer itself touches no GL and works whichever renderer is below it.
+ * Measurement entry, given {@code <renderer>,<run>}: {@code opengl} intercepts no GL at all, {@code julia} also starts
+ * Julia. Both sides of a comparison use this one jar. A {@code scene.json} in the run folder makes it drive the game
+ * through that scene; without one it only observes.
  */
 public final class ProfilerAgent {
     private static final System.Logger LOG = System.getLogger(ProfilerAgent.class.getName());
-
-    private static final String JULIA_PREFIX = "julia=";
 
     private ProfilerAgent() {}
 
@@ -24,14 +24,30 @@ public final class ProfilerAgent {
         LogConfiguration.configure();
         if (arguments == null || arguments.isBlank())
             throw new IllegalArgumentException("Supply a fresh profiling run directory");
-        boolean julia = arguments.startsWith(JULIA_PREFIX);
-        Path run = Path.of(julia ? arguments.substring(JULIA_PREFIX.length()) : arguments);
-        boolean automated = Files.isRegularFile(run.resolve("scenario.json"));
+        int comma = arguments.indexOf(',');
+        String renderer = comma < 0 ? "" : arguments.substring(0, comma);
+        if (!renderer.equals("opengl") && !renderer.equals("julia"))
+            throw new IllegalArgumentException("Supply opengl,<run> or julia,<run>");
+        boolean julia = renderer.equals("julia");
+        Path run = Path.of(arguments.substring(comma + 1));
+        Path sceneFile = run.resolve("scene.json");
+        boolean automated = Files.isRegularFile(sceneFile);
         for (Class<?> loaded : instrumentation.getAllLoadedClasses())
             if (loaded.getName().equals(FrameInstrumentation.TARGET.replace('/', '.'))
-                    || automated && loaded.getName().equals(LoadingInstrumentation.TARGET.replace('/', '.')))
+                    || automated
+                            && (loaded.getName().equals(LoadingInstrumentation.TARGET.replace('/', '.'))
+                                    || loaded.getName().equals(LogicInstrumentation.TARGET.replace('/', '.'))))
                 throw new IllegalStateException("Profiling target loaded before observer installation");
         var controller = new CaptureController(run);
+        if (automated) {
+            ProfilingHooks.automation(new Automation(
+                    Scene.read(sceneFile),
+                    new ReflectiveGame(),
+                    controller,
+                    run.resolve("automation.txt"),
+                    julia,
+                    () -> System.getProperty("julia.renderer.backend")));
+        }
         // Retransformation-capable observers follow the incapable transformers used by Julia's prepared classes.
         instrumentation.addTransformer(
                 new ClassFileTransformer() {
@@ -39,8 +55,10 @@ public final class ProfilerAgent {
                     public byte[] transform(
                             ClassLoader loader, String name, Class<?> type, ProtectionDomain domain, byte[] bytes) {
                         boolean loading = automated && LoadingInstrumentation.TARGET.equals(name);
-                        if (!loading && !FrameInstrumentation.TARGET.equals(name)) return null;
+                        boolean logic = automated && LogicInstrumentation.TARGET.equals(name);
+                        if (!loading && !logic && !FrameInstrumentation.TARGET.equals(name)) return null;
                         try {
+                            if (logic) return LogicInstrumentation.instrument(bytes, loader);
                             if (loading) {
                                 var instrumented = LoadingInstrumentation.instrument(bytes, loader);
                                 Files.writeString(run.resolve("loading-hook.txt"), "READY\n");

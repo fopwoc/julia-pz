@@ -17,14 +17,18 @@ public final class FrameAudit {
         try (var source = new ZipFile(path.toFile());
                 var resources =
                         new URLClassLoader(new URL[] {path.toUri().toURL()}, FrameAudit.class.getClassLoader())) {
-            for (String target : new String[] {FrameInstrumentation.TARGET, LoadingInstrumentation.TARGET}) {
+            for (String target : new String[] {
+                FrameInstrumentation.TARGET, LoadingInstrumentation.TARGET, LogicInstrumentation.TARGET
+            }) {
                 byte[] original;
                 try (var input = source.getInputStream(source.getEntry(target + ".class"))) {
                     original = input.readAllBytes();
                 }
-                var transformed = target.equals(FrameInstrumentation.TARGET)
-                        ? FrameInstrumentation.instrument(original, resources)
-                        : LoadingInstrumentation.instrument(original, resources);
+                var transformed = switch (target) {
+                    case FrameInstrumentation.TARGET -> FrameInstrumentation.instrument(original, resources);
+                    case LoadingInstrumentation.TARGET -> LoadingInstrumentation.instrument(original, resources);
+                    default -> LogicInstrumentation.instrument(original, resources);
+                };
                 var errors = ClassFile.of(ClassFile.ClassHierarchyResolverOption.of(
                                 ClassHierarchyResolver.ofResourceParsing(resources)))
                         .verify(transformed);

@@ -3,5 +3,7 @@
   "save": "Apocalypse/benchmark",
   "warmup": 20,
   "duration": 60,
-  "repetitions": 3
+  "jvmOptions": [
+    "-Xmx8g"
+  ]
 }

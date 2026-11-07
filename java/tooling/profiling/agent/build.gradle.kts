@@ -18,6 +18,7 @@ entryJar(
     attributes = mapOf(
         "Premain-Class" to "dev.fopwoc.julia.profiling.agent.ProfilerAgent",
         "Can-Retransform-Classes" to "true",
+        "Main-Class" to "dev.fopwoc.julia.profiling.run.ProfileCli",
     ),
 )
 

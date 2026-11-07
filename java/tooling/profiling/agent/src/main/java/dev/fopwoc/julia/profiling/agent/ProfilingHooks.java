@@ -5,12 +5,22 @@ import dev.fopwoc.julia.profiling.core.CaptureSession;
 /** Hot-path timing only; control polling and report writing live on the controller thread. */
 public final class ProfilingHooks {
     private static volatile CaptureSession capture;
+    private static volatile Automation automation;
     private static final ThreadLocal<long[]> START = ThreadLocal.withInitial(() -> new long[1]);
 
     private ProfilingHooks() {}
 
     static void capture(CaptureSession session) {
         capture = session;
+    }
+
+    static void automation(Automation driver) {
+        automation = driver;
+    }
+
+    public static void tick() {
+        var driver = automation;
+        if (driver != null) driver.tick(System.nanoTime());
     }
 
     public static void begin() {

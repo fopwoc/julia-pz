@@ -13,8 +13,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-/** File-controlled recordings let an external runner or future Lua adapter use the same observer. */
-final class CaptureController implements AutoCloseable {
+/** Owns recordings: the frame hook fills them, and this thread flushes them so no file IO lands on a frame. */
+final class CaptureController implements AutoCloseable, Automation.Recorder {
     private static final int MAX_SAMPLES = 1_000_000;
     private static final System.Logger LOG = System.getLogger(CaptureController.class.getName());
     private final Path directory;
@@ -23,7 +23,8 @@ final class CaptureController implements AutoCloseable {
         thread.setDaemon(true);
         return thread;
     });
-    private String lastRequest = "", captureName;
+    private String captureName;
+    private String lastResult;
     private CaptureSession active;
     private boolean ready;
     private byte[] settings;
@@ -62,43 +63,13 @@ final class CaptureController implements AutoCloseable {
     }
 
     private synchronized void pollSafely() {
-        if (!ready) return;
         try {
             flush();
-            Path request = directory.resolve("control.properties");
-            if (!Files.isRegularFile(request)) return;
-            var values = new Properties();
-            try (var reader = Files.newBufferedReader(request)) {
-                values.load(reader);
-            }
-            String id = values.getProperty("id", "");
-            if (id.equals(lastRequest)) return;
-            lastRequest = id;
-            if (!id.matches("[A-Za-z0-9-]{1,64}")) throw new IllegalArgumentException("Invalid request id");
-            if (values.getProperty("action", "").equals("stop")) {
-                if (active != null) active.stop();
-                flush();
-                return;
-            }
-            if (!values.getProperty("action", "").equals("start"))
-                throw new IllegalArgumentException("Unknown capture action");
-            if (active != null) throw new IllegalStateException("A recording is already active");
-            var plan = new CapturePlan(
-                    values.getProperty("scenario"),
-                    Duration.ofMillis(Long.parseLong(values.getProperty("warmup_ms"))),
-                    Duration.ofMillis(Long.parseLong(values.getProperty("duration_ms"))));
-            captureName = id + "-" + plan.scenario();
-            Path options = directory.resolve("profile/options.ini");
-            settings = Files.isRegularFile(options) ? Files.readAllBytes(options) : null;
-            gcCount = gc(false);
-            gcTime = gc(true);
-            active = new CaptureSession(plan, MAX_SAMPLES);
-            ProfilingHooks.capture(active);
-            status("ARMED " + captureName);
         } catch (RuntimeException | IOException failure) {
             control.shutdown();
             if (active != null) active.stop();
             ProfilingHooks.capture(null);
+            lastResult = "ERROR";
             LOG.log(System.Logger.Level.ERROR, "Profiling control failed; recording disabled", failure);
             try {
                 status("ERROR " + failure);
@@ -106,6 +77,26 @@ final class CaptureController implements AutoCloseable {
                 failure.addSuppressed(report);
             }
         }
+    }
+
+    @Override
+    public synchronized void record(String name, Duration warmup, Duration duration) throws IOException {
+        if (!ready) throw new IllegalStateException("The frame hook is not installed yet");
+        if (active != null) throw new IllegalStateException("A recording is already active");
+        captureName = name;
+        lastResult = null;
+        Path options = directory.resolve("profile/options.ini");
+        settings = Files.isRegularFile(options) ? Files.readAllBytes(options) : null;
+        gcCount = gc(false);
+        gcTime = gc(true);
+        active = new CaptureSession(new CapturePlan(name, warmup, duration), MAX_SAMPLES);
+        ProfilingHooks.capture(active);
+        status("ARMED " + captureName);
+    }
+
+    @Override
+    public synchronized String finished() {
+        return lastResult;
     }
 
     private void flush() throws IOException {
@@ -126,6 +117,7 @@ final class CaptureController implements AutoCloseable {
         active = null;
         ProfilingHooks.capture(null);
         status(result.state() + " " + captureName);
+        lastResult = result.state().toString();
     }
 
     private static long gc(boolean time) {

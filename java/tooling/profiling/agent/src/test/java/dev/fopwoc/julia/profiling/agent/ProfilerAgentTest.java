@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.lang.classfile.ClassFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
@@ -12,10 +13,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class ProfilerAgentTest {
     @Test
-    void observesSyntheticCompletedFramesInAFreshJvmWithoutAnyRenderer(@TempDir Path run) throws Exception {
-        Files.writeString(
-                run.resolve("control.properties"),
-                "id=fixture\naction=start\nscenario=forest\nwarmup_ms=0\nduration_ms=100\n");
+    void installsTheFrameHookInAFreshJvmWithoutAnyRenderer(@TempDir Path run) throws Exception {
         String java = Path.of(System.getProperty("java.home"), "bin/java").toString();
         String fixture = Path.of(zombie.core.opengl.RenderThread.class
                         .getProtectionDomain()
@@ -25,7 +23,7 @@ class ProfilerAgentTest {
                 .toString();
         var process = new ProcessBuilder(
                         java,
-                        "-javaagent:" + System.getProperty("profiler.jar") + "=" + run,
+                        "-javaagent:" + System.getProperty("profiler.jar") + "=opengl," + run,
                         "-cp",
                         fixture,
                         "zombie.core.opengl.RenderThread")
@@ -34,14 +32,44 @@ class ProfilerAgentTest {
                 .start();
         assertTrue(process.waitFor(15, TimeUnit.SECONDS));
         assertEquals(0, process.exitValue(), Files.readString(run.resolve("process.log")));
-        var capture = run.resolve("captures/fixture-forest");
+        assertEquals("READY", Files.readString(run.resolve("status.txt")).strip());
+    }
+
+    @Test
+    void recordsFramesFromTheHookAndFlushesOffTheFrameThread(@TempDir Path run) throws Exception {
+        try (var controller = new CaptureController(run)) {
+            controller.frameOwnerReady();
+            controller.start();
+            controller.record("forest", Duration.ZERO, Duration.ofMillis(50));
+            assertNull(controller.finished());
+            long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
+            while (controller.finished() == null && System.nanoTime() < deadline) {
+                ProfilingHooks.begin();
+                ProfilingHooks.complete(true);
+                Thread.sleep(1);
+            }
+            assertEquals("COMPLETE", controller.finished());
+        }
         var summary = new Properties();
-        try (var reader = Files.newBufferedReader(capture.resolve("summary.properties"))) {
+        try (var reader = Files.newBufferedReader(run.resolve("captures/forest/summary.properties"))) {
             summary.load(reader);
         }
         assertEquals("COMPLETE", summary.getProperty("status"));
         assertTrue(Integer.parseInt(summary.getProperty("frames")) > 0);
-        assertTrue(Files.readString(run.resolve("status.txt")).startsWith("COMPLETE"));
+    }
+
+    @Test
+    void logicHookRunsOnEveryStepAndVerifies() throws Exception {
+        byte[] bytes;
+        try (var input = getClass().getResourceAsStream("/zombie/GameWindow.class")) {
+            assertNotNull(input);
+            bytes = input.readAllBytes();
+        }
+        byte[] transformed = LogicInstrumentation.instrument(bytes, getClass().getClassLoader());
+        assertTrue(ClassFile.of().verify(transformed).isEmpty());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> LogicInstrumentation.instrument(new byte[0], getClass().getClassLoader()));
     }
 
     @Test
