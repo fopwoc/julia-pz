@@ -14,7 +14,6 @@ record RunPlan(
     // Whichever copy a template carries: this agent decides whether Julia runs, not the mod list.
     private static final List<String> JULIA_IDS = List.of("Julia", "JuliaDev");
     private static final String STEAM = "-Dzomboid.steam=";
-    private static final Pattern FOCUS_LOSS = Pattern.compile("(?m)^focusloss=.*$");
 
     static RunPlan of(
             String renderer,
@@ -60,15 +59,21 @@ record RunPlan(
             Files.createDirectories(profile.resolve("mods"));
             Files.copy(saveMods, profile.resolve("mods/default.txt"), StandardCopyOption.REPLACE_EXISTING);
         }
-        // The batch has no input focus, and background pausing would measure an idle simulation instead of the scene.
         var options = profile.resolve("options.ini");
         var settings = Files.exists(options) ? Files.readString(options) : "";
-        var matcher = FOCUS_LOSS.matcher(settings);
-        settings = matcher.find()
-                ? matcher.replaceAll("focusloss=false")
-                : settings.stripTrailing() + "\nfocusloss=false\n";
+        // The batch has no input focus, and background pausing would measure an idle simulation instead of the scene.
+        settings = setOption(settings, "focusloss", "false");
+        // Capped results don't show throughput. The automation also lifts the game's own limit once it's running.
+        settings = setOption(settings, "vsync", "false");
         Files.writeString(options, settings);
         isolateBuddy();
+    }
+
+    private static String setOption(String settings, String key, String value) {
+        var line = Pattern.compile("(?m)^" + key + "=.*$").matcher(settings);
+        return line.find()
+                ? line.replaceAll(key + "=" + value)
+                : settings.stripTrailing() + "\n" + key + "=" + value + "\n";
     }
 
     /**

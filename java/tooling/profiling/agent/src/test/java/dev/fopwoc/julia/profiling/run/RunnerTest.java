@@ -166,7 +166,7 @@ class RunnerTest {
         Files.writeString(
                 template.resolve("mods/default.txt"),
                 ACTIVE.replace("mod = Other,", "mod = Viewpoint,\n    mod = Other,"));
-        Files.writeString(template.resolve("options.ini"), "width=1\nfocusloss=true\n");
+        Files.writeString(template.resolve("options.ini"), "width=1\nfocusloss=true\nvsync=true\n");
         var home = root.resolve("real home");
         Files.createDirectories(home);
         var config = "{\"trusted\":[1],\"preload_mods\":{\"JuliaDev\":{\"jarPath\":\"/real{x}.jar\"}},\"auto\":false}";
@@ -184,7 +184,9 @@ class RunnerTest {
             assertTrue(text.contains("mod = Other,"));
             assertTrue(text.contains("map = Julia,"));
         }
-        assertEquals("width=1\nfocusloss=false\n", Files.readString(plan.run().resolve("profile/options.ini")));
+        assertEquals(
+                "width=1\nfocusloss=false\nvsync=false\n",
+                Files.readString(plan.run().resolve("profile/options.ini")));
         assertEquals(
                 "{\"trusted\":[1],\"preload_mods\":{},\"auto\":false}",
                 Files.readString(plan.run().resolve("home/.zombie_buddy/config.json")));

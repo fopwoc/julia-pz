@@ -41,8 +41,7 @@ final class Report {
         lines.add("");
         if (runs < 2) lines.add("One pair of runs: this can't separate a real difference from run-to-run noise.");
         else lines.add("FPS is the median with its range across runs. Trust a difference only beyond those ranges.");
-        lines.add(
-                "CPU wall timings only, not GPU timestamps. Check neither side is capped at the display's refresh rate.");
+        lines.add("Runs are uncapped with VSync off. CPU wall timings only, not GPU timestamps.");
         return String.join("\n", lines) + "\n";
     }
 

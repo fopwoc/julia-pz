@@ -74,7 +74,8 @@ The separate home matters because ZombieBuddy keeps its preload list there and i
 baseline would still load an installed Julia mod, and every run would rewrite your real list. Before each recording, the
 agent also checks the renderer is the expected one, so a run can't quietly compare OpenGL with itself.
 
-Runs set `focusloss=false` so they keep simulating in the background. Other settings and the template are preserved.
+Runs set `focusloss=false` so they keep simulating in the background, and turn off VSync and the game's FPS limit so the
+numbers show throughput. Other settings and the template are preserved.
 An error, crash or timeout stops the batch, and it ends only the process it created. It never creates saves, approves Java
 mods, or modifies installed game files. The automation calls game classes by name, so a game update can break it; that
 fails with an error in the report rather than a wrong number.
@@ -93,8 +94,8 @@ The batch writes `summary.md`, the table it prints. `compare <capture> <capture>
 captures of one spot, and refuses incomplete recordings or different timings.
 
 The frame hook preallocates its buffers and does no per-frame file IO. Its wall durations can include waits and presentation
-blocking, so they are **not GPU timestamps** or total simulation CPU time. Check neither side is sitting at the display's
-refresh rate, since a capped result doesn't show maximum throughput. Matching spot names don't prove identical game state.
+blocking, so they are **not GPU timestamps** or total simulation CPU time. Matching spot names don't prove identical game
+state.
 
 ## Verification
 
