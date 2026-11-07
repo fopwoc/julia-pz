@@ -18,6 +18,8 @@ if [[ $(uname) == Darwin ]]; then
     java="$game/Project Zomboid.app/Contents/PlugIns/$runtime/Contents/Home/bin/java"
 else
     game="${PZ_GAME:-$HOME/.steam/steam/steamapps/common/ProjectZomboid}"
+    # Linux installs keep the launcher settings and Java one folder down.
+    [[ -f $game/projectzomboid/ProjectZomboid64.json ]] && game="$game/projectzomboid"
     java="$game/jre64/bin/java"
 fi
 if [[ ! -x $java ]]; then
