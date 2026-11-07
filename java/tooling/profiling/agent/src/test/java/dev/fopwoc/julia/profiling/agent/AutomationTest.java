@@ -22,7 +22,8 @@ class AutomationTest {
     private String backend;
     private int turns;
     private long clock;
-    private String drawn;
+    private List<String> drawn;
+    private int kept;
 
     private final Game game = new Game() {
         @Override
@@ -56,8 +57,13 @@ class AutomationTest {
         }
 
         @Override
-        public void drawText(String text) {
-            drawn = text;
+        public void keepAlive() {
+            kept++;
+        }
+
+        @Override
+        public void drawPanel(List<String> lines) {
+            drawn = lines;
         }
 
         @Override
@@ -107,9 +113,20 @@ class AutomationTest {
         assertEquals(List.of("load Sandbox/w"), log);
         assertEquals("LOADING", status());
         playerReady = true;
-        ticks(automation, 40);
-        assertEquals(List.of("load Sandbox/w", "arrive a", "record a", "arrive b", "record b", "quit"), log);
+        ticks(automation, 60);
+        assertEquals(
+                List.of(
+                        "load Sandbox/w",
+                        "arrive a",
+                        "arrive b",
+                        "arrive a",
+                        "record a",
+                        "arrive b",
+                        "record b",
+                        "quit"),
+                log);
         assertTrue(turns > 0, "The character must look around before recording");
+        assertTrue(kept > 1, "Staying alive must be reapplied through the run");
         assertEquals("DONE", status());
     }
 
@@ -128,14 +145,14 @@ class AutomationTest {
     void refusesToRecordOnTheWrongRenderer() throws Exception {
         playerReady = true;
         var julia = automation(true);
-        ticks(julia, 15);
+        ticks(julia, 40);
         assertFalse(log.contains("record a"));
         assertTrue(status().contains("Julia is not rendering"), status());
 
         log.clear();
         backend = "metal";
         var baseline = automation(false);
-        ticks(baseline, 15);
+        ticks(baseline, 40);
         assertFalse(log.contains("record a"));
         assertTrue(status().contains("baseline run started Julia"), status());
     }
@@ -145,7 +162,7 @@ class AutomationTest {
         playerReady = true;
         recording = "OVERFLOW";
         var automation = automation(false);
-        ticks(automation, 20);
+        ticks(automation, 40);
         assertFalse(log.contains("arrive b"));
         assertFalse(log.contains("quit"));
         assertTrue(status().startsWith("ERROR"), status());
@@ -162,20 +179,19 @@ class AutomationTest {
     }
 
     @Test
-    void statusLineSaysWhereTheRunIs() throws Exception {
+    void panelSaysWhereTheRunIs() throws Exception {
         playerReady = true;
         recording = null;
         var automation = automation(false);
-        ticks(automation, 14);
+        ticks(automation, 40);
         var seconds = Duration.ofSeconds(1).toNanos();
-        assertTrue(
-                automation.statusLine(clock + 5 * seconds).startsWith("run 1/2 opengl | a 1/2 | recording warmup "),
-                automation.statusLine(clock + 5 * seconds));
-        assertTrue(
-                automation.statusLine(clock + 40 * seconds).contains("recording 2"),
-                automation.statusLine(clock + 40 * seconds));
-        automation.overlay(clock + seconds, 0);
-        automation.overlay(clock + 2 * seconds, 300);
-        assertTrue(drawn.endsWith("| 300 FPS"), drawn);
+        automation.overlay(clock, 0);
+        automation.overlay(clock + seconds, 300);
+        assertEquals("run 1/2 opengl", drawn.get(0));
+        assertEquals("spot     a (1/2)", drawn.get(1));
+        assertTrue(drawn.get(2).startsWith("stage    recording"), drawn.get(2));
+        assertEquals("FPS      300 (avg 300)", drawn.get(3));
+        assertEquals("elapsed  0:01", drawn.get(4));
+        assertTrue(drawn.get(5).endsWith("ZB off, Steam off"), drawn.get(5));
     }
 }

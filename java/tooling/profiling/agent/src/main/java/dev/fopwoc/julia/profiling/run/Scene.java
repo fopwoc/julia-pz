@@ -62,8 +62,8 @@ public record Scene(
                 || save.startsWith("LastStand/")) {
             throw new IllegalArgumentException("Save must be an existing single-player Mode/SaveName");
         }
-        var warmup = seconds(data, "warmup", 20, 0);
-        var duration = seconds(data, "duration", 60, 0.001);
+        var warmup = seconds(data, "warmup", 5, 0);
+        var duration = seconds(data, "duration", 10, 0.001);
         var options = new ArrayList<String>();
         for (var option : list(data, "jvmOptions")) {
             if (!(option instanceof String value)) throw new IllegalArgumentException("JVM options must be strings");

@@ -1,6 +1,7 @@
 package dev.fopwoc.julia.profiling.agent;
 
 import dev.fopwoc.julia.profiling.run.Scene;
+import java.util.List;
 
 /** What the automation needs from the running game, kept apart so its sequencing can be tested without the game. */
 interface Game {
@@ -17,7 +18,10 @@ interface Game {
     /** Points the character somewhere, so what's around them is seen and not left behind fog. */
     void face(float degrees) throws ReflectiveOperationException;
 
-    void drawText(String text) throws ReflectiveOperationException;
+    /** Reapplied for the whole run, because something in the game can clear it again after it's set. */
+    void keepAlive() throws ReflectiveOperationException;
+
+    void drawPanel(List<String> lines) throws ReflectiveOperationException;
 
     void quit() throws ReflectiveOperationException;
 }

@@ -34,8 +34,6 @@ Plain scenes need nothing but the save: no ZombieBuddy and no Steam, so they com
 {
   "name": "muldraugh",
   "save": "Apocalypse/my-save",
-  "warmup": 20,
-  "duration": 60,
   "jvmOptions": ["-Xmx8g"],
   "spots": [
     {"name": "forest", "position": [1000, 2000, 0], "hour": 12, "ghost": true},
@@ -48,14 +46,16 @@ Plain scenes need nothing but the save: no ZombieBuddy and no Steam, so they com
 save's own list run, even at the main menu. A mod that needs newer GL than the platform has can't be compared this way: on
 macOS, Viewpoint crashes the OpenGL run because Apple's OpenGL lacks what it asks for.
 
-Each launch visits every spot in order and records it. Spot names must be unique, and without any `spots` it records
+Each launch visits every spot once to look around, which gets shaders, textures and models ready, then visits each again and
+records it. `warmup` is the settling time before recording at a spot (default 5 seconds) and `duration` the recording (default
+10). Spots still reload their chunks on the second visit. Spot names must be unique, and without any `spots` it records
 wherever the save left the player. These launches start Java directly, so Steam launch options don't apply: put heap
 settings in `jvmOptions`, which are added after the game's own and so override them. `scenes/example.json` is a starting
 point.
 
-The character can't die, and turns around for a few seconds at each spot before recording so the fog of war clears. Player
-input is shut out for the whole run. A line of text in the corner shows the run, spot, stage and FPS; `"overlay": false`
-turns it off. `ghost` stops zombies reacting, for steadier scenes; leave it off where zombie load is what you're measuring. There are no camera routes, ViewPoint controls or scripted
+The character can't die, and turns around for a few seconds during the first visit so the fog of war clears. Player input is
+shut out for the whole run. A small panel in the center of the screen shows the run, spot, stage, FPS and elapsed time;
+`"overlay": false` turns it off, and is worth checking once since drawing it has a small cost. `ghost` stops zombies reacting, for steadier scenes; leave it off where zombie load is what you're measuring. There are no camera routes, ViewPoint controls or scripted
 weather. Weather, streaming and simulation can still vary, so repeat a pair before trusting a small difference.
 
 ## What a run does
@@ -68,7 +68,7 @@ For each renderer, the jar:
    scene asks for it. Only Julia differs between the two.
 3. Waits for the main menu, then loads the save through the game's own continue path, so validation and mod resets match a
    player's. The loading screen continues when its own checks allow it, without simulated input.
-4. For each spot, moves the player, waits for the current square, looks around, then records warmup and duration.
+4. Visits every spot to look around, then visits each again, waits for the current square, and records warmup and duration.
 5. Quits normally and starts the next run.
 
 The separate home matters because ZombieBuddy keeps its preload list there and ignores the game's `-cachedir`. Without it, a

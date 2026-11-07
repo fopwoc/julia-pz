@@ -5,11 +5,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
 
 /**
- * Takes the game through a scene: load the save, visit each spot, look around, record it, quit. Ticks arrive on the game's
+ * Takes the game through a scene: load the save, visit every spot once to look around, then visit each again to record it,
+ * and quit. The first pass gets shaders, textures and models ready, so no spot pays for being reached first. Ticks arrive on the game's
  * logic thread, which owns Lua and the world. Progress goes to {@code automation.txt}, which the batch waits on.
  */
 final class Automation {
@@ -24,7 +27,7 @@ final class Automation {
     private static final System.Logger LOG = System.getLogger(Automation.class.getName());
     private static final long POLL_NANOS = Duration.ofMillis(200).toNanos();
     private static final long SECOND = Duration.ofSeconds(1).toNanos();
-    // Long enough for two full turns, since the fog only clears over time and only where the character looks.
+    // Long enough for two full turns, since the fog only clears where the character looks.
     private static final long SURVEY_NANOS = Duration.ofSeconds(8).toNanos();
     private static final float SURVEY_DEGREES_PER_SECOND = 90;
 
@@ -32,7 +35,7 @@ final class Automation {
         MENU("menu"),
         LOADING("loading"),
         POSITIONING("moving"),
-        SURVEYING("looking around"),
+        SURVEYING("warming up"),
         RECORDING("recording"),
         OVER("done");
 
@@ -52,12 +55,15 @@ final class Automation {
     private final String label;
     private volatile Stage stage = Stage.MENU;
     private volatile int spot;
+    private volatile boolean warmingUp = true;
     private long nextPoll;
     private long stageStart;
     private volatile long recordingStart;
-    private volatile String fps = "";
+    private volatile long fps;
     private long fpsFrames;
     private long fpsStart;
+    private long runStart;
+    private long runFrames;
 
     Automation(
             Scene scene,
@@ -80,6 +86,7 @@ final class Automation {
         if (stage == Stage.OVER || now - nextPoll < 0) return;
         nextPoll = now + POLL_NANOS;
         try {
+            if (stage.ordinal() >= Stage.POSITIONING.ordinal()) game.keepAlive();
             step(now);
         } catch (Exception | LinkageError failure) {
             fail(failure.toString());
@@ -100,10 +107,17 @@ final class Automation {
                 if (game.playerReady()) arrive();
             }
             case POSITIONING -> {
-                if (game.arrived(current())) {
+                if (!game.arrived(current())) return;
+                if (warmingUp) {
                     stage = Stage.SURVEYING;
                     stageStart = now;
                     report("SURVEYING " + current().name());
+                } else {
+                    requireRenderer();
+                    recorder.record(current().name(), scene.warmup(), scene.duration());
+                    recordingStart = now;
+                    stage = Stage.RECORDING;
+                    report("RECORDING " + current().name());
                 }
             }
             case SURVEYING -> {
@@ -112,11 +126,11 @@ final class Automation {
                     game.face(SURVEY_DEGREES_PER_SECOND * elapsed / SECOND % 360);
                     return;
                 }
-                requireRenderer();
-                recorder.record(current().name(), scene.warmup(), scene.duration());
-                recordingStart = now;
-                stage = Stage.RECORDING;
-                report("RECORDING " + current().name());
+                if (++spot == scene.spots().size()) {
+                    spot = 0;
+                    warmingUp = false;
+                }
+                arrive();
             }
             case RECORDING -> {
                 var result = recorder.finished();
@@ -143,46 +157,62 @@ final class Automation {
         return scene.spots().get(spot);
     }
 
-    /** Called from the game's UI pass. A failed status line must never fail the run it's describing. */
+    /** Called from the game's UI pass. A failed panel must never fail the run it's describing. */
     void overlay(long now, long frames) {
         if (!scene.overlay()) return;
         try {
+            if (runStart == 0) {
+                runStart = now;
+                runFrames = frames;
+            }
             if (now - fpsStart >= SECOND) {
-                if (fpsStart != 0) fps = (frames - fpsFrames) * SECOND / (now - fpsStart) + " FPS";
+                if (fpsStart != 0) fps = (frames - fpsFrames) * SECOND / (now - fpsStart);
                 fpsStart = now;
                 fpsFrames = frames;
             }
-            game.drawText(statusLine(now));
+            game.drawPanel(panel(now, frames));
         } catch (Exception | LinkageError failure) {
-            LOG.log(System.Logger.Level.DEBUG, "Cannot draw the status line", failure);
+            LOG.log(System.Logger.Level.DEBUG, "Cannot draw the status panel", failure);
         }
     }
 
-    String statusLine(long now) {
-        var line = new StringBuilder(label);
+    List<String> panel(long now, long frames) {
+        var active = backend.get();
         var current = stage;
-        if (current != Stage.MENU && current != Stage.LOADING) {
-            line.append(String.format(
+        var lines = new ArrayList<String>();
+        lines.add(label + (active == null ? "" : " | " + active));
+        if (current != Stage.MENU && current != Stage.LOADING)
+            lines.add(String.format(
                     Locale.ROOT,
-                    " | %s %d/%d",
+                    "spot     %s (%d/%d)",
                     current().name(),
                     spot + 1,
                     scene.spots().size()));
-        }
-        line.append(" | ").append(current.label);
+        var state = new StringBuilder("stage    ")
+                .append(warmingUp || current != Stage.POSITIONING ? current.label : "settling");
         if (current == Stage.RECORDING) {
             long elapsed = (now - recordingStart) / SECOND;
             long warmup = scene.warmup().toSeconds();
-            if (elapsed < warmup) line.append(String.format(Locale.ROOT, " warmup %d/%d s", elapsed, warmup));
+            if (elapsed < warmup) state.append(String.format(Locale.ROOT, " (settling %d/%d s)", elapsed, warmup));
             else
-                line.append(String.format(
+                state.append(String.format(
                         Locale.ROOT,
                         " %d/%d s",
                         elapsed - warmup,
                         scene.duration().toSeconds()));
         }
-        if (!fps.isEmpty()) line.append(" | ").append(fps);
-        return line.toString();
+        lines.add(state.toString());
+        long seconds = (now - runStart) / SECOND;
+        long average = seconds > 0 ? (frames - runFrames) / seconds : 0;
+        lines.add(String.format(Locale.ROOT, "FPS      %d (avg %d)", fps, average));
+        lines.add(String.format(Locale.ROOT, "elapsed  %d:%02d", seconds / 60, seconds % 60));
+        lines.add(String.format(
+                Locale.ROOT,
+                "args     heap %d MB, ZB %s, Steam %s",
+                Runtime.getRuntime().maxMemory() / (1024 * 1024),
+                scene.zombieBuddy() ? "on" : "off",
+                scene.steam() ? "on" : "off"));
+        return lines;
     }
 
     /** A run that quietly ended up on the wrong renderer would compare one renderer with itself. */

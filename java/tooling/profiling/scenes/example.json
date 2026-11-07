@@ -1,8 +1,6 @@
 {
   "name": "example",
   "save": "Apocalypse/benchmark",
-  "warmup": 20,
-  "duration": 60,
   "jvmOptions": [
     "-Xmx8g"
   ]

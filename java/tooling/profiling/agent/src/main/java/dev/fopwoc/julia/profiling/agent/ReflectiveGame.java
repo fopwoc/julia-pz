@@ -2,6 +2,7 @@ package dev.fopwoc.julia.profiling.agent;
 
 import dev.fopwoc.julia.profiling.run.Scene;
 import java.lang.reflect.Method;
+import java.util.List;
 
 /**
  * Drives the game by name, on its logic thread. Game classes aren't on this module's compile path, and a game update
@@ -11,9 +12,16 @@ final class ReflectiveGame implements Game {
     private static final String MAIN_MENU = "zombie.gameStates.MainScreenState";
     private static final String INGAME = "zombie.gameStates.IngameState";
 
+    private static final int PANEL_PADDING = 10;
+
     private Object textManager;
     private Object smallFont;
+    private Object sprites;
+    private Object white;
+    private Object core;
     private Method drawString;
+    private Method measure;
+    private Method fontHeight;
 
     private Class<?> type(String name) throws ClassNotFoundException {
         return Class.forName(name, true, ClassLoader.getSystemClassLoader());
@@ -92,12 +100,7 @@ final class ReflectiveGame implements Game {
         // The game's menu only offers this with a system flag; a capped run shows nothing about throughput.
         var performance = type("zombie.core.PerformanceSettings");
         call(performance.getField("instance").get(null), "setFramerateUncapped", true);
-        // A death would end the run. The public setters do nothing without a debug or admin role, so set the state
-        // directly.
-        forceField(player, "invincible", true);
-        var cheat = type("zombie.characters.IsoGameCharacter").getDeclaredMethod("setGodModCheat", boolean.class);
-        cheat.setAccessible(true);
-        cheat.invoke(player, true);
+        keepAlive();
         call(player, "setGhostMode", spot.ghost());
         if (spot.position() != null)
             call(
@@ -133,24 +136,63 @@ final class ReflectiveGame implements Game {
         call(player(), "setDirectionAngle", degrees);
     }
 
+    /** The public setters do nothing without a debug or admin role, so this sets the state directly. */
     @Override
-    public void drawText(String text) throws ReflectiveOperationException {
+    public void keepAlive() throws ReflectiveOperationException {
+        var player = player();
+        if (player == null) return;
+        forceField(player, "invincible", true);
+        var cheat = type("zombie.characters.IsoGameCharacter").getDeclaredMethod("setGodModCheat", boolean.class);
+        cheat.setAccessible(true);
+        cheat.invoke(player, true);
+        call(call(player, "getBodyDamage"), "RestoreToFullHealth");
+    }
+
+    @Override
+    public void drawPanel(List<String> lines) throws ReflectiveOperationException {
         if (textManager == null) {
-            textManager = type("zombie.ui.TextManager").getField("instance").get(null);
-            smallFont = type("zombie.ui.UIFont").getField("Small").get(null);
-            drawString = type("zombie.ui.TextManager")
-                    .getMethod(
-                            "DrawString",
-                            type("zombie.ui.UIFont"),
-                            double.class,
-                            double.class,
-                            String.class,
-                            double.class,
-                            double.class,
-                            double.class,
-                            double.class);
+            var textType = type("zombie.ui.TextManager");
+            var fontType = type("zombie.ui.UIFont");
+            textManager = textType.getField("instance").get(null);
+            smallFont = fontType.getField("Small").get(null);
+            drawString = textType.getMethod(
+                    "DrawString",
+                    fontType,
+                    double.class,
+                    double.class,
+                    String.class,
+                    double.class,
+                    double.class,
+                    double.class,
+                    double.class);
+            measure = textType.getMethod("MeasureStringX", fontType, String.class);
+            fontHeight = textType.getMethod("getFontHeight", fontType);
+            sprites = type("zombie.core.SpriteRenderer").getField("instance").get(null);
+            white = type("zombie.core.textures.Texture").getMethod("getWhite").invoke(null);
+            core = type("zombie.core.Core").getMethod("getInstance").invoke(null);
         }
-        drawString.invoke(textManager, smallFont, 8d, 8d, text, 1d, 1d, 0d, 1d);
+        int lineHeight = (int) fontHeight.invoke(textManager, smallFont);
+        int width = 0;
+        for (var line : lines) width = Math.max(width, (int) measure.invoke(textManager, smallFont, line));
+        int height = lineHeight * lines.size();
+        int x = ((int) call(core, "getScreenWidth") - width) / 2;
+        int y = ((int) call(core, "getScreenHeight") - height) / 2;
+        call(
+                sprites,
+                "renderi",
+                white,
+                x - PANEL_PADDING,
+                y - PANEL_PADDING,
+                width + 2 * PANEL_PADDING,
+                height + 2 * PANEL_PADDING,
+                0f,
+                0f,
+                0f,
+                0.75f,
+                null);
+        for (int at = 0; at < lines.size(); at++)
+            drawString.invoke(
+                    textManager, smallFont, (double) x, (double) (y + at * lineHeight), lines.get(at), 1d, 1d, 1d, 1d);
     }
 
     private static void forceField(Object target, String name, boolean value) throws ReflectiveOperationException {
