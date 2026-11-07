@@ -1,4 +1,4 @@
-package dev.fopwoc.julia.agent;
+package dev.fopwoc.julia.launch;
 
 import java.io.File;
 import java.nio.file.Files;

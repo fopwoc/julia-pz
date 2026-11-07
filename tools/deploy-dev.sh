@@ -17,8 +17,8 @@ staging="$(mktemp -d)"
 trap 'rm -rf "$staging"' EXIT
 unzip -q "$root/java/modules/workshop/build/distributions/Julia.zip" -d "$staging"
 
-if [[ ! -f "$staging/Julia/libs/julia-agent.jar.zbs" ]]; then
-    echo "The build is unsigned, so ZombieBuddy would refuse to preload it. Run: ./gradlew :agent:generateSigningKey" >&2
+if [[ ! -f "$staging/Julia/libs/julia-preload.jar.zbs" ]]; then
+    echo "The build is unsigned, so ZombieBuddy would refuse to preload it. Run: ./gradlew :preload:generateSigningKey" >&2
     exit 1
 fi
 
@@ -29,11 +29,12 @@ rm -rf "$target"
 mkdir -p "$(dirname "$target")"
 mv "$staging/Julia" "$target"
 
-unzip -p "$target/libs/julia-agent.jar" META-INF/MANIFEST.MF | grep Implementation-Version | tr -d '\r'
+unzip -p "$target/libs/julia-preload.jar" META-INF/MANIFEST.MF | grep Implementation-Version | tr -d '\r'
 echo "Installed $target"
 echo "Enable \"Julia (local dev)\" and disable the Workshop \"Julia\" in the mod manager."
 
-# The macOS launcher puts every jar beside the game on the class path, where classes win over the preload mod's.
+# The macOS launcher puts every jar beside the game on the class path, where a standalone agent's shared classes win
+# over the preload mod's.
 game_java="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java"
 if [[ -f "$game_java/julia-agent.jar" ]]; then
     echo "WARNING: remove $game_java/julia-agent.jar: it shadows this build's classes." >&2

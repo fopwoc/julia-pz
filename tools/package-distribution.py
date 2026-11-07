@@ -14,8 +14,7 @@ def main() -> None:
     parser.add_argument("kind", choices=("manifest", "sources", "workshop"))
     parser.add_argument("output", type=Path)
     parser.add_argument("--revision", default="HEAD")
-    parser.add_argument("--agent", type=Path)
-    parser.add_argument("--loader", type=Path)
+    parser.add_argument("--preload", type=Path)
     args = parser.parse_args()
     root = Path(__file__).resolve().parent.parent
     snapshot = Snapshot(root, args.revision)
@@ -26,9 +25,9 @@ def main() -> None:
     elif args.kind == "sources":
         write_zip(args.output, snapshot.sources())
     else:
-        if not args.agent or not args.loader:
-            parser.error("workshop requires --agent and --loader")
-        workshop(snapshot, args.agent, args.loader, args.output)
+        if not args.preload:
+            parser.error("workshop requires --preload")
+        workshop(snapshot, args.preload, args.output)
     print(args.output)
 
 

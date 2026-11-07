@@ -31,7 +31,8 @@ dependencyResolutionManagement {
     }
 }
 
-// Layers, bottom-up: utils → gl-audit → backend → transform → host → agent; workshop packages the Lua companion.
+// Layers, bottom-up: utils → gl-audit → backend → transform → host → launch → agent or preload, the two
+// ways of wiring Julia into the game; workshop packages the preload jar with the Lua companion.
 // render-runtime is JDK-only and shared across the host/isolated loader boundary.
 listOf(
     "gtnhlib",
@@ -45,6 +46,8 @@ listOf(
     "backend",
     "transform",
     "host",
+    "launch",
+    "preload",
     "workshop",
 ).forEach { name ->
     include(name)

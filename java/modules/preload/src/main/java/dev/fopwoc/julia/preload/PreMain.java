@@ -1,6 +1,6 @@
 package dev.fopwoc.julia.preload;
 
-import dev.fopwoc.julia.agent.JuliaAgent;
+import dev.fopwoc.julia.launch.Launcher;
 import dev.fopwoc.julia.runtime.JuliaStatus;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -46,7 +46,7 @@ public final class PreMain {
         var loader = Class.forName(BUDDY_LOADER);
         var instrumentation = (Instrumentation) staticField(loader, "g_instrumentation");
         if (instrumentation == null) throw new IllegalStateException("ZombieBuddy exposes no instrumentation");
-        JuliaAgent.activate("activate", instrumentation, archive(staticField(loader, "g_config")));
+        Launcher.activate("activate", instrumentation, archive(staticField(loader, "g_config")));
         exposeStatus();
     }
 
@@ -60,7 +60,7 @@ public final class PreMain {
 
     /**
      * ZombieBuddy only logs what a preload entry throws, and the game sends that early output to /dev/null. A stale
-     * standalone jar on the macOS launcher's class path fails exactly here, as a NoSuchMethodError on JuliaAgent.
+     * standalone jar on the macOS launcher's class path fails exactly here, as a NoSuchMethodError on Julia's own classes.
      */
     private static void report(Throwable failure) {
         var text = new StringWriter();

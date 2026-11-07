@@ -14,7 +14,7 @@ local.properties
 # ZombieBuddy signing key; CI holds the same key as the ZBS_PRIVATE_KEY secret.
 /signing/
 
-# Staged by :workshop:stageAgent for Workshop uploads.
+# Staged by :workshop:stagePreload for Workshop uploads.
 /libs/
 
 # Generated source manifest for direct Workshop staging and Python tool caches.

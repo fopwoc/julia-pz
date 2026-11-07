@@ -90,6 +90,7 @@ jobs:
           ./gradlew
           check
           :buildSrc:test
+          :preload:universalJar
           :agent:universalJar
           :workshop:modZip
           :workshop:sourceZip
@@ -99,14 +100,15 @@ jobs:
         run: |
           mkdir -p dist
           cp java/modules/agent/build/libs/julia-agent.jar dist/julia-agent.jar
-          if [[ -f java/modules/agent/build/libs/julia-agent.jar.zbs ]]; then
-            cp java/modules/agent/build/libs/julia-agent.jar.zbs dist/julia-agent.jar.zbs
+          cp java/modules/preload/build/libs/julia-preload.jar dist/julia-preload.jar
+          if [[ -f java/modules/preload/build/libs/julia-preload.jar.zbs ]]; then
+            cp java/modules/preload/build/libs/julia-preload.jar.zbs dist/julia-preload.jar.zbs
           fi
           cp native/build/universal/natives/windows/x64/julia.dll dist/julia.dll
           cp java/modules/workshop/build/distributions/Julia.zip dist/julia-mod.zip
           cp java/modules/workshop/build/distributions/Julia-sources.zip dist/julia-sources.zip
-          tools/package-workshop.sh dist/julia-agent.jar dist/julia.dll dist/julia-workshop.zip
-          unzip -p dist/julia-agent.jar META-INF/MANIFEST.MF | grep Implementation-Version
+          tools/package-workshop.sh dist/julia-preload.jar dist/julia-workshop.zip
+          unzip -p dist/julia-preload.jar META-INF/MANIFEST.MF | grep Implementation-Version
 
       - name: Upload distribution
         uses: actions/upload-artifact@v7

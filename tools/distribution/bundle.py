@@ -27,16 +27,15 @@ def write_zip(output: Path, files: dict[str, File]) -> None:
             os.unlink(temporary)
 
 
-def workshop(snapshot: Snapshot, agent: Path, loader: Path, output: Path) -> None:
-    with zipfile.ZipFile(agent) as archive:
+def workshop(snapshot: Snapshot, preload: Path, output: Path) -> None:
+    with zipfile.ZipFile(preload) as archive:
         manifest = archive.read("META-INF/MANIFEST.MF").decode().replace("\r\n ", "")
     versions = [line.partition(": ")[2] for line in manifest.splitlines() if line.startswith("Implementation-Version: ")]
     if versions != [snapshot.version]:
-        raise ValueError(f"Agent identity {versions} does not match committed source {snapshot.version}; rebuild from a clean matching revision")
+        raise ValueError(f"Preload jar identity {versions} does not match committed source {snapshot.version}; rebuild from a clean matching revision")
     files = snapshot.workshop()
-    files["libs/julia-agent.jar"] = File(agent.read_bytes())
-    signature = agent.with_name(agent.name + ".zbs")
+    files["libs/julia-preload.jar"] = File(preload.read_bytes())
+    signature = preload.with_name(preload.name + ".zbs")
     if signature.exists():
-        files["libs/julia-agent.jar.zbs"] = File(signature.read_bytes())
-    files["libs/julia.dll"] = File(loader.read_bytes())
+        files["libs/julia-preload.jar.zbs"] = File(signature.read_bytes())
     write_zip(output, files)

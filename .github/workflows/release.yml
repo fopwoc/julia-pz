@@ -56,7 +56,8 @@ jobs:
         run: |
           mkdir release
           mv dist/julia-agent.jar "release/julia-$GITHUB_REF_NAME-agent.jar"
-          mv dist/julia-agent.jar.zbs "release/julia-$GITHUB_REF_NAME-agent.jar.zbs"
+          mv dist/julia-preload.jar "release/julia-$GITHUB_REF_NAME-preload.jar"
+          mv dist/julia-preload.jar.zbs "release/julia-$GITHUB_REF_NAME-preload.jar.zbs"
           mv dist/julia.dll "release/julia-$GITHUB_REF_NAME-windows-loader.dll"
           mv dist/julia-mod.zip "release/julia-$GITHUB_REF_NAME-mod.zip"
           mv dist/julia-workshop.zip "release/julia-$GITHUB_REF_NAME-workshop.zip"
@@ -69,6 +70,7 @@ jobs:
         with:
           subject-path: |
             release/julia-*-agent.jar
+            release/julia-*-preload.jar
             release/julia-*-windows-loader.dll
             release/julia-*-mod.zip
             release/julia-*-workshop.zip
@@ -87,11 +89,11 @@ jobs:
             cat <<NOTES
 
           ## Verify
-          The agent jar and the Windows loader are built and signed by this repository's release workflow. Check any
-          copy, including the ones in the Workshop item (\`libs/julia-agent.jar\`, \`libs/julia.dll\`), with the
-          GitHub CLI:
+          The preload jar, agent jar and Windows loader are built and signed by this repository's release workflow.
+          Check any copy, including the one in the Workshop item (\`libs/julia-preload.jar\`), with the GitHub CLI:
 
           \`\`\`
+          gh attestation verify julia-preload.jar --repo $GITHUB_REPOSITORY
           gh attestation verify julia-agent.jar --repo $GITHUB_REPOSITORY
           gh attestation verify julia.dll --repo $GITHUB_REPOSITORY
           \`\`\`

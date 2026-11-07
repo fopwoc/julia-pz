@@ -75,7 +75,7 @@ sources and license. Unrelated Minecraft modules and Git history are omitted.
 
 To rebuild from Git, check out the Julia revision above and run `git submodule update --init --recursive`.
 To rebuild from the complete source ZIP, extract it and build directly; its fork sources are already present.
-Use JDK 25 and the Gradle wrapper: `./java/gradlew -p java check :agent:jar`.
+Use JDK 25 and the Gradle wrapper: `./java/gradlew -p java check :preload:jar :agent:jar`.
 For all native platforms, use `./tools/build-universal.sh` on macOS with Docker and the Apple SDK installed.
 Gradle and CMake download pinned external dependencies; this is not an offline dependency bundle.
 See `THIRD_PARTY.md` and `licenses/` for licensing and replacement information.

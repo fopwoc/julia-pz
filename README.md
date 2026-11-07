@@ -37,7 +37,7 @@ Status legend: ✅ works · 🧪 experimental, gameplay testing pending · 🚧 
 | Linux | x64 | Vulkan | ✅ |
 | Windows | x64 | Vulkan | ✅ |
 
-The universal `julia-agent.jar` carries the natives for every platform above and picks the right ones at startup.
+The universal Julia jars carry the natives for every platform above and picks the right ones at startup.
 Linux follows the game's GLFW backend. PZ uses X11 by default (XWayland on Wayland desktops), and that path is tested on a
 Steam Deck (RADV) and an RTX 4060 Ti PC (NVIDIA driver). Native Wayland is opt-in through `-Dzomboid.wayland=1` and
 probably works in windowed mode, but fractional scaling misplaces clicks in ZombieBuddy's overlay, and fullscreen leaves
@@ -94,11 +94,24 @@ links such programs without it. On Metal the first draw then fails pipeline crea
 
 ## Install
 
-Julia is a Java agent that starts with the game. It never patches game files on disk.
+Julia runs as a [ZombieBuddy](https://steamcommunity.com/sharedfiles/filedetails/?id=3619862853) preload mod and never
+patches game files on disk. The Workshop item is this way of using Julia.
 
-Get `julia-agent.jar`: subscribe to the Workshop item and take it from its `libs/` folder, or download
-`julia-<version>-agent.jar` from the releases page and save it as `julia-agent.jar`. On Windows, also take `julia.dll`
-from the same `libs/` folder, or `julia-<version>-windows-loader.dll` saved as `julia.dll`.
+1. Install ZombieBuddy.
+2. Subscribe to the Julia Workshop item and enable it.
+3. Start the game, approve Julia in ZombieBuddy's dialog, and restart. That first launch runs without Julia; later ones
+   start it during ZombieBuddy's startup, before anything draws.
+
+The corner of the main menu shows Julia's state, such as `Julia 1.2.3 active | Metal`, or what it still needs. To return
+to vanilla rendering, disable the mod.
+
+### Standalone agent
+
+For launches without ZombieBuddy, the releases page has a separate agent. Nothing else in this section applies to the
+Workshop item, and the agent jar does not come with it.
+
+Download `julia-<version>-agent.jar` and save it as `julia-agent.jar`. On Windows, also download
+`julia-<version>-windows-loader.dll` and save it as `julia.dll`.
 
 0. Optional: make sure the binaries are genuine, built by this repository's release workflow. Check them with the
    [GitHub CLI](https://cli.github.com):
@@ -118,25 +131,19 @@ from the same `libs/` folder, or `julia-<version>-windows-loader.dll` saved as `
 
 2. Add Steam launch options:
 
-   | OS | Julia alone | With ZombieBuddy |
-   | --- | --- | --- |
-   | macOS | `-XstartOnFirstThread -javaagent:julia-agent.jar=activate --` | `-XstartOnFirstThread -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --` |
-   | Linux | `%command% -javaagent:julia-agent.jar=activate --` | `%command% -javaagent:julia-agent.jar=activate -javaagent:ZombieBuddy.jar --` |
-   | Windows | `-agentlib:julia=activate --` | `-agentlib:julia=activate -agentlib:zbNative --` |
+   | OS | Launch options |
+   | --- | --- |
+   | macOS | `-XstartOnFirstThread -javaagent:julia-agent.jar=activate --` |
+   | Linux | `%command% -javaagent:julia-agent.jar=activate --` |
+   | Windows | `-agentlib:julia=activate --` |
 
-   Julia's agent must come before ZombieBuddy's, and the final `--` must stay. Use Steam launch options rather than
-   ZombieBuddy installer's `ProjectZomboid64.json` option, which loads ZombieBuddy before Julia.
+   The final `--` must stay.
 
    PZ's Windows launcher cannot start a `-javaagent` jar: the JVM's `instrument.dll` does not find its own libraries
    from the game directory. `julia.dll` loads it from `jre64\bin` and starts `julia-agent.jar` with the same options,
    the way ZombieBuddy's `zbNative.dll` does.
 
-3. Optional: enable the **Julia** Lua mod from the Workshop or `Julia.zip`. It shows the agent's version and state in the
-   corner of the main menu, such as `Julia 1.2.3 active | Metal` or `Julia 1.2.3 inactive`, and warns when the agent is
-   not loaded. It does not turn Julia on or off.
-
-To return to vanilla rendering, remove Julia's launch option; you can also delete the jar (and `julia.dll`). Disabling
-the Lua mod does not disable the agent.
+To return to vanilla rendering, remove Julia's launch option; you can also delete the jar (and `julia.dll`).
 
 ## Troubleshooting
 
@@ -156,12 +163,12 @@ game with exit code 70 instead of drawing a wrong frame. Mods cannot catch and h
 problem, include the newest `fatal-error.txt`.
 
 For more detail, set `LOG_LEVEL=warn`, `info` or `debug` (default `error`). On Linux and Proton, put it in front of
-Steam's `%command%`, for example `LOG_LEVEL=info %command% -javaagent:julia-agent.jar=activate --`. To choose the
-report directory yourself, use `activate=/absolute/path/new-run` instead of `activate`.
+Steam's `%command%`, for example `LOG_LEVEL=info %command%`. With the standalone agent, `activate=/absolute/path/new-run`
+in place of `activate` chooses the report directory.
 
 ## FAQ
 
-**Is Julia a ZombieBuddy mod?** It can be either. With ZombieBuddy, Julia can run as a signed preload mod: enable it, approve it in ZombieBuddy's dialog, and restart; it then starts during ZombieBuddy's startup, before anything draws. That first launch and its dialog run without Julia. Without ZombieBuddy, install it as its own agent as described above.
+**Is Julia a ZombieBuddy mod?** Yes: the Workshop item is a signed ZombieBuddy preload mod. A standalone agent for launches without ZombieBuddy is on the releases page.
 
 **Will Julia raise my FPS?** Maybe. It is experimental: results so far range from a real gain to slower frames or a
 stopped game.
@@ -272,39 +279,40 @@ SHA-256-pinned SDL 3.4.12 archive, patches a copy, and builds `SDL3Julia` for th
 cd java
 ./gradlew check            # Julia and renderer CPU tests; never launches the game or opens a window
 ./gradlew :renderer-tests:test # only the fork-owned renderer regressions
-./gradlew :agent:jar       # → modules/agent/build/libs/julia-agent.jar
-./gradlew :workshop:modZip # → modules/workshop/build/distributions/Julia.zip (Lua companion and agent jar)
-./gradlew :workshop:stageAgent # → libs/julia-agent.jar and SOURCES.md in the mod root (Git ignores them)
+./gradlew :preload:jar     # → modules/preload/build/libs/julia-preload.jar, the ZombieBuddy mod
+./gradlew :agent:jar       # → modules/agent/build/libs/julia-agent.jar, the standalone agent
+./gradlew :workshop:modZip # → modules/workshop/build/distributions/Julia.zip (Lua companion and preload jar)
+./gradlew :workshop:stagePreload # → libs/julia-preload.jar and SOURCES.md in the mod root (Git ignores them)
 ../tools/deploy-dev.sh     # → signed JuliaDev mod in ~/Zomboid/mods, usable beside a Workshop subscription
 ./gradlew :workshop:sourceZip # → modules/workshop/build/distributions/Julia-sources.zip (committed sources + forks)
 ```
 
-The agent jar bundles LWJGL natives for every platform in the support table and Julia's SDL build for the host. To
+Both jars bundle LWJGL natives for every platform in the support table and Julia's SDL build for the host. To
 include SDL builds made on other hosts, pass `-PjuliaNatives=<dir>`, where `<dir>` holds `<os>/<arch>/<library>`,
 for example `linux/x64/libSDL3Julia.so` or `windows/x64/SDL3Julia.dll`.
 
 For a complete distribution, run `./tools/build-universal.sh` from the repository root on macOS with Docker
 running. It builds Mac ARM64 and x64 libraries with the Apple SDK, then Linux x64 and Windows x64 libraries in a
-staged container, runs the JVM checks, packages the same `java/modules/agent/build/libs/julia-agent.jar`, and stages
-a copy as `libs/julia-agent.jar`. Container outputs and the universal build trees remain under `native/build/`; the host build's SDL tree is in
+staged container, runs the JVM checks, packages both jars under `java/modules/{preload,agent}/build/libs/`, and stages
+a copy of the preload jar as `libs/julia-preload.jar`. Container outputs and the universal build trees remain under `native/build/`; the host build's SDL tree is in
 `java/modules/sdl-gpu/build/sdl/`.
 
-When supplying prebuilt libraries yourself, use `:agent:universalJar` with `-PjuliaNatives=<dir>` to reject an
-incomplete distribution. Ordinary `:agent:jar` remains available for host-only development builds.
+When supplying prebuilt libraries yourself, use `:preload:universalJar` or `:agent:universalJar` with `-PjuliaNatives=<dir>` to reject an
+incomplete distribution. Ordinary `:preload:jar` and `:agent:jar` remain available for host-only development builds.
 
 ### Releases
 
 CI builds every push the same way: the Linux and Windows libraries in the pinned container, the macOS libraries with
 the Apple SDK, then `check` and the universal jar. Pushing an `x.y.z` tag on `main` runs that build again and
-publishes five files with signed build provenance: the agent jar, Windows loader, Lua companion zip, Workshop folder,
+publishes six files with signed build provenance: the preload jar, agent jar, Windows loader, Lua companion zip, Workshop folder,
 and complete source ZIP. Both runtime ZIPs carry `SOURCES.md` with exact Julia/Angelica/GTNHLib revisions and source
 links. The Workshop folder also carries Julia's own source; the renderer forks are available in the separate source
 ZIP. That ZIP expands the required renderer modules, native patches, and selected GTNHLib sources, omitting unrelated
 Minecraft modules and Git history. Its generated source identity lets Gradle build it directly without Git metadata.
 External dependencies still download through Gradle and CMake.
 
-`tools/package-workshop.sh <agent.jar> <julia.dll> <output.zip> [revision]` packages the same Workshop folder locally.
-It requires an agent built from the matching committed revision; dirty or mismatched agent identities are rejected.
+`tools/package-workshop.sh <preload.jar> <output.zip> [revision]` packages the same Workshop folder locally.
+It requires a jar built from the matching committed revision; dirty or mismatched identities are rejected.
 `python3 tools/package-distribution.py sources <output.zip> [--revision <commit-or-tag>]` exports the complete sources.
 Packaging reads committed Git objects, including each recorded submodule pin, rather than the current files in the
 working tree. `python3 -m unittest discover -s tools/tests` verifies the distribution tooling.

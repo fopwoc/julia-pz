@@ -64,11 +64,9 @@ class DistributionTest(unittest.TestCase):
         put(self.root, ".github/workflows/build.yml", "CI")
         self.revision = commit(self.root)
         self.snapshot = Snapshot(self.root)
-        self.agent = Path(self.temporary.name) / "agent.jar"
-        with zipfile.ZipFile(self.agent, "w") as archive:
+        self.preload = Path(self.temporary.name) / "preload.jar"
+        with zipfile.ZipFile(self.preload, "w") as archive:
             archive.writestr("META-INF/MANIFEST.MF", "Implementation-Version: " + self.snapshot.version + "\r\n")
-        self.loader = Path(self.temporary.name) / "julia.dll"
-        self.loader.write_bytes(b"test loader")
 
     def test_source_archive_expands_pinned_revisions_and_is_reproducible(self) -> None:
         put(self.lib, "src/main/java/example/Helper.java", "newer unpinned implementation")
@@ -92,11 +90,11 @@ class DistributionTest(unittest.TestCase):
 
     def test_workshop_keeps_julia_source_and_manifest_but_omits_forks_and_ci(self) -> None:
         target = Path(self.temporary.name) / "workshop.zip"
-        workshop(self.snapshot, self.agent, self.loader, target)
+        workshop(self.snapshot, self.preload, target)
         with zipfile.ZipFile(target) as archive:
             self.assertIn("Julia/java/build.gradle.kts", archive.namelist())
             self.assertNotIn("Julia/java/tooling/probe/Probe.java", archive.namelist())
-            self.assertIn("Julia/libs/julia-agent.jar", archive.namelist())
+            self.assertIn("Julia/libs/julia-preload.jar", archive.namelist())
             self.assertIn("Julia/.workshopignore", archive.namelist())
             self.assertNotIn("Julia/.github/workflows/build.yml", archive.namelist())
             self.assertFalse(any("/third_party/" in name for name in archive.namelist()))
@@ -104,14 +102,14 @@ class DistributionTest(unittest.TestCase):
             for sha in (self.revision, self.snapshot.angelica, self.snapshot.gtnhlib):
                 self.assertIn(sha, manifest)
 
-    def test_mismatched_or_dirty_agent_does_not_replace_existing_output(self) -> None:
+    def test_mismatched_or_dirty_preload_does_not_replace_existing_output(self) -> None:
         target = Path(self.temporary.name) / "workshop.zip"
         target.write_bytes(b"keep previous package")
         for version in ("unrelated", self.snapshot.version + "-dirty"):
-            with zipfile.ZipFile(self.agent, "w") as archive:
+            with zipfile.ZipFile(self.preload, "w") as archive:
                 archive.writestr("META-INF/MANIFEST.MF", "Implementation-Version: " + version + "\n")
             with self.assertRaises(ValueError):
-                workshop(self.snapshot, self.agent, self.loader, target)
+                workshop(self.snapshot, self.preload, target)
             self.assertEqual(b"keep previous package", target.read_bytes())
 
     def test_tagged_manifest_names_the_complete_release_source_asset(self) -> None:

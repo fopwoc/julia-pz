@@ -16,5 +16,6 @@ docker buildx build --platform linux/amd64 \
     --output "type=local,dest=$natives" "$root/native"
 "$root/tools/build-natives-macos.sh" "$natives" arm64 x64
 
-"$root/java/gradlew" -p "$root/java" check :agent:universalJar :workshop:stageAgent "-PjuliaNatives=$natives"
-echo "Universal agent: $root/java/modules/agent/build/libs/julia-agent.jar (staged as $root/libs/julia-agent.jar)"
+"$root/java/gradlew" -p "$root/java" check :preload:universalJar :agent:universalJar :workshop:stagePreload "-PjuliaNatives=$natives"
+echo "Universal preload jar: $root/java/modules/preload/build/libs/julia-preload.jar (staged as $root/libs/julia-preload.jar)"
+echo "Universal agent: $root/java/modules/agent/build/libs/julia-agent.jar"

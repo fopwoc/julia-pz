@@ -1,4 +1,4 @@
-// Workshop/manual distribution: the Lua status companion plus the prebuilt startup agent that does the rendering.
+// Workshop distribution: the Lua status companion plus the signed ZombieBuddy preload jar that does the rendering.
 plugins {
     base
 }
@@ -6,10 +6,8 @@ plugins {
 /** The repository root is the PZ mod folder; this Gradle build lives in its `java/` directory. */
 val modRoot: Directory = rootProject.layout.projectDirectory.dir("..")
 
-val agentJar = project(":agent").tasks.named<Jar>("jar").flatMap { it.archiveFile }
-val agentSignature = project(":agent").tasks.named("signJar").map { it.outputs.files.singleFile }
-// PZ's Windows launcher cannot start -javaagent itself; the -agentlib loader from the native build does it instead.
-val windowsLoader = providers.gradleProperty("juliaNatives").map { file(it).resolve("windows/x64/julia.dll") }
+val preloadJar = project(":preload").tasks.named<Jar>("jar").flatMap { it.archiveFile }
+val preloadSignature = project(":preload").tasks.named("signJar").map { it.outputs.files.singleFile }
 
 // The source ZIP expands the pinned forks; the small runtime ZIP points to those same revisions.
 val hasGit = modRoot.file(".git").asFile.exists()
@@ -38,27 +36,23 @@ val sourceZip by tasks.registering(Exec::class) {
     commandLine("python3", modRoot.file("tools/package-distribution.py").asFile, "sources", archive.get().asFile)
 }
 
-// Direct uploads stage the agent and source manifest in the mod root; Git ignores both generated copies.
-val stageAgent by tasks.registering {
+// Direct uploads stage the jar and source manifest in the mod root; Git ignores both generated copies.
+val stagePreload by tasks.registering {
     group = "distribution"
-    description = "Copy the built agent jar into the mod root for a Workshop upload."
-    val target = modRoot.file("libs/julia-agent.jar")
-    val signature = agentSignature
-    val signatureTarget = modRoot.file("libs/julia-agent.jar.zbs")
-    val loaderTarget = modRoot.file("libs/julia.dll")
-    val loader = windowsLoader.orNull
+    description = "Copy the built preload jar into the mod root for a Workshop upload."
+    val target = modRoot.file("libs/julia-preload.jar")
+    val signature = preloadSignature
+    val signatureTarget = modRoot.file("libs/julia-preload.jar.zbs")
     dependsOn("sourceManifest")
     inputs.file(sourceManifestFile)
-    inputs.file(agentJar)
+    inputs.file(preloadJar)
     inputs.files(signature)
-    if (loader != null) inputs.file(loader)
-    outputs.files(target, loaderTarget, modRoot.file("SOURCES.md"))
+    outputs.files(target, modRoot.file("SOURCES.md"))
     doLast {
-        agentJar.get().asFile.copyTo(target.asFile, overwrite = true)
+        preloadJar.get().asFile.copyTo(target.asFile, overwrite = true)
         // A stale signature would make ZombieBuddy reject the fresh jar, so an unsigned build removes it.
         signatureTarget.asFile.delete()
         signature.get().takeIf { it.isFile }?.copyTo(signatureTarget.asFile)
-        loader?.copyTo(loaderTarget.asFile, overwrite = true)
         val source = sourceManifestFile.get().asFile
         val destination = modRoot.file("SOURCES.md").asFile
         if (source != destination) source.copyTo(destination, overwrite = true)
@@ -76,10 +70,8 @@ val modZip by tasks.registering(Zip::class) {
     }
     from(sourceManifestFile) { into("Julia") }
     dependsOn(sourceManifest)
-    from(agentJar) { into("Julia/libs") }
-    from(agentSignature) { into("Julia/libs") }
-    // Local builds have no Windows natives; CI passes them and the zip then carries the loader.
-    from(windowsLoader.map { listOf(it) }.orElse(emptyList())) { into("Julia/libs") }
+    from(preloadJar) { into("Julia/libs") }
+    from(preloadSignature) { into("Julia/libs") }
 }
 
 tasks.assemble { dependsOn(modZip) }

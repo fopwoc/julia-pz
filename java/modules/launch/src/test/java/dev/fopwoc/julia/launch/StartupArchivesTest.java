@@ -1,4 +1,4 @@
-package dev.fopwoc.julia.agent;
+package dev.fopwoc.julia.launch;
 
 import static org.junit.jupiter.api.Assertions.*;
 
