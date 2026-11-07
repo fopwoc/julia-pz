@@ -30,7 +30,6 @@ public final class GameRuntime {
     private GlsmSession session;
     private Path output;
     private FrameWatchdog watchdog;
-    private GameUiStateLog uiStateLog;
     private long frames;
     private GlsmSession.Size renderSize;
 
@@ -62,7 +61,6 @@ public final class GameRuntime {
             System.setProperty("julia.renderer.backend", SDLGPUGate.device().getDriverName());
             runtime.status("READY");
             runtime.watchdog = new FrameWatchdog(output);
-            runtime.uiStateLog = GameUiStateLog.open(output);
             LOG.log(
                     System.Logger.Level.INFO,
                     "Live renderer ready on {0}",
@@ -105,7 +103,6 @@ public final class GameRuntime {
         runtime.session.backend().onFrameEnd();
         runtime.frames++;
         runtime.watchdog.presented(runtime.frames);
-        if (runtime.uiStateLog != null) runtime.uiStateLog.presented(runtime.frames);
         if (runtime.frames <= 3 || runtime.frames % 60 == 0) runtime.status("RENDERING");
     }
 
