@@ -101,7 +101,8 @@ final class ReflectiveGame implements Game {
         var performance = type("zombie.core.PerformanceSettings");
         call(performance.getField("instance").get(null), "setFramerateUncapped", true);
         keepAlive();
-        call(player, "setGhostMode", spot.ghost());
+        // Like the setters above, setGhostMode is role-guarded. Being invisible is what stops zombies reacting.
+        cheat(player, "INVISIBLE", spot.ghost());
         if (spot.position() != null)
             call(
                     player,
@@ -156,16 +157,26 @@ final class ReflectiveGame implements Game {
         call(player(), "setDirectionAngle", degrees);
     }
 
-    /** The public setters do nothing without a debug or admin role, so this sets the state directly. */
+    /**
+     * The public setters do nothing without a debug or admin role, so this sets the cheats directly. God mode alone isn't
+     * enough, since a zombie's kill animation doesn't go through the damage it guards. Zombies still chase and crowd the
+     * character, so their load stays in the numbers.
+     */
     @Override
     public void keepAlive() throws ReflectiveOperationException {
         var player = player();
         if (player == null) return;
+        if ((boolean) call(player, "isDead"))
+            throw new IllegalStateException("The character died; these numbers aren't valid");
+        cheat(player, "GOD_MODE", true);
+        cheat(player, "ZOMBIES_DONT_ATTACK", true);
         forceField(player, "invincible", true);
-        var cheat = type("zombie.characters.IsoGameCharacter").getDeclaredMethod("setGodModCheat", boolean.class);
-        cheat.setAccessible(true);
-        cheat.invoke(player, true);
         call(call(player, "getBodyDamage"), "RestoreToFullHealth");
+    }
+
+    private void cheat(Object player, String name, boolean value) throws ReflectiveOperationException {
+        var flag = type("zombie.characters.CheatType").getField(name).get(null);
+        call(call(player, "getCheats"), "set", flag, value);
     }
 
     @Override

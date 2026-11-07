@@ -29,8 +29,8 @@ final class Automation {
     private static final long SECOND = Duration.ofSeconds(1).toNanos();
     private static final long RETELEPORT_NANOS = Duration.ofSeconds(5).toNanos();
     private static final long ARRIVAL_TIMEOUT_NANOS = Duration.ofSeconds(60).toNanos();
-    // Long enough for two full turns, since the fog only clears where the character looks.
-    private static final long SURVEY_NANOS = Duration.ofSeconds(8).toNanos();
+    // One full turn, since the fog only clears where the character looks.
+    private static final long SURVEY_NANOS = Duration.ofSeconds(4).toNanos();
     private static final float SURVEY_DEGREES_PER_SECOND = 90;
 
     private enum Stage {
