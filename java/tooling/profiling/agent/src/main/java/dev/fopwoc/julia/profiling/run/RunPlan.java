@@ -3,6 +3,7 @@ package dev.fopwoc.julia.profiling.run;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -12,6 +13,7 @@ record RunPlan(
         String renderer, Path run, Path template, Path buddyHome, Scene scene, GameInstall game, List<String> command) {
     // Whichever copy a template carries: this agent decides whether Julia runs, not the mod list.
     private static final List<String> JULIA_IDS = List.of("Julia", "JuliaDev");
+    private static final String STEAM = "-Dzomboid.steam=";
     private static final Pattern FOCUS_LOSS = Pattern.compile("(?m)^focusloss=.*$");
 
     static RunPlan of(
@@ -25,7 +27,9 @@ record RunPlan(
             GameInstall game) {
         var command = new ArrayList<String>();
         command.add(game.java().toString());
-        command.addAll(game.options());
+        for (var option : game.options()) if (!option.startsWith(STEAM)) command.add(option);
+        // Without Steam there's no Workshop folder and no client integration to vary between runs.
+        command.add(STEAM + (scene.steam() ? "1" : "0"));
         // Later options win, so a scene can raise the heap above the game's default.
         command.addAll(scene.jvmOptions());
         // This agent goes first: Julia must arm before ZombieBuddy, and the observer refuses to install after its
@@ -47,7 +51,15 @@ record RunPlan(
         var profile = run.resolve("profile");
         Bake.copyTree(template, profile);
         ActiveMods.remove(profile.resolve("mods/default.txt"), JULIA_IDS);
-        ActiveMods.remove(profile.resolve("Saves").resolve(scene.save()).resolve("mods.txt"), JULIA_IDS);
+        var saveMods = profile.resolve("Saves").resolve(scene.save()).resolve("mods.txt");
+        ActiveMods.remove(saveMods, JULIA_IDS);
+        // The default list applies from startup, before the save loads. Left alone, mods the save doesn't use would
+        // still
+        // run: a GL 4.3 mod crashes the native baseline on macOS while it's still at the menu.
+        if (Files.isRegularFile(saveMods)) {
+            Files.createDirectories(profile.resolve("mods"));
+            Files.copy(saveMods, profile.resolve("mods/default.txt"), StandardCopyOption.REPLACE_EXISTING);
+        }
         // The batch has no input focus, and background pausing would measure an idle simulation instead of the scene.
         var options = profile.resolve("options.ini");
         var settings = Files.exists(options) ? Files.readString(options) : "";

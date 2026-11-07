@@ -28,6 +28,8 @@ the game isn't in Steam's default folder.
 
 ## Scenes
 
+Plain scenes need nothing but the save: no ZombieBuddy and no Steam, so they compare just the renderer.
+
 ```json
 {
   "name": "muldraugh",
@@ -42,6 +44,10 @@ the game isn't in Steam's default folder.
 }
 ```
 
+`"zombieBuddy": true` and `"steam": true` turn those back on, for example to test Workshop Java mods. Only the mods in the
+save's own list run, even at the main menu. A mod that needs newer GL than the platform has can't be compared this way: on
+macOS, Viewpoint crashes the OpenGL run because Apple's OpenGL lacks what it asks for.
+
 Each launch visits every spot in order and records it. Spot names must be unique, and without any `spots` it records
 wherever the save left the player. These launches start Java directly, so Steam launch options don't apply: put heap
 settings in `jvmOptions`, which are added after the game's own and so override them. `scenes/example.json` is a starting
@@ -55,10 +61,10 @@ weather. Weather, streaming and simulation can still vary, so repeat a pair befo
 
 For each renderer, the jar:
 
-1. Copies the template to a fresh profile, removes any Julia mod from its mod lists, and gives the run its own home folder
-   holding a copy of ZombieBuddy's settings with an empty preload list.
-2. Starts the game with `-javaagent:profiling-agent.jar=opengl,<run>` or `=julia,<run>`, followed by ZombieBuddy when
-   `ZombieBuddy.jar` is beside the game. Only Julia differs between the two.
+1. Copies the template to a fresh profile, sets its active mods to the save's own list minus any Julia mod, and with
+   ZombieBuddy gives the run its own home folder holding a copy of its settings with an empty preload list.
+2. Starts the game with `-javaagent:profiling-agent.jar=opengl,<run>` or `=julia,<run>`, followed by ZombieBuddy if the
+   scene asks for it. Only Julia differs between the two.
 3. Waits for the main menu, then loads the save through the game's own continue path, so validation and mod resets match a
    player's. The loading screen continues when its own checks allow it, without simulated input.
 4. For each spot, moves the player, waits for the current square, then records warmup and duration.

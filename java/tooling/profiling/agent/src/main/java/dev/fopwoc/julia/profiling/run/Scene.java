@@ -9,9 +9,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** What one batch measures: a save, the spots visited in it, and how long each is recorded. */
+/**
+ * What one batch measures: a save, the spots visited in it, and how long each is recorded. {@code zombieBuddy} and
+ * {@code steam} are off unless a scene needs them, so a plain comparison measures nothing but the renderer.
+ */
 public record Scene(
-        String name, String save, Duration warmup, Duration duration, List<String> jvmOptions, List<Spot> spots) {
+        String name,
+        String save,
+        Duration warmup,
+        Duration duration,
+        List<String> jvmOptions,
+        boolean zombieBuddy,
+        boolean steam,
+        List<Spot> spots) {
     private static final String SAFE_NAME = "[A-Za-z0-9_.-]{1,64}";
     private static final String SAVE_PART = "[^/\\\\\\p{Cntrl}]+";
 
@@ -37,7 +47,10 @@ public record Scene(
         if (!(Json.parse(text) instanceof Map<?, ?> raw))
             throw new IllegalArgumentException("A scene is a JSON object");
         var data = (Map<String, Object>) raw;
-        known(data, Set.of("name", "save", "warmup", "duration", "jvmOptions", "spots"), "scene");
+        known(
+                data,
+                Set.of("name", "save", "warmup", "duration", "jvmOptions", "zombieBuddy", "steam", "spots"),
+                "scene");
         String name = text(data, "name");
         if (!name.matches(SAFE_NAME)) throw new IllegalArgumentException("Scene needs a file-safe name");
         String save = text(data, "save");
@@ -63,7 +76,15 @@ public record Scene(
         if (spots.isEmpty()) throw new IllegalArgumentException("Spots must not be empty");
         if (spots.stream().map(Spot::name).distinct().count() != spots.size())
             throw new IllegalArgumentException("Spot names must be unique");
-        return new Scene(name, save, warmup, duration, List.copyOf(options), List.copyOf(spots));
+        return new Scene(
+                name,
+                save,
+                warmup,
+                duration,
+                List.copyOf(options),
+                flag(data, "zombieBuddy"),
+                flag(data, "steam"),
+                List.copyOf(spots));
     }
 
     private static Spot spot(Map<String, Object> data) {
@@ -90,14 +111,18 @@ public record Scene(
                 throw new IllegalArgumentException("Hour must be in [0, 24)");
             hour = value;
         }
-        Object ghost = data.getOrDefault("ghost", false);
-        if (!(ghost instanceof Boolean enabled)) throw new IllegalArgumentException("Ghost must be true or false");
-        return new Spot(name, position, hour, enabled);
+        return new Spot(name, position, hour, flag(data, "ghost"));
     }
 
     private static void known(Map<String, Object> data, Set<String> fields, String kind) {
         for (var field : data.keySet())
             if (!fields.contains(field)) throw new IllegalArgumentException("Unknown " + kind + " field: " + field);
+    }
+
+    private static boolean flag(Map<String, Object> data, String field) {
+        if (!(data.getOrDefault(field, false) instanceof Boolean value))
+            throw new IllegalArgumentException(field + " must be true or false");
+        return value;
     }
 
     private static String text(Map<String, Object> data, String field) {

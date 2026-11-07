@@ -14,7 +14,8 @@ class RunnerTest {
     @TempDir
     Path root;
 
-    private static final String SCENE = "{\"name\":\"s\",\"save\":\"Apocalypse/w\",\"jvmOptions\":[\"-Xmx8g\"]}";
+    private static final String SCENE =
+            "{\"name\":\"s\",\"save\":\"Apocalypse/w\",\"jvmOptions\":[\"-Xmx8g\"],\"zombieBuddy\":true}";
     private static final String ACTIVE =
             "VERSION = 1,\nmods\n{\n    mod = Other,\n    mod = Julia,\n    mod = JuliaDev,\n}\nmaps\n{\n    map = Julia,\n}\n";
 
@@ -27,7 +28,7 @@ class RunnerTest {
         Files.writeString(
                 game.resolve("ProjectZomboid64.json"),
                 "{\"mainClass\":\"zombie/gameStates/MainScreenState\",\"classpath\":[\".\",\"projectzomboid.jar\"],"
-                        + "\"vmArgs\":[\"-Xmx3072m\"]}");
+                        + "\"vmArgs\":[\"-Xmx3072m\",\"-Dzomboid.steam=1\"]}");
         return GameInstall.read(game, "x86_64");
     }
 
@@ -120,13 +121,51 @@ class RunnerTest {
     }
 
     @Test
+    void aPlainSceneRunsWithoutSteamOrBuddy() throws Exception {
+        var game = linuxGame();
+        var scene = Scene.parse("{\"name\":\"s\",\"save\":\"Apocalypse/w\"}");
+        assertFalse(scene.zombieBuddy());
+        var plain = RunPlan.of(
+                "opengl",
+                root.resolve("plain"),
+                root.resolve("template"),
+                root.resolve("agent.jar"),
+                null,
+                root.resolve("home"),
+                scene,
+                game);
+        assertEquals(
+                1,
+                plain.command().stream()
+                        .filter(value -> value.startsWith("-javaagent:"))
+                        .count());
+        assertTrue(plain.command().contains("-Dzomboid.steam=0"));
+        assertFalse(plain.command().contains("-Dzomboid.steam=1"));
+        assertTrue(plain.command().stream().noneMatch(value -> value.startsWith("-Duser.home=")));
+        var withSteam = Scene.parse("{\"name\":\"s\",\"save\":\"Apocalypse/w\",\"steam\":true}");
+        assertTrue(RunPlan.of(
+                        "opengl",
+                        root.resolve("steam"),
+                        root.resolve("template"),
+                        root.resolve("agent.jar"),
+                        null,
+                        root.resolve("home"),
+                        withSteam,
+                        game)
+                .command()
+                .contains("-Dzomboid.steam=1"));
+    }
+
+    @Test
     void preparingIsolatesEverythingAndLeavesOriginalsAlone() throws Exception {
         var template = root.resolve("template");
         var save = template.resolve("Saves/Apocalypse/w");
         Files.createDirectories(save);
         Files.createDirectories(template.resolve("mods"));
         Files.writeString(save.resolve("mods.txt"), ACTIVE);
-        Files.writeString(template.resolve("mods/default.txt"), ACTIVE);
+        Files.writeString(
+                template.resolve("mods/default.txt"),
+                ACTIVE.replace("mod = Other,", "mod = Viewpoint,\n    mod = Other,"));
         Files.writeString(template.resolve("options.ini"), "width=1\nfocusloss=true\n");
         var home = root.resolve("real home");
         Files.createDirectories(home);
@@ -141,6 +180,7 @@ class RunnerTest {
                 plan.run().resolve("profile/Saves/Apocalypse/w/mods.txt"))) {
             var text = Files.readString(active);
             assertFalse(text.contains("mod = Julia"), text);
+            assertFalse(text.contains("Viewpoint"), "Only the save's mods should run: " + text);
             assertTrue(text.contains("mod = Other,"));
             assertTrue(text.contains("map = Julia,"));
         }
@@ -148,7 +188,7 @@ class RunnerTest {
         assertEquals(
                 "{\"trusted\":[1],\"preload_mods\":{},\"auto\":false}",
                 Files.readString(plan.run().resolve("home/.zombie_buddy/config.json")));
-        assertEquals(ACTIVE, Files.readString(template.resolve("mods/default.txt")));
+        assertTrue(Files.readString(template.resolve("mods/default.txt")).contains("Viewpoint"));
         assertEquals(config, Files.readString(home.resolve("config.json")));
     }
 

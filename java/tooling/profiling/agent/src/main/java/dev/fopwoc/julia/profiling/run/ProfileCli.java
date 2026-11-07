@@ -69,9 +69,14 @@ public final class ProfileCli {
         if (!options.containsKey("--game"))
             throw new IllegalArgumentException("Supply --game; the launch scripts find it");
         var game = GameInstall.read(Path.of(options.get("--game")), System.getProperty("os.arch"));
-        var buddy = options.containsKey("--buddy")
-                ? Path.of(options.get("--buddy")).toAbsolutePath()
-                : game.workingDirectory().resolve("ZombieBuddy.jar");
+        Path buddy = null;
+        if (scene.zombieBuddy()) {
+            buddy = options.containsKey("--buddy")
+                    ? Path.of(options.get("--buddy")).toAbsolutePath()
+                    : game.workingDirectory().resolve("ZombieBuddy.jar");
+            if (!Files.isRegularFile(buddy))
+                throw new IllegalArgumentException("The scene needs ZombieBuddy, but there's no " + buddy);
+        }
         var plans = new ArrayList<RunPlan>();
         for (int repeat = 0; repeat < repetitions; repeat++) {
             // Alternating keeps warm OS caches from always favoring whichever renderer runs second.
@@ -82,7 +87,7 @@ public final class ProfileCli {
                         root.resolve(String.format("%02d-%s", repeat + 1, renderer)),
                         template,
                         agentJar(),
-                        Files.isRegularFile(buddy) ? buddy : null,
+                        buddy,
                         ZOMBOID.getParent().resolve(".zombie_buddy"),
                         scene,
                         game));
