@@ -6,8 +6,9 @@
 <img src="common/poster.png" alt="Julia" width="160" align="right">
 
 Julia translates Project Zomboid's OpenGL rendering to the platform's native graphics API: **Metal** on macOS and
-**Vulkan** on Linux and Windows. It is a Java agent that starts with the game. The game and its mods run unchanged,
-nothing on disk or in saves is modified, and Julia can be added or removed at any time.
+**Vulkan** on Linux and Windows. It runs as a [ZombieBuddy](https://steamcommunity.com/sharedfiles/filedetails/?id=3619862853)
+mod that starts with the game. The game and its mods run unchanged, nothing on disk or in saves is modified, and Julia
+can be added or removed at any time.
 
 Julia targets **Project Zomboid Build 42** and is **experimental**. It doesn't cover the whole OpenGL specification
 yet, so some mods may stop with a report. Multiplayer is untested. Bug reports and contributions are welcome.
@@ -37,7 +38,8 @@ Status legend: ✅ works · 🧪 experimental, gameplay testing pending · 🚧 
 | Linux | x64 | Vulkan | ✅ |
 | Windows | x64 | Vulkan | ✅ |
 
-The universal Julia jars carry the natives for every platform above and picks the right ones at startup.
+The universal Julia jars carry the natives for every platform above and pick the right ones at startup. Running through
+ZombieBuddy has only been tested on macOS so far; Linux and Windows results above come from the standalone agent.
 Linux follows the game's GLFW backend. PZ uses X11 by default (XWayland on Wayland desktops), and that path is tested on a
 Steam Deck (RADV) and an RTX 4060 Ti PC (NVIDIA driver). Native Wayland is opt-in through `-Dzomboid.wayland=1` and
 probably works in windowed mode, but fractional scaling misplaces clicks in ZombieBuddy's overlay, and fullscreen leaves
@@ -69,7 +71,7 @@ extensions, implemented per API.
 | [Grassier Grass](https://steamcommunity.com/sharedfiles/filedetails/?id=3818853354) | Works | Probably all good |
 | [WinterFX](https://steamcommunity.com/sharedfiles/filedetails/?id=3819972196) | Works | it uses the mesh path because tessellation isn't supported |
 | Visceral | Works | |
-| [PZ3D](https://steamcommunity.com/sharedfiles/filedetails/?id=3807334881) | Broken | Reaches world load, then needs geometry shaders (cube shadows, rain, lightning, fog), which SDL GPU lacks |
+| [PZ3D](https://steamcommunity.com/sharedfiles/filedetails/?id=3807334881) | Broken | Loads into the world, but walls are missing and other effects are glitchy. It uses geometry shaders (cube shadows, rain, lightning, fog), which SDL GPU lacks |
 
 ### Known limits
 
@@ -97,10 +99,17 @@ links such programs without it. On Metal the first draw then fails pipeline crea
 Julia runs as a [ZombieBuddy](https://steamcommunity.com/sharedfiles/filedetails/?id=3619862853) preload mod and never
 patches game files on disk. The Workshop item is this way of using Julia.
 
-1. Install ZombieBuddy.
+1. Install ZombieBuddy by following its Workshop page.
 2. Subscribe to the Julia Workshop item and enable it.
 3. Start the game, approve Julia in ZombieBuddy's dialog, and restart. That first launch runs without Julia; later ones
    start it during ZombieBuddy's startup, before anything draws.
+
+To check the mod's jar was built by this repository's release workflow, run this on it with the
+[GitHub CLI](https://cli.github.com):
+
+```sh
+gh attestation verify julia-preload.jar --repo fopwoc/julia-pz
+```
 
 The corner of the main menu shows Julia's state, such as `Julia 1.2.3 active | Metal`, or what it still needs. To return
 to vanilla rendering, disable the mod.
@@ -158,17 +167,28 @@ and Linux, `%UserProfile%\Zomboid` on Windows. Under Proton it is inside the gam
 | `mod-<sha256>.txt` | Per-mod translation report, including calls Julia cannot translate |
 | `fatal-error.txt` | The failure that stopped the game, with its stack trace |
 
+The main menu corner shows Julia's state and what it still needs. If it reports a failure, or stays on `Julia is waiting`:
+
+- A failure to start is written to `Zomboid/julia/preload-error.txt`.
+- ZombieBuddy checks Julia's signature against a key on its author's Steam profile. If Steam can't answer, its log says
+  `ZBS verification invalid` with `Could not load Steam profile`. That doesn't mean the mod is damaged: restart and it
+  checks again.
+- On macOS, every jar in the game's Java directory is on the class path. Delete any old `julia-agent.jar` from there
+  unless you are using the standalone agent.
+
 Julia is fail-fast: if it cannot translate or render something correctly, it writes `fatal-error.txt` and stops the
 game with exit code 70 instead of drawing a wrong frame. Mods cannot catch and hide that failure. When reporting a
 problem, include the newest `fatal-error.txt`.
 
 For more detail, set `LOG_LEVEL=warn`, `info` or `debug` (default `error`). On Linux and Proton, put it in front of
-Steam's `%command%`, for example `LOG_LEVEL=info %command%`. With the standalone agent, `activate=/absolute/path/new-run`
-in place of `activate` chooses the report directory.
+Steam's `%command%`, for example `LOG_LEVEL=info %command%`.
 
 ## FAQ
 
 **Is Julia a ZombieBuddy mod?** Yes: the Workshop item is a signed ZombieBuddy preload mod. A standalone agent for launches without ZombieBuddy is on the releases page.
+
+**Why does the first launch not use Julia?** ZombieBuddy shows its approval dialog on that launch, and Julia only starts
+on the launch after approval. The menu tells you when a restart is needed.
 
 **Will Julia raise my FPS?** Maybe. It is experimental: results so far range from a real gain to slower frames or a
 stopped game.
@@ -186,9 +206,13 @@ involved.
 
 ### Startup: all or nothing
 
+Julia has to redirect classes as they first load, so it starts before the game does. ZombieBuddy's preload entry gives it
+that slot, and the standalone agent gets it from the JVM. Both then run the same startup, and neither jar carries the
+other's entry.
+
 ```mermaid
 flowchart TD
-    start(["Game starts with the Julia agent"]) --> scan["Scan the game and approved mods for graphics calls"]
+    start(["Game starts with Julia"]) --> scan["Scan the game and approved mods for graphics calls"]
     scan --> prepare["Prepare each graphics class in memory:<br/>redirect GL to Angelica, adapt the host boundary,<br/>route backend calls through typed invokedynamic"]
     prepare --> gate{"Every class ready,<br/>exactly one frame owner?"}
     gate -- yes --> runtime["Start the isolated runtime:<br/>Julia's own LWJGL, SDL3 and Angelica,<br/>GPU device, borrowed game window"]
@@ -199,6 +223,10 @@ flowchart TD
 Julia never activates a partial plan. Unsupported calls, ambiguous frame boundaries, or native types crossing the
 isolation boundary stop startup before anything is installed. In approved mods, a call Julia cannot translate is
 replaced with a fatal diagnostic at that call site, so unused unsupported code does not stop the mod from loading.
+
+Startup loads every prepared class straight away, without initializing it. The JVM hides a class from transformers if it
+first loads while another transformer is running on that thread, which ZombieBuddy's patching can trigger, and such a
+class would silently keep its native GL calls.
 
 ### Every frame
 
@@ -366,13 +394,16 @@ tooling/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `third_party/angelica/` | Pinned Angelica Git submodule; renderer sources and original license |
 | `third_party/angelica/renderer-tests/` | Fork-owned renderer CPU regressions, separate from upstream tests |
 | `java/modules/glsm`, `java/modules/sdl-gpu` | Local build descriptors for the fork, without publishing plugins |
-| `java/modules/agent` | The `-javaagent` entry point and startup audit |
+| `java/modules/preload` | The ZombieBuddy preload entry and signing; what the Workshop ships |
+| `java/modules/agent` | The standalone `-javaagent` entry point and startup audit; GitHub releases only |
+| `java/modules/launch` | The startup both entries share |
 | `java/modules/host` | Isolated class loader and live runtime startup |
 | `java/modules/transform` | Host and isolation adaptations for game/mod code; invokes the fork’s GL routing |
 | `java/modules/backend` | Host runtime lifecycle, platform/window borrowing, and renderer logging integration |
 | `java/modules/render-runtime` | JDK-only types shared across the isolation boundary |
 | `java/tooling/probe` | Separate GPU probes and offline audit CLI; never bundled into the Workshop item |
-| `java/modules/workshop` | Packages the Lua companion mod |
+| `java/tooling/profiling` | One-command comparison with and without Julia ([README](java/tooling/profiling/README.md)); never bundled into the Workshop item |
+| `java/modules/workshop` | Packages the Workshop mod: preload jar and Lua status |
 | `native` | Container build for the Linux and Windows natives, and the Windows `-agentlib` loader |
 | `third_party/angelica/sdl-gpu/native` | SDL patches: `common/` for every API, one folder per GPU API (`metal/`, `vulkan/`) |
 
@@ -380,16 +411,16 @@ tooling/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 
 | Flag | Where | Effect |
 | --- | --- | --- |
-| `-javaagent:julia-agent.jar=activate` | Launch options | Render through Julia; reports go to a fresh `~/Zomboid/julia/run-*/` |
-| `-javaagent:julia-agent.jar=activate=<dir>` | Launch options | Same, with reports in `<dir>` |
-| `-javaagent:julia-agent.jar=<report.tsv>` | Launch options | Audit only: record which classes make graphics calls into a new file; rendering is unchanged |
+| `-javaagent:julia-agent.jar=activate` | Launch options, standalone | Render through Julia; reports go to a fresh `~/Zomboid/julia/run-*/` |
+| `-javaagent:julia-agent.jar=activate=<dir>` | Launch options, standalone | Same, with reports in `<dir>` |
+| `-javaagent:julia-agent.jar=<report.tsv>` | Launch options, standalone | Audit only: record which classes make graphics calls into a new file; rendering is unchanged |
 | `-agentlib:julia=<options>` | Launch options, Windows | Same as `-javaagent:julia-agent.jar=<options>`; needs `julia.dll` beside the jar |
 | `-Dangelica.sdlgpu.debug=true` | Launch options or probe JVM | GPU validation; Metal also records encoder errors and enables shader validation (slow) |
 | `-Djulia.drawTrace=true` | Launch options or probe JVM | Bounded CPU draw-state snapshots and compiler inputs beside renderer/probe reports; no GPU readbacks |
 | `-Dangelica.debug.glEvents=true` | Launch options or probe JVM | Turns tracing on and records each clear, clear color, framebuffer bind and rasterizer-discard change to `gl-events.txt`, with the game or mod code that made it; `draw-trace.request` in the run folder restarts the capture. Also lists how each prepared class loaded in `prepared-classes.txt` |
 | `-Djulia.gpu=metal\|vulkan` | Launch options or probe JVM | Override the platform's default SDL GPU driver |
 | `LOG_LEVEL=debug\|info\|warn\|error` | Environment | Julia and renderer log detail on stderr; default `error` |
-| `-PjuliaNatives=<dir>` | Gradle | Pack other hosts' SDL builds (`<os>/<arch>/<library>`) into the agent jar |
+| `-PjuliaNatives=<dir>` | Gradle | Pack other hosts' SDL builds (`<os>/<arch>/<library>`) into the jars |
 | `-Djulia.probe.width=<px>`, `-Djulia.probe.height=<px>` | Probe JVM | Offscreen size of the adapter probe; default 32 × 32 |
 
 Native GPU errors are also saved as `gpu-errors.txt` in the current run directory, including Metal command and encoder

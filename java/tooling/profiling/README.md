@@ -73,8 +73,8 @@ created. It never creates saves, approves Java mods, or modifies installed game 
 still go through ZombieBuddy's normal approval using the copied settings, so approve them in a normal launch first.
 
 The batch writes `summary.md`, `results.json`, `benchmark.json`, a final `status.txt`, and one `comparison-NN.md` per
-completed pair. Match FPS limits and VSync: capped results don't show maximum throughput. Julia always presents with VSync
-for now, so a display-rate cap hides differences above it. Treat first-visit streaming and warmed stationary measurements
+completed pair. Match FPS limits and VSync: capped results don't show maximum throughput, so check neither side is sitting at the
+display's refresh rate. Treat first-visit streaming and warmed stationary measurements
 as separate scenes.
 
 ## Manual runs
