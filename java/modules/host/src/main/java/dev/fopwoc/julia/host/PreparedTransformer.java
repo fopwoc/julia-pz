@@ -8,7 +8,11 @@ import dev.fopwoc.julia.transform.pass.SwapBuffersPass;
 import dev.fopwoc.julia.transform.prepare.ArchivePlan;
 import dev.fopwoc.julia.transform.prepare.RuntimePreparation;
 import dev.fopwoc.julia.utils.io.Sha256;
+import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.HashMap;
@@ -22,9 +26,16 @@ public final class PreparedTransformer implements ClassFileTransformer {
     private final ClassLoader consumerLoader;
     private final CodeSource runtimeSource =
             StartupHooks.class.getProtectionDomain().getCodeSource();
+    private final Path record;
 
     public PreparedTransformer(ArchivePlan plan, ClassLoader consumerLoader) {
+        this(plan, consumerLoader, null);
+    }
+
+    /** {@code record} lists what happened to each planned class as it loaded, for telling apart "rewritten" and not. */
+    public PreparedTransformer(ArchivePlan plan, ClassLoader consumerLoader, Path record) {
         this.consumerLoader = consumerLoader;
+        this.record = record;
         publish(plan);
     }
 
@@ -38,7 +49,11 @@ public final class PreparedTransformer implements ClassFileTransformer {
     @Override
     public byte[] transform(
             ClassLoader loader, String name, Class<?> redefined, ProtectionDomain domain, byte[] bytes) {
-        if (name == null || loader != consumerLoader) return null;
+        if (name == null) return null;
+        if (loader != consumerLoader) {
+            if (entries.containsKey(name)) note("foreign-loader " + name + " " + loader);
+            return null;
+        }
         if (name.equals(SwapBuffersPass.DISPLAY)) {
             try {
                 return SwapBuffersPass.stripSwaps(bytes);
@@ -61,10 +76,21 @@ public final class PreparedTransformer implements ClassFileTransformer {
             if (redefined != null || !Sha256.of(bytes).equals(entry.sha256()))
                 return reject(name, "Consumer changed after startup preparation");
             LOG.log(System.Logger.Level.DEBUG, "Installing prepared class {0}", name);
+            note("installed " + name);
             return entry.prepared().requireBytecode();
         } catch (Throwable failure) {
             FatalGraphics.failure("Cannot safely transform " + name, failure);
             return new byte[] {0};
+        }
+    }
+
+    private synchronized void note(String line) {
+        if (record == null) return;
+        try {
+            Files.writeString(record, line + "\n", StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (IOException failure) {
+            // Runs inside class loading, where a diagnostic failure must not become a load failure.
+            LOG.log(System.Logger.Level.WARNING, "Cannot record class preparation", failure);
         }
     }
 

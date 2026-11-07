@@ -386,7 +386,7 @@ tooling/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `-agentlib:julia=<options>` | Launch options, Windows | Same as `-javaagent:julia-agent.jar=<options>`; needs `julia.dll` beside the jar |
 | `-Dangelica.sdlgpu.debug=true` | Launch options or probe JVM | GPU validation; Metal also records encoder errors and enables shader validation (slow) |
 | `-Djulia.drawTrace=true` | Launch options or probe JVM | Bounded CPU draw-state snapshots and compiler inputs beside renderer/probe reports; no GPU readbacks |
-| `-Dangelica.debug.glEvents=true` | Launch options or probe JVM | Turns tracing on and records each clear, clear color, framebuffer bind and rasterizer-discard change to `gl-events.txt`, with the game or mod code that made it; `draw-trace.request` in the run folder restarts the capture |
+| `-Dangelica.debug.glEvents=true` | Launch options or probe JVM | Turns tracing on and records each clear, clear color, framebuffer bind and rasterizer-discard change to `gl-events.txt`, with the game or mod code that made it; `draw-trace.request` in the run folder restarts the capture. Also lists how each prepared class loaded in `prepared-classes.txt` |
 | `-Djulia.gpu=metal\|vulkan` | Launch options or probe JVM | Override the platform's default SDL GPU driver |
 | `LOG_LEVEL=debug\|info\|warn\|error` | Environment | Julia and renderer log detail on stderr; default `error` |
 | `-PjuliaNatives=<dir>` | Gradle | Pack other hosts' SDL builds (`<os>/<arch>/<library>`) into the agent jar |

@@ -79,7 +79,9 @@ public final class GameStartup {
                 if (name.equals(BUDDY_LOADER)) adoptBuddyLoader(instrumentation, plan);
                 else throw new IllegalStateException("Graphics consumers already loaded: " + early);
             }
-            var transformer = new PreparedTransformer(plan, host);
+            // Follows the renderer's GL event flag: the two answer the same question from either side of the rewrite.
+            var record = Boolean.getBoolean("angelica.debug.glEvents") ? output.resolve("prepared-classes.txt") : null;
+            var transformer = new PreparedTransformer(plan, host, record);
             StartupHooks.install(() -> {
                 try {
                     LOG.log(

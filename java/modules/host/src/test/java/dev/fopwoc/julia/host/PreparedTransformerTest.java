@@ -23,6 +23,31 @@ class PreparedTransformerTest implements Opcodes {
     Path directory;
 
     @Test
+    void recordsWhetherAPlannedClassWasInstalledOrLoadedElsewhere() throws Exception {
+        byte[] draw = draw("zombie/LiveFixture", "glGetError");
+        Path archive = directory.resolve("recorded.jar");
+        try (var jar = new JarOutputStream(Files.newOutputStream(archive))) {
+            jar.putNextEntry(new JarEntry("zombie/LiveFixture.class"));
+            jar.write(draw);
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("zombie/core/opengl/RenderThread.class"));
+            jar.write(frame());
+            jar.closeEntry();
+        }
+        var owner = getClass().getClassLoader();
+        var record = directory.resolve("prepared-classes.txt");
+        var transform = new PreparedTransformer(ArchivePreparation.inspect(List.of(archive)), owner, record);
+
+        assertNull(transform.transform(new ClassLoader() {}, "zombie/LiveFixture", null, null, draw));
+        assertNotNull(transform.transform(owner, "zombie/LiveFixture", null, null, draw));
+
+        var lines = Files.readAllLines(record);
+        assertEquals(2, lines.size());
+        assertTrue(lines.get(0).startsWith("foreign-loader zombie/LiveFixture "), lines.get(0));
+        assertEquals("installed zombie/LiveFixture", lines.get(1));
+    }
+
+    @Test
     void installsOnlyUnchangedPreparedBytesAndRefusesLateGraphicsConsumers() throws Exception {
         byte[] draw = draw("zombie/LiveFixture", "glGetError");
         String approval = "me/zed_0xff/zombie_buddy/frontend/ImguiApprovalMain";
