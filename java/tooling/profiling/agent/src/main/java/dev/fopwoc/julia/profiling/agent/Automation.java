@@ -97,7 +97,6 @@ final class Automation {
         try {
             if (stage.ordinal() >= Stage.POSITIONING.ordinal()) {
                 game.keepAlive();
-                holdLevel();
                 screamAt(now);
             }
             step(now);
@@ -173,11 +172,6 @@ final class Automation {
             }
             case OVER -> {}
         }
-    }
-
-    /** No-clip may not stop the fall, so a levitating character is put back whenever it drops. */
-    private void holdLevel() throws ReflectiveOperationException {
-        if (current().levitate() && stage != Stage.POSITIONING && !game.arrived(current())) game.arrive(current());
     }
 
     private void screamAt(long now) throws ReflectiveOperationException {

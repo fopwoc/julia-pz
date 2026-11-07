@@ -29,9 +29,9 @@ public record Scene(
 
     /**
      * {@code ghost} stops zombies reacting; leave it off where their load is what is being measured. {@code scream} keeps
-     * drawing zombies in. {@code levitate} holds the character one level up, which changes what the game draws.
+     * drawing zombies in.
      */
-    public record Spot(String name, Position position, Double hour, boolean ghost, boolean scream, boolean levitate) {}
+    public record Spot(String name, Position position, Double hour, boolean ghost, boolean scream) {}
 
     public record Position(float x, float y, int z) {}
 
@@ -94,7 +94,7 @@ public record Scene(
     }
 
     private static Spot spot(Map<String, Object> data) {
-        known(data, Set.of("name", "position", "hour", "ghost", "scream", "levitate"), "spot");
+        known(data, Set.of("name", "position", "hour", "ghost", "scream"), "spot");
         String name = text(data, "name");
         if (!name.matches(SAFE_NAME)) throw new IllegalArgumentException("Spot needs a file-safe name");
         Position position = null;
@@ -117,9 +117,7 @@ public record Scene(
                 throw new IllegalArgumentException("Hour must be in [0, 24)");
             hour = value;
         }
-        if (flag(data, "levitate") && position == null)
-            throw new IllegalArgumentException("Levitating needs a position");
-        return new Spot(name, position, hour, flag(data, "ghost"), flag(data, "scream"), flag(data, "levitate"));
+        return new Spot(name, position, hour, flag(data, "ghost"), flag(data, "scream"));
     }
 
     private static void known(Map<String, Object> data, Set<String> fields, String kind) {

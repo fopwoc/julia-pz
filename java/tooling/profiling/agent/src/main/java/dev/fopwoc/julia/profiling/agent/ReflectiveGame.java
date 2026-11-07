@@ -105,9 +105,13 @@ final class ReflectiveGame implements Game {
         keepAlive();
         // Like the setters above, setGhostMode is role-guarded. Being invisible is what stops zombies reacting.
         cheat(player, "INVISIBLE", spot.ghost());
-        cheat(player, "NO_CLIP", spot.levitate());
         if (spot.position() != null) {
-            call(player, "teleportTo", spot.position().x(), spot.position().y(), level(spot));
+            call(
+                    player,
+                    "teleportTo",
+                    spot.position().x(),
+                    spot.position().y(),
+                    spot.position().z());
         }
         if (spot.hour() != null) {
             var time = type("zombie.GameTime").getMethod("getInstance").invoke(null);
@@ -126,13 +130,9 @@ final class ReflectiveGame implements Game {
         if (position == null) return true;
         return Math.abs((float) call(player, "getX") - position.x()) < 1
                 && Math.abs((float) call(player, "getY") - position.y()) < 1
-                && Math.floor((float) call(player, "getZ")) == level(spot)
+                && Math.floor((float) call(player, "getZ")) == position.z()
                 && ((Number) call(square, "getX")).intValue() == (int) Math.floor(position.x())
                 && ((Number) call(square, "getY")).intValue() == (int) Math.floor(position.y());
-    }
-
-    private static int level(Scene.Spot spot) {
-        return spot.position().z() + (spot.levitate() ? 1 : 0);
     }
 
     @Override

@@ -49,8 +49,7 @@ Plain scenes need nothing but the save: no ZombieBuddy and no Steam, so they com
   "jvmOptions": ["-Xmx8g"],
   "spots": [
     {"name": "forest", "position": [1000, 2000, 0], "hour": 12, "ghost": true},
-    {"name": "horde", "position": [3000, 4000, 0], "scream": true},
-    {"name": "town-high", "position": [5000, 6000, 0], "levitate": true}
+    {"name": "horde", "position": [3000, 4000, 0], "scream": true}
   ]
 }
 ```
@@ -68,7 +67,7 @@ point.
 
 Runs use the widest zoom the game's options allow, since that draws the most. The character can't die, and turns around for a few seconds during the first visit so the fog of war clears. Player input is
 shut out for the whole run. A small panel in the center of the screen shows the run, spot, stage, FPS and elapsed time;
-`"overlay": false` turns it off, and is worth checking once since drawing it has a small cost. `scream` repeats a loud sound during the recording pass so zombies keep arriving, and `levitate` holds the character one level up, which shows more of the map and changes what's drawn, so treat those as separate spots. Crowds aren't repeatable, so expect more noise there. `ghost` stops zombies reacting, for steadier scenes; leave it off where zombie load is what you're measuring. There are no camera routes, ViewPoint controls or scripted
+`"overlay": false` turns it off, and is worth checking once since drawing it has a small cost. `scream` repeats a loud sound during the recording pass so zombies keep arriving; crowds aren't repeatable, so expect more noise there. A position's third number is the level, so a rooftop spot shows more of the map; treat those as separate spots. `ghost` stops zombies reacting, for steadier scenes; leave it off where zombie load is what you're measuring. There are no camera routes, ViewPoint controls or scripted
 weather. Weather, streaming and simulation can still vary, so repeat a pair before trusting a small difference.
 
 ## What a run does
