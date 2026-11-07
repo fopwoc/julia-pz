@@ -88,12 +88,6 @@ public final class ProfileCli {
         var single = options.get("--renderer");
         var notes = new ArrayList<String>();
         if (!mods.isEmpty()) notes.add("Mods: " + String.join(", ", scene.mods()));
-        // Apple's OpenGL stops at 4.1, so such a mod would crash the native side there.
-        if (scene.needsModernGl() && System.getProperty("os.name").startsWith("Mac")) {
-            if ("opengl".equals(single)) throw new IllegalArgumentException("This scene can't run on macOS OpenGL");
-            single = "julia";
-            notes.add("Julia only: macOS OpenGL can't run this scene.");
-        }
         if (baseline != null && single == null) single = "julia";
         if (single != null && !single.equals("opengl") && !single.equals("julia"))
             throw new IllegalArgumentException("--renderer is opengl or julia");

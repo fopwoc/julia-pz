@@ -8,7 +8,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 jar="$here/agent/build/libs/profiling-agent.jar"
 [[ -f $here/lib/profiling-agent.jar ]] && jar="$here/lib/profiling-agent.jar"
 if [[ ! -f $jar ]]; then
-    echo "Build it first: ./java/gradlew -p java :tooling:profiling:agent:jar" >&2
+    echo "Build it first: ./java/gradlew -p java :profiling-agent:jar" >&2
     exit 1
 fi
 

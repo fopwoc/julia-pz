@@ -25,7 +25,6 @@ public record Scene(
         boolean overlay,
         List<String> mods,
         boolean firstPerson,
-        boolean needsModernGl,
         List<Spot> spots) {
     private static final String SAFE_NAME = "[A-Za-z0-9_.-]{1,64}";
     private static final String SAVE_PART = "[^/\\\\\\p{Cntrl}]+";
@@ -68,7 +67,6 @@ public record Scene(
                         "overlay",
                         "mods",
                         "firstPerson",
-                        "needsModernGl",
                         "spots"),
                 "scene");
         String name = text(data, "name");
@@ -103,7 +101,6 @@ public record Scene(
                 !Boolean.FALSE.equals(data.get("overlay")),
                 strings(data, "mods"),
                 flag(data, "firstPerson"),
-                flag(data, "needsModernGl"),
                 List.copyOf(spots));
     }
 

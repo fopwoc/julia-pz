@@ -59,4 +59,7 @@ project(":renderer-tests").projectDir = rendererSources.resolve("renderer-tests"
 // Development executables are not dependencies of the production agent or Workshop runtime.
 include(":probe")
 project(":probe").projectDir = file("tooling/probe")
-include(":tooling:profiling:core", ":tooling:profiling:agent")
+// tooling/profiling is a folder, not a project: its modules sit side by side like the rest.
+include(":profiling-core", ":profiling-agent")
+project(":profiling-core").projectDir = file("tooling/profiling/core")
+project(":profiling-agent").projectDir = file("tooling/profiling/agent")

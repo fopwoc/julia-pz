@@ -13,7 +13,7 @@ Make a single-player save with a living character, accepted startup dialogs, and
 to test. Approve any Java mods in a normal launch. Then, with the game closed, from the repository root:
 
 ```sh
-./java/gradlew -p java :tooling:profiling:agent:jar
+./java/gradlew -p java :profiling-agent:jar
 java/tooling/profiling/profile.sh bake Apocalypse/my-save
 java/tooling/profiling/profile.sh run my-scene.json
 ```
@@ -119,4 +119,4 @@ java/tooling/profiling/profile.sh audit /path/to/projectzomboid.jar
 
 `audit` checks the hooks against the installed game without loading its classes. Tests use synthetic class fixtures and a
 fake game, and none of them launch the game or open a window. The automation's calls into the real game are only exercised by
-a real run. `./java/gradlew -p java :tooling:profiling:toolingZip` builds a portable ZIP under `build/distributions/`.
+a real run. `./java/gradlew -p java :profiling-agent:toolingZip` builds a portable ZIP under `agent/build/distributions/`.

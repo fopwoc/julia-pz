@@ -7,7 +7,7 @@ $jar = Join-Path $PSScriptRoot 'agent/build/libs/profiling-agent.jar'
 $bundled = Join-Path $PSScriptRoot 'lib/profiling-agent.jar'
 if (Test-Path $bundled) { $jar = $bundled }
 if (-not (Test-Path $jar)) {
-    Write-Error 'Build it first: ./java/gradlew -p java :tooling:profiling:agent:jar'
+    Write-Error 'Build it first: ./java/gradlew -p java :profiling-agent:jar'
 }
 
 $game = $env:PZ_GAME

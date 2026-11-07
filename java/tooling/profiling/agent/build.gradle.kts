@@ -5,7 +5,7 @@ import packaging.entryJar
 plugins { id("julia.java-conventions") }
 
 dependencies {
-    implementation(project(":tooling:profiling:core"))
+    implementation(project(":profiling-core"))
     implementation(project(":launch"))
     implementation(project(":utils"))
     runtimeOnly(project(":render-runtime"))
@@ -14,7 +14,7 @@ dependencies {
 
 entryJar(
     archive = "profiling-agent.jar",
-    exposed = listOf(":tooling:profiling:core", ":launch", ":utils", ":render-runtime"),
+    exposed = listOf(":profiling-core", ":launch", ":utils", ":render-runtime"),
     attributes = mapOf(
         "Premain-Class" to "dev.fopwoc.julia.profiling.agent.ProfilerAgent",
         "Can-Retransform-Classes" to "true",
@@ -27,3 +27,19 @@ tasks.test {
     inputs.file(archive)
     doFirst { systemProperty("profiler.jar", archive.get().asFile.absolutePath) }
 }
+
+// A portable copy of the tool: the jar already holds everything it runs.
+val toolingZip = tasks.register<Zip>("toolingZip") {
+    archiveFileName = "profiling-tools.zip"
+    destinationDirectory = layout.buildDirectory.dir("distributions")
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+    into("profiling-tools") {
+        from(projectDir.parentFile) { include("profile.sh", "profile.ps1", "scenes/*.json", "README.md") }
+        from(tasks.jar) { into("lib") }
+        from(rootProject.file("../LICENSE"))
+        from(rootProject.file("../COPYRIGHT"))
+    }
+}
+
+tasks.assemble { dependsOn(toolingZip) }

@@ -23,15 +23,26 @@ final class Batch {
             Duration startupTimeout,
             Report.Sides sides,
             List<Report.Capture> earlier,
-            List<String> notes)
+            List<String> notesIn)
             throws Exception {
         Files.createDirectories(root);
+        var notes = new ArrayList<>(notesIn);
         var captures = new ArrayList<>(earlier);
         var julia = new ArrayList<Path>();
         var machines = new ArrayList<String>();
         for (var plan : plans) {
             System.out.println("Running " + plan.run().getFileName());
-            launch(plan, sceneText, scene, startupTimeout);
+            try {
+                launch(plan, sceneText, scene, startupTimeout);
+            } catch (IllegalStateException failure) {
+                // A mod can need more than a platform's native GL offers, as Viewpoint does on macOS. That's a result
+                // about OpenGL, not a broken run, so it's reported and the Julia side still runs.
+                if (!plan.renderer().equals("opengl")) throw failure;
+                var reason = "OpenGL couldn't run this scene: " + failure.getMessage();
+                System.out.println(reason);
+                if (!notes.contains(reason)) notes.add(reason);
+                continue;
+            }
             if (plan.renderer().equals("julia")) julia.add(plan.run());
             var machine = plan.run().resolve("machine.txt");
             if (Files.isRegularFile(machine)) {

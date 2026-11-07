@@ -18,8 +18,8 @@
   extensions. Both forks target LWJGL3 only, with no lwjgl3ify or Minecraft classes. Julia owns the host side: agent,
   isolated loader, game and mod bytecode passes, window borrowing, startup, and the Workshop package. Fork rules (merge
   model, tracked and owned files, hook list) live in `third_party/angelica/AGENTS.md`.
-- `:probe` maps to `java/tooling/probe`; its CLI/task names stay unchanged. Profiling lives under `java/tooling/profiling`:
-  `core` and `agent`, a third Julia entry (`profiling-agent.jar`) holding the commands, frame observer, game automation and
+- `:probe` maps to `java/tooling/probe`; its CLI/task names stay unchanged. Folders group modules but are never projects themselves. Profiling lives under `java/tooling/profiling`:
+  the `:profiling-core` and `:profiling-agent` modules, the latter a third Julia entry (`profiling-agent.jar`) holding the commands, frame observer, game automation and
   `:launch`, so both sides of a comparison run one jar. `profile.sh` and `profile.ps1` only find the game and its Java; logic
   belongs in the jar. Production projects must never depend on tooling. The Workshop excludes `java/tooling`; the complete
   source archive retains it. Profiling hooks observe completed render steps, never GL behavior; CPU wall durations are not
