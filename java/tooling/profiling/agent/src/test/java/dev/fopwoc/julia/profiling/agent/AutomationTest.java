@@ -65,6 +65,11 @@ class AutomationTest {
         }
 
         @Override
+        public void uncapViewpoint() {
+            log.add("uncap viewpoint");
+        }
+
+        @Override
         public boolean firstPerson() {
             log.add("first person");
             return ++viewSteps >= 3;
@@ -233,13 +238,20 @@ class AutomationTest {
         for (var row : drawn) rows.put(row.label(), row.value());
         assertEquals("run 1/2 opengl", rows.get("Run"));
         assertEquals("Test GPU", rows.get("GPU"));
+        assertEquals("native OpenGL", rows.get("Renderer"));
+        assertEquals("machine", rows.get("System"));
         assertEquals("a (1/2)", rows.get("Spot"));
         assertTrue(rows.get("Stage").startsWith("recording"), rows.get("Stage"));
         assertEquals("300 (avg 300)", rows.get("FPS"));
         assertEquals("1 MB", rows.get("Heap"));
         assertEquals("0:01", rows.get("Elapsed"));
         assertEquals("zoom 250%, ZB off, Steam off", rows.get("Args"));
-        assertFalse(rows.containsKey("Mods"));
+        assertEquals("none", rows.get("Mods"));
+        assertTrue(rows.keySet().stream().toList().size() > 0);
+        var labels = drawn.stream().map(Row::label).toList();
+        assertTrue(
+                labels.indexOf("GPU") < labels.indexOf("FPS") && labels.indexOf("FPS") < labels.indexOf("Mods"),
+                labels.toString());
     }
 
     @Test
@@ -313,6 +325,7 @@ class AutomationTest {
                 List::of);
         ticks(present, 60);
         assertEquals(3, log.stream().filter("first person"::equals).count(), "One step a second until it's there");
+        assertTrue(log.contains("uncap viewpoint"));
         assertTrue(log.contains("quit"), log.toString());
     }
 }

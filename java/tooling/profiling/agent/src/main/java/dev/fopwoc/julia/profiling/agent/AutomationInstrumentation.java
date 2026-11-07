@@ -9,7 +9,6 @@ import java.lang.classfile.ClassTransform;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.CodeElement;
 import java.lang.classfile.CodeTransform;
-import java.lang.classfile.instruction.ReturnInstruction;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.Map;
@@ -21,18 +20,19 @@ public final class AutomationInstrumentation {
 
     private enum Change {
         CALL_TICK_FIRST,
-        CALL_OVERLAY_LAST,
+        CALL_OVERLAY_FIRST,
         SKIP_BODY
     }
 
     private static final Map<String, Target> TARGETS = Map.of(
-            "zombie/GameWindow", new Target("frameStep", Change.CALL_TICK_FIRST),
-            "zombie/ui/UIManager", new Target("render", Change.CALL_OVERLAY_LAST),
+            "zombie/GameWindow", new Target("frameStep", Change.CALL_TICK_FIRST, true),
+            // Every state ends its UI frame here, the menu and loading screens included.
+            "zombie/core/Core", new Target("EndFrameUI", Change.CALL_OVERLAY_FIRST, false),
             // A stray key or click, pause above all, would change what's being measured.
-            "zombie/input/GameKeyboard", new Target("update", Change.SKIP_BODY),
-            "zombie/input/Mouse", new Target("update", Change.SKIP_BODY));
+            "zombie/input/GameKeyboard", new Target("update", Change.SKIP_BODY, true),
+            "zombie/input/Mouse", new Target("update", Change.SKIP_BODY, true));
 
-    private record Target(String method, Change change) {}
+    private record Target(String method, Change change, boolean isStatic) {}
 
     private AutomationInstrumentation() {}
 
@@ -55,10 +55,10 @@ public final class AutomationInstrumentation {
         var methods = model.methods().stream()
                 .filter(method -> method.methodName().equalsString(target.method())
                         && method.methodType().equalsString("()V")
-                        && (method.flags().flagsMask() & ClassFile.ACC_STATIC) != 0)
+                        && ((method.flags().flagsMask() & ClassFile.ACC_STATIC) != 0) == target.isStatic())
                 .toList();
         if (methods.size() != 1 || methods.getFirst().code().isEmpty())
-            throw new IllegalArgumentException("Expected one static " + target.method() + "()V in "
+            throw new IllegalArgumentException("Expected one " + target.method() + "()V in "
                     + model.thisClass().asInternalName());
         return api.transformClass(
                 model, ClassTransform.transformingMethodBodies(methods::contains, new CodeTransform() {
@@ -71,14 +71,12 @@ public final class AutomationInstrumentation {
                             case SKIP_BODY ->
                                 builder.invokestatic(HOOKS, "inputBlocked", MethodTypeDesc.of(CD_boolean))
                                         .ifThen(block -> block.return_());
-                            case CALL_OVERLAY_LAST -> {}
+                            case CALL_OVERLAY_FIRST -> builder.invokestatic(HOOKS, "overlay", NOTHING);
                         }
                     }
 
                     @Override
                     public void accept(CodeBuilder builder, CodeElement element) {
-                        if (target.change() == Change.CALL_OVERLAY_LAST && element instanceof ReturnInstruction)
-                            builder.invokestatic(HOOKS, "overlay", NOTHING);
                         builder.with(element);
                     }
                 }));

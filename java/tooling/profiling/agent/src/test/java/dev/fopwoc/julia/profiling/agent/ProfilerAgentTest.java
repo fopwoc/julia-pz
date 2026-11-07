@@ -104,4 +104,16 @@ class ProfilerAgentTest {
         }.define();
         assertEquals("zombie.input.GameKeyboard", loaded.getName());
     }
+
+    @Test
+    void overlayHookFitsTheGamesInstanceMethod() throws Exception {
+        byte[] bytes;
+        try (var input = getClass().getResourceAsStream("/zombie/core/Core.class")) {
+            assertNotNull(input);
+            bytes = input.readAllBytes();
+        }
+        byte[] transformed =
+                AutomationInstrumentation.instrument(bytes, getClass().getClassLoader());
+        assertTrue(ClassFile.of().verify(transformed).isEmpty());
+    }
 }

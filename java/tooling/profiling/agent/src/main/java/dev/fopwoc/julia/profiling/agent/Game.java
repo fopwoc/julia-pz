@@ -18,6 +18,9 @@ interface Game {
     /** The mods the game actually loaded, which is what a report should list. */
     List<String> loadedMods() throws ReflectiveOperationException;
 
+    /** Viewpoint caps frames at the display's refresh rate unless told otherwise. */
+    void uncapViewpoint() throws ReflectiveOperationException;
+
     /** One step toward Viewpoint's first person, {@code true} once there. Called again a second later until then. */
     boolean firstPerson() throws ReflectiveOperationException;
 

@@ -59,7 +59,8 @@ final class Automation {
     private final String label;
     private final Supplier<String> gpu;
     private final Supplier<List<Row>> resources;
-    private List<String> mods = List.of();
+    private volatile List<String> mods = List.of();
+    private volatile String machine;
     private boolean viewApplied;
     private boolean inFirstPerson;
     private long lastViewStep;
@@ -202,6 +203,9 @@ final class Automation {
         if (!viewApplied) {
             viewApplied = true;
             mods = game.loadedMods();
+            machine = game.machine();
+            // A mod can keep its own frame limit, which a capped result would hide behind.
+            if (mods.contains("Viewpoint")) game.uncapViewpoint();
             for (var wanted : scene.mods())
                 if (!mods.contains(wanted))
                     throw new IllegalStateException("Mod didn't load: " + wanted + "; loaded " + mods);
@@ -237,14 +241,18 @@ final class Automation {
         }
     }
 
-    /** Adding a number to the panel is one more row here. */
+    /** Adding a number to the panel is one more row here. Device first, then what's being measured, then the setup. */
     List<Row> panel(long now, long frames) {
         var active = backend.get();
         var current = stage;
         var rows = new ArrayList<Row>();
         rows.add(new Row("Run", label));
-        rows.add(new Row("GPU", gpu.get() + (active == null ? "" : " | " + active)));
-        if (!mods.isEmpty()) rows.add(new Row("Mods", String.join(", ", mods)));
+        var version = System.getProperty("julia.version");
+        rows.add(new Row(
+                "Renderer",
+                active == null ? "native OpenGL" : "Julia " + (version == null ? "" : version + " ") + "on " + active));
+        rows.add(new Row("GPU", gpu.get()));
+        if (machine != null) rows.add(new Row("System", machine));
         rows.add(Row.GAP);
         if (current != Stage.MENU && current != Stage.LOADING)
             rows.add(new Row(
@@ -268,13 +276,12 @@ final class Automation {
                         scene.duration().toSeconds()));
         }
         rows.add(new Row("Stage", state.toString()));
-        rows.add(Row.GAP);
         long seconds = (now - runStart) / SECOND;
         long average = seconds > 0 ? (frames - runFrames) / seconds : 0;
         rows.add(new Row("FPS", String.format(Locale.ROOT, "%d (avg %d)", fps, average)));
         rows.addAll(resources.get());
-        rows.add(Row.GAP);
         rows.add(new Row("Elapsed", String.format(Locale.ROOT, "%d:%02d", seconds / 60, seconds % 60)));
+        rows.add(Row.GAP);
         rows.add(new Row(
                 "Args",
                 String.format(
@@ -283,6 +290,8 @@ final class Automation {
                         zoom,
                         scene.zombieBuddy() ? "on" : "off",
                         scene.steam() ? "on" : "off")));
+        var listed = mods.isEmpty() ? scene.mods() : mods;
+        rows.add(new Row("Mods", listed.isEmpty() ? "none" : String.join(", ", listed)));
         return rows;
     }
 

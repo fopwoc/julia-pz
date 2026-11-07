@@ -15,6 +15,7 @@ final class ReflectiveGame implements Game {
 
     private static final int PANEL_PADDING = 10;
     private static final int PANEL_COLUMN_GAP = 16;
+    private static final int PANEL_MIN_WIDTH = 520;
     private static final int SCREAM_RADIUS = 300;
     private static final int SCREAM_VOLUME = 300;
 
@@ -242,7 +243,8 @@ final class ReflectiveGame implements Game {
             labels = Math.max(labels, (int) measure.invoke(textManager, smallFont, row.label()));
             values = Math.max(values, (int) measure.invoke(textManager, smallFont, row.value()));
         }
-        int width = labels + PANEL_COLUMN_GAP + values;
+        // A steady width keeps the panel from jumping around as numbers change.
+        int width = Math.max(PANEL_MIN_WIDTH, labels + PANEL_COLUMN_GAP + values);
         int height = lineHeight * rows.size();
         int x = ((int) call(core, "getScreenWidth") - width) / 2;
         int y = ((int) call(core, "getScreenHeight") - height) / 2;
@@ -282,6 +284,11 @@ final class ReflectiveGame implements Game {
         var result = new ArrayList<String>();
         for (var id : (Iterable<?>) call(system, "getModIDs")) result.add(id.toString());
         return result;
+    }
+
+    @Override
+    public void uncapViewpoint() throws ReflectiveOperationException {
+        ViewpointDriver.uncap();
     }
 
     @Override

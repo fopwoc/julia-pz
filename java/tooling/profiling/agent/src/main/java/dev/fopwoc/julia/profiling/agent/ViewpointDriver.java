@@ -8,6 +8,14 @@ package dev.fopwoc.julia.profiling.agent;
 final class ViewpointDriver {
     private ViewpointDriver() {}
 
+    /** Turns off Viewpoint's own frame limit, which otherwise follows the display's refresh rate. */
+    static void uncap() throws ReflectiveOperationException {
+        var caps = Class.forName("viewpoint.game.FrameCaps", true, ClassLoader.getSystemClassLoader());
+        int uncapped = caps.getField("UNCAPPED").getInt(null);
+        caps.getMethod("setGameCap", int.class).invoke(null, uncapped);
+        caps.getMethod("setMenuCap", int.class).invoke(null, uncapped);
+    }
+
     /**
      * One step toward first person: {@code true} once there. A view change only takes effect on a later frame, so this
      * cycles at most once per call and the caller waits between calls.
