@@ -32,6 +32,21 @@ class SwapBuffersPassTest implements Opcodes {
     }
 
     @Test
+    void swapIntervalRequestsGoToTheRuntime() throws Exception {
+        var node = new ClassNode();
+        new ClassReader(fixture()).accept(node, 0);
+        SwapBuffersPass.adapt(node);
+        var interval = node.methods.stream()
+                .filter(method -> method.name.equals("swapInterval"))
+                .findFirst()
+                .orElseThrow();
+        var calls = new java.util.ArrayList<String>();
+        for (var instruction : interval.instructions)
+            if (instruction instanceof MethodInsnNode call) calls.add(call.owner + "." + call.name + call.desc);
+        assertEquals(java.util.List.of("dev/fopwoc/julia/runtime/PresentInterval.set(I)V"), calls);
+    }
+
+    @Test
     void failsWhenTheSwapAnchorMoved() {
         var node = new ClassNode();
         node.name = SwapBuffersPass.DISPLAY;
@@ -49,6 +64,13 @@ class SwapBuffersPassTest implements Opcodes {
         swap.visitInsn(LRETURN);
         swap.visitMaxs(2, 2);
         swap.visitEnd();
+        var interval = writer.visitMethod(ACC_PUBLIC | ACC_STATIC, "swapInterval", "(I)V", null, null);
+        interval.visitCode();
+        interval.visitVarInsn(ILOAD, 0);
+        interval.visitMethodInsn(INVOKESTATIC, "org/lwjgl/glfw/GLFW", "glfwSwapInterval", "(I)V", false);
+        interval.visitInsn(RETURN);
+        interval.visitMaxs(1, 1);
+        interval.visitEnd();
         writer.visitEnd();
         return writer.toByteArray();
     }

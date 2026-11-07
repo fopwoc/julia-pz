@@ -3,6 +3,7 @@ package dev.fopwoc.julia.backend.runtime;
 import static org.lwjgl.sdl.SDLVideo.SDL_GetWindowSize;
 import static org.lwjgl.sdl.SDLVideo.SDL_GetWindowSizeInPixels;
 
+import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.profiling.DebugCounters;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
 import com.gtnewhorizons.angelica.sdlgpu.Subsystems;
@@ -16,6 +17,7 @@ import dev.fopwoc.julia.backend.platform.Platform;
 import dev.fopwoc.julia.backend.window.BorrowedWindow;
 import dev.fopwoc.julia.backend.window.HostWindow;
 import dev.fopwoc.julia.runtime.ForeignWindow;
+import dev.fopwoc.julia.runtime.PresentInterval;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.lwjgl.system.MemoryStack;
@@ -31,6 +33,7 @@ public final class GameRuntime {
     private Path output;
     private FrameWatchdog watchdog;
     private long frames;
+    private int presentInterval = -1;
     private GlsmSession.Size renderSize;
 
     private GameRuntime() {}
@@ -101,6 +104,11 @@ public final class GameRuntime {
         var runtime = require();
         Subsystems.current().drawTrace().frameBoundary();
         runtime.session.backend().onFrameEnd();
+        int interval = PresentInterval.get();
+        if (interval >= 0 && interval != runtime.presentInterval) {
+            runtime.presentInterval = interval;
+            GLStateManager.setVSyncEnabled(interval != 0);
+        }
         runtime.frames++;
         runtime.watchdog.presented(runtime.frames);
         if (runtime.frames <= 3 || runtime.frames % 60 == 0) runtime.status("RENDERING");

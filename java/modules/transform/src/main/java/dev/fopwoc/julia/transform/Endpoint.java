@@ -16,6 +16,7 @@ public enum Endpoint {
     UNSUPPORTED_GRAPHICS("dev/fopwoc/julia/runtime/UnsupportedGraphics"),
     MOD_APPROVAL_HOOKS("dev/fopwoc/julia/runtime/ModApprovalHooks"),
     LUA_STATUS("dev/fopwoc/julia/runtime/JuliaStatus"),
+    PRESENT_INTERVAL("dev/fopwoc/julia/runtime/PresentInterval"),
     GLSM_ATTRIB_STACK(RendererEndpoint.GLSM_ATTRIB_STACK.owner()),
     GLSM_BLEND(RendererEndpoint.GLSM_BLEND.owner()),
     GLSM_BUFFERS(RendererEndpoint.GLSM_BUFFERS.owner()),

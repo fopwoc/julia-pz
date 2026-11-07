@@ -85,6 +85,9 @@ final class ReflectiveGame implements Game {
     @Override
     public void arrive(Scene.Spot spot) throws ReflectiveOperationException {
         var player = player();
+        // The game's menu only offers this with a system flag; a capped run shows nothing about throughput.
+        var performance = type("zombie.core.PerformanceSettings");
+        call(performance.getField("instance").get(null), "setFramerateUncapped", true);
         // A death would end the run. The game's own tutorial calls this outside debug mode.
         call(player, "setInvincible", true);
         call(player, "setGhostMode", spot.ghost());
