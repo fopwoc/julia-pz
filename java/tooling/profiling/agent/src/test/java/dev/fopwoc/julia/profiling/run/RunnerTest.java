@@ -371,4 +371,33 @@ class RunnerTest {
         assertTrue(table.contains("| town | opengl | 1000 | 3000 | 210 | 90 | 60 |"), table);
         assertTrue(table.contains("| town | julia | 1200 | - | 190 | 70 | 65 |"), table);
     }
+
+    @Test
+    void anEmptyModListMeansNoModsWhileNoListKeepsTheSaves() throws Exception {
+        var template = root.resolve("template");
+        var save = template.resolve("Saves/Apocalypse/w");
+        Files.createDirectories(save);
+        Files.writeString(save.resolve("mods.txt"), ACTIVE);
+        var game = linuxGame();
+        for (var text : List.of(
+                "{\"name\":\"s\",\"save\":\"Apocalypse/w\",\"mods\":[]}",
+                "{\"name\":\"k\",\"save\":\"Apocalypse/w\"}")) {
+            var scene = Scene.parse(text);
+            var plan = RunPlan.of(
+                    "1/1",
+                    "opengl",
+                    root.resolve(scene.name()),
+                    template,
+                    root.resolve("agent.jar"),
+                    null,
+                    root.resolve("home"),
+                    scene,
+                    game,
+                    List.of(),
+                    List.of());
+            plan.prepare();
+            var active = Files.readString(plan.run().resolve("profile/mods/default.txt"));
+            assertEquals(scene.name().equals("s"), !active.contains("mod = Other"), active);
+        }
+    }
 }

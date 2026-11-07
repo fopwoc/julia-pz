@@ -12,7 +12,7 @@ import java.util.Set;
 /**
  * What one batch measures: a save, the spots visited in it, and how long each is recorded. {@code zombieBuddy} and
  * {@code steam} are off unless a scene needs them, so a plain comparison measures nothing but the renderer. {@code overlay}
- * is the status line, on unless turned off.
+ * is the status line, on unless turned off. A listed {@code mods}, even an empty one, replaces the save's own list.
  */
 public record Scene(
         String name,
@@ -24,6 +24,7 @@ public record Scene(
         boolean steam,
         boolean overlay,
         List<String> mods,
+        boolean modsListed,
         boolean firstPerson,
         List<Spot> spots) {
     private static final String SAFE_NAME = "[A-Za-z0-9_.-]{1,64}";
@@ -100,6 +101,7 @@ public record Scene(
                 flag(data, "steam"),
                 !Boolean.FALSE.equals(data.get("overlay")),
                 strings(data, "mods"),
+                data.containsKey("mods"),
                 flag(data, "firstPerson"),
                 List.copyOf(spots));
     }

@@ -87,7 +87,8 @@ public final class ProfileCli {
                 : null;
         var single = options.get("--renderer");
         var notes = new ArrayList<String>();
-        if (!mods.isEmpty()) notes.add("Mods: " + String.join(", ", scene.mods()));
+        if (scene.modsListed())
+            notes.add("Mods: " + (scene.mods().isEmpty() ? "none" : String.join(", ", scene.mods())));
         if (baseline != null && single == null) single = "julia";
         if (single != null && !single.equals("opengl") && !single.equals("julia"))
             throw new IllegalArgumentException("--renderer is opengl or julia");

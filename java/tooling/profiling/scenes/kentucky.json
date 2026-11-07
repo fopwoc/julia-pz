@@ -4,6 +4,7 @@
   "jvmOptions": [
     "-Xmx8g"
   ],
+  "mods": [],
   "spots": [
     {
       "name": "plain",

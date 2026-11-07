@@ -67,7 +67,7 @@ record RunPlan(
         var profile = run.resolve("profile");
         Bake.copyTree(template, profile);
         var saveMods = profile.resolve("Saves").resolve(scene.save()).resolve("mods.txt");
-        if (!scene.mods().isEmpty()) ActiveMods.set(saveMods, scene.mods());
+        if (scene.modsListed()) ActiveMods.set(saveMods, scene.mods());
         ActiveMods.remove(profile.resolve("mods/default.txt"), JULIA_IDS);
         ActiveMods.remove(saveMods, JULIA_IDS);
         // The default list applies from startup, before the save loads. Left alone, mods the save doesn't use would
