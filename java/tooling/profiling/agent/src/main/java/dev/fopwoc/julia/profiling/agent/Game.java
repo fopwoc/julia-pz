@@ -18,8 +18,8 @@ interface Game {
     /** The mods the game actually loaded, which is what a report should list. */
     List<String> loadedMods() throws ReflectiveOperationException;
 
-    /** Puts the Viewpoint mod in first person. */
-    void firstPerson() throws ReflectiveOperationException;
+    /** One step toward Viewpoint's first person, {@code true} once there. Called again a second later until then. */
+    boolean firstPerson() throws ReflectiveOperationException;
 
     /** A loud world sound at the character, which draws zombies from a wide area. */
     void scream() throws ReflectiveOperationException;

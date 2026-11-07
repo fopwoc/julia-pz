@@ -285,8 +285,8 @@ final class ReflectiveGame implements Game {
     }
 
     @Override
-    public void firstPerson() throws ReflectiveOperationException {
-        ViewpointDriver.firstPerson();
+    public boolean firstPerson() throws ReflectiveOperationException {
+        return ViewpointDriver.firstPerson();
     }
 
     private static void forceField(Object target, String name, boolean value) throws ReflectiveOperationException {

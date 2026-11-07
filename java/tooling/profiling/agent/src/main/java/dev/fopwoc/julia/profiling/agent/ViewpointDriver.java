@@ -6,19 +6,18 @@ package dev.fopwoc.julia.profiling.agent;
  * view.
  */
 final class ViewpointDriver {
-    private static final int MAX_CYCLES = 4;
-
     private ViewpointDriver() {}
 
-    static void firstPerson() throws ReflectiveOperationException {
+    /**
+     * One step toward first person: {@code true} once there. A view change only takes effect on a later frame, so this
+     * cycles at most once per call and the caller waits between calls.
+     */
+    static boolean firstPerson() throws ReflectiveOperationException {
         var loader = ClassLoader.getSystemClassLoader();
         var view = Class.forName("viewpoint.core.View", true, loader);
-        var cycle = Class.forName("viewpoint.ViewLua", true, loader).getMethod("cycle");
-        for (int attempt = 0; attempt <= MAX_CYCLES; attempt++) {
-            if (view.getField("enabled").getBoolean(null)
-                    && !view.getField("thirdPerson").getBoolean(null)) return;
-            cycle.invoke(null);
-        }
-        throw new IllegalStateException("Viewpoint didn't enter first person");
+        if (view.getField("enabled").getBoolean(null)
+                && !view.getField("thirdPerson").getBoolean(null)) return true;
+        Class.forName("viewpoint.ViewLua", true, loader).getMethod("cycle").invoke(null);
+        return false;
     }
 }

@@ -26,6 +26,7 @@ class AutomationTest {
     private List<String> loaded = List.of();
     private int kept;
     private int screams;
+    private int viewSteps;
 
     private final Game game = new Game() {
         @Override
@@ -64,8 +65,9 @@ class AutomationTest {
         }
 
         @Override
-        public void firstPerson() {
+        public boolean firstPerson() {
             log.add("first person");
+            return ++viewSteps >= 3;
         }
 
         @Override
@@ -309,8 +311,8 @@ class AutomationTest {
                 "x",
                 () -> "g",
                 List::of);
-        ticks(present, 40);
-        assertEquals(1, log.stream().filter("first person"::equals).count());
+        ticks(present, 60);
+        assertEquals(3, log.stream().filter("first person"::equals).count(), "One step a second until it's there");
         assertTrue(log.contains("quit"), log.toString());
     }
 }

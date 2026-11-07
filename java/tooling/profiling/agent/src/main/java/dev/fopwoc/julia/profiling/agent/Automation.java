@@ -29,6 +29,7 @@ final class Automation {
     private static final long SECOND = Duration.ofSeconds(1).toNanos();
     private static final long SCREAM_NANOS = Duration.ofSeconds(3).toNanos();
     private static final long RETELEPORT_NANOS = Duration.ofSeconds(5).toNanos();
+    private static final long VIEW_TIMEOUT_NANOS = Duration.ofSeconds(20).toNanos();
     private static final long ARRIVAL_TIMEOUT_NANOS = Duration.ofSeconds(60).toNanos();
     // One full turn, since the fog only clears where the character looks.
     private static final long SURVEY_NANOS = Duration.ofSeconds(4).toNanos();
@@ -60,6 +61,8 @@ final class Automation {
     private final Supplier<List<Row>> resources;
     private List<String> mods = List.of();
     private boolean viewApplied;
+    private boolean inFirstPerson;
+    private long lastViewStep;
     private volatile Stage stage = Stage.MENU;
     private volatile int spot;
     private volatile boolean warmingUp = true;
@@ -124,6 +127,15 @@ final class Automation {
                 if (game.playerReady()) arrive();
             }
             case POSITIONING -> {
+                if (scene.firstPerson() && !inFirstPerson) {
+                    if (now - stageStart > VIEW_TIMEOUT_NANOS)
+                        throw new IllegalStateException("Viewpoint didn't enter first person");
+                    if (now - lastViewStep >= SECOND) {
+                        lastViewStep = now;
+                        inFirstPerson = game.firstPerson();
+                    }
+                    if (!inFirstPerson) return;
+                }
                 if (!game.arrived(current())) {
                     long waited = now - stageStart;
                     // Turning from the moment of the teleport looks continuous; the full turn still follows arrival.
@@ -193,7 +205,6 @@ final class Automation {
             for (var wanted : scene.mods())
                 if (!mods.contains(wanted))
                     throw new IllegalStateException("Mod didn't load: " + wanted + "; loaded " + mods);
-            if (scene.firstPerson()) game.firstPerson();
         }
         stageStart = nextPoll;
         lastTeleport = nextPoll;
