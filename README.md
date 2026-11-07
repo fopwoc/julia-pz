@@ -377,7 +377,7 @@ tooling/probe/build/install/probe/bin/probe --audit-redirects --compat redirects
 | `-javaagent:julia-agent.jar=<report.tsv>` | Launch options | Audit only: record which classes make graphics calls into a new file; rendering is unchanged |
 | `-agentlib:julia=<options>` | Launch options, Windows | Same as `-javaagent:julia-agent.jar=<options>`; needs `julia.dll` beside the jar |
 | `-Dangelica.sdlgpu.debug=true` | Launch options or probe JVM | GPU validation; Metal also records encoder errors and enables shader validation (slow) |
-| `-Djulia.drawTrace=true` | Launch options or probe JVM | Bounded CPU draw-state snapshots and compiler inputs beside renderer/probe reports; no GPU readbacks |
+| `-Djulia.drawTrace=true` | Launch options or probe JVM | Bounded CPU draw-state snapshots and compiler inputs beside renderer/probe reports; no GPU readbacks; in game, also samples the UI redraw state to `ui-state.txt` |
 | `-Djulia.gpu=metal\|vulkan` | Launch options or probe JVM | Override the platform's default SDL GPU driver |
 | `LOG_LEVEL=debug\|info\|warn\|error` | Environment | Julia and renderer log detail on stderr; default `error` |
 | `-PjuliaNatives=<dir>` | Gradle | Pack other hosts' SDL builds (`<os>/<arch>/<library>`) into the agent jar |
