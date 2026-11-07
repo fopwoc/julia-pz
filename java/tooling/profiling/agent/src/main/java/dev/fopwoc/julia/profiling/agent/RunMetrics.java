@@ -3,7 +3,6 @@ package dev.fopwoc.julia.profiling.agent;
 import com.sun.management.OperatingSystemMXBean;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -15,7 +14,7 @@ final class RunMetrics {
     private static final OperatingSystemMXBean SYSTEM =
             (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
     private static final java.lang.management.ThreadMXBean THREADS = ManagementFactory.getThreadMXBean();
-    private static final long MEGABYTE = 1024 * 1024;
+    static final long MEGABYTE = 1024 * 1024;
 
     private long startNanos;
     private long processStart;
@@ -78,27 +77,11 @@ final class RunMetrics {
         }
     }
 
-    /** What the panel shows, read on the game's UI pass, so only cheap calls belong here. */
-    static List<Row> live(long[] previous, long now) {
-        long cpu = SYSTEM.getProcessCpuTime();
-        var rows = List.of(
-                new Row(
-                        "Heap",
-                        heapUsed() / MEGABYTE + " / " + Runtime.getRuntime().maxMemory() / MEGABYTE + " MB"),
-                new Row(
-                        "CPU",
-                        previous[0] == 0
-                                ? "-"
-                                : Math.round((cpu - previous[1]) * 100.0 / Math.max(1, now - previous[0]))
-                                        + "% of a core"));
-        return rows;
-    }
-
     static long processCpu() {
         return SYSTEM.getProcessCpuTime();
     }
 
-    private static long threadCpu(long thread) {
+    static long threadCpu(long thread) {
         if (thread == 0) return 0;
         long time = THREADS.getThreadCpuTime(thread);
         return Math.max(0, time);
