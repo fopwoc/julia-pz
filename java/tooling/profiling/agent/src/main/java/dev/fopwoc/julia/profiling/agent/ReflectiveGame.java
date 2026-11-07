@@ -1,6 +1,7 @@
 package dev.fopwoc.julia.profiling.agent;
 
 import dev.fopwoc.julia.profiling.run.Scene;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,8 @@ final class ReflectiveGame implements Game {
     private Object white;
     private Object core;
     private Method drawString;
+    private Field useUiLayer;
+    private Field uiThisFrame;
     private Method measure;
     private Method fontHeight;
 
@@ -235,7 +238,13 @@ final class ReflectiveGame implements Game {
             sprites = type("zombie.core.SpriteRenderer").getField("instance").get(null);
             white = type("zombie.core.textures.Texture").getMethod("getWhite").invoke(null);
             core = type("zombie.core.Core").getMethod("getInstance").invoke(null);
+            useUiLayer = type("zombie.ui.UIManager").getField("useUiFbo");
+            uiThisFrame = type("zombie.core.Core").getField("uiRenderThisFrame");
         }
+        // In play the game redraws its UI layer only on some frames and reuses it on the others. Drawing on every frame
+        // put
+        // the panel in that layer on some and straight onto the scene on the rest, and its translucent box flickered.
+        if (useUiLayer.getBoolean(null) && !uiThisFrame.getBoolean(core)) return;
         int lineHeight = (int) fontHeight.invoke(textManager, smallFont);
         int labels = 0;
         int values = 0;
