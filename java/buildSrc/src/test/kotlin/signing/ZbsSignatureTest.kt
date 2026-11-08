@@ -6,6 +6,7 @@ import java.security.KeyFactory
 import java.security.MessageDigest
 import java.security.Signature
 import java.security.spec.X509EncodedKeySpec
+import java.util.Base64
 import java.util.HexFormat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -33,6 +34,24 @@ class ZbsSignatureTest {
             update("ZBS:$steamId:$digest".toByteArray())
         }
         assertTrue(verifier.verify(hex.parseHex(lines[2].removePrefix("Signature:"))))
+    }
+
+    /** Release CI signs with this script instead of Gradle, so a drift here would ship a jar ZombieBuddy rejects. */
+    @Test
+    fun `release script writes the same sidecar`(@TempDir dir: Path) {
+        val key = dir.resolve("key.der").also(ZbsSignature::generate)
+        val jar = Files.write(dir.resolve("julia-preload.jar"), ByteArray(4096) { it.toByte() })
+        val expected = ZbsSignature.render(jar, steamId, Files.readAllBytes(key))
+
+        val script = Path.of("../../tools/sign-preload.sh").toAbsolutePath().normalize()
+        val process = ProcessBuilder(script.toString(), jar.toString(), steamId)
+            .redirectErrorStream(true)
+            .apply { environment()["ZBS_PRIVATE_KEY"] = Base64.getEncoder().encodeToString(Files.readAllBytes(key)) }
+            .start()
+        val output = process.inputStream.bufferedReader().readText()
+        assertEquals(0, process.waitFor(), output)
+
+        assertEquals(expected, Files.readString(dir.resolve("julia-preload.jar.zbs")))
     }
 
     @Test

@@ -21,8 +21,8 @@ entryJar(
     attributes = mapOf("ZB-Preload" to "true"),
 )
 
-// CI passes the key as a secret; local release builds read the Git-ignored copy. ZombieBuddy refuses an unsigned jar,
-// so a build without a key is only good for compiling and tests.
+// Local builds read the Git-ignored key; release CI signs with tools/sign-preload.sh instead, so keep both outputs
+// identical. ZombieBuddy refuses an unsigned jar, so a build without a key is only good for compiling and tests.
 val signingKeyFile = rootProject.layout.projectDirectory.file("../signing/ed25519-private.der")
 val signingKeySecret = providers.environmentVariable("ZBS_PRIVATE_KEY")
 val steamId = providers.gradleProperty("zbsSteamID64")

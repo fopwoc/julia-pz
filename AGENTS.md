@@ -43,9 +43,12 @@
 - The preload entry `dev.fopwoc.julia.preload.PreMain` reads ZombieBuddy
   internals by reflection because its preload entry passes neither `Instrumentation` nor a code source. Its loaded
   `Loader` is redefined in place, and its woven patch classes and the Lua exposer may already be loaded.
-- Preload needs `julia-preload.jar.zbs` beside the jar. `:preload:signJar` writes it from the Git-ignored
-  `signing/ed25519-private.der` or the `ZBS_PRIVATE_KEY` secret (base64 DER); only release CI receives the secret.
-  Never commit the key. The signer's SteamID64 must match the Workshop uploader.
+- Preload needs `julia-preload.jar.zbs` beside the jar. Locally `:preload:signJar` writes it from the Git-ignored
+  `signing/ed25519-private.der`. CI signs only in `release.yml`'s publish job, with `tools/sign-preload.sh` and the
+  `ZBS_PRIVATE_KEY` secret (base64 DER) of the `release` environment, which accepts `x.y.z` tags alone; a tag ruleset
+  limits creating them to maintainers. The shared `build.yml` never signs, so pull requests and branches stay
+  unsigned. Never commit the key, and keep the two signers byte-identical. The signer's SteamID64 must match the
+  Workshop uploader.
 
 ## Code style
 
