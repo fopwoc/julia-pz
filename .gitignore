@@ -11,7 +11,10 @@ local.properties
 # Machine-local build and Steam deployment helper.
 /local-test.sh
 
-# ZombieBuddy signing key; CI holds the same key as the ZBS_PRIVATE_KEY secret.
+# Claude Code worktrees; .claude/ settings stay committable.
+/.claude/worktrees/
+
+# ZombieBuddy signing key; the release environment holds the same key as the ZBS_PRIVATE_KEY secret.
 /signing/
 
 # Staged by :workshop:stagePreload for Workshop uploads.
