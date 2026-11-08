@@ -26,15 +26,14 @@ jobs:
   build:
     needs: verify
     uses: ./.github/workflows/build.yml
-    with:
-      sign: true
-    secrets:
-      ZBS_PRIVATE_KEY: ${{ secrets.ZBS_PRIVATE_KEY }}
 
   publish:
     name: Attest and publish
     needs: build
     runs-on: ubuntu-24.04
+    # The signing key lives only in this environment, which accepts x.y.z tags alone; a tag ruleset limits who can
+    # create those. Branch and pull-request workflows can't read it, whatever they change.
+    environment: release
     permissions:
       contents: write
       id-token: write
@@ -53,6 +52,18 @@ jobs:
         with:
           name: julia-dist
           path: dist
+
+      # Signing changes neither jar, so the shared build's checks and the attestation below still cover these bytes.
+      - name: Sign the preload jar
+        env:
+          ZBS_PRIVATE_KEY: ${{ secrets.ZBS_PRIVATE_KEY }}
+        run: |
+          tools/sign-preload.sh dist/julia-preload.jar "$(sed -n 's/^zbsSteamID64=//p' java/gradle.properties)"
+          staging="$(mktemp -d)"
+          mkdir -p "$staging/Julia/libs"
+          cp dist/julia-preload.jar.zbs "$staging/Julia/libs/"
+          (cd "$staging" && zip -X -q "$GITHUB_WORKSPACE/dist/julia-mod.zip" Julia/libs/julia-preload.jar.zbs)
+          tools/package-workshop.sh dist/julia-preload.jar dist/julia-workshop.zip
 
       - name: Name release files
         run: |
