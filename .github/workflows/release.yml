@@ -41,10 +41,12 @@ jobs:
       attestations: write
       artifact-metadata: write
     steps:
+      # Full submodule history, so the release notes can count fork commits between pins.
       - name: Check out source and tags
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Download distribution
         uses: actions/download-artifact@v8
@@ -85,6 +87,33 @@ jobs:
               git log --format='- %s (%h)' "$previous_tag..$GITHUB_SHA"
             else
               git log --format='- %s (%h)' -n 1 "$GITHUB_SHA"
+            fi
+
+            # Releases before the forks used published Angelica, so their changes start where each fork left upstream.
+            angelica_old=2b46b4f602dfd7c6b5dd67f42acd853adfa1d9c6
+            gtnhlib_old=8881288313af824d23fb449d7f76c80391b44304
+            # ls-tree, not rev-parse --verify: a pin names a commit that lives only in the submodule's own repository.
+            pin_at() { git -C "$1" ls-tree "$2" "$3" | awk '$2 == "commit" { print $3 }'; }
+            pin="$([[ -n "$previous_tag" ]] && pin_at . "$previous_tag" third_party/angelica || true)"
+            if [[ -n "$pin" ]]; then
+              angelica_old="$pin"
+              gtnhlib_old="$(pin_at third_party/angelica "$pin" third_party/gtnhlib)"
+            fi
+            angelica_new="$(pin_at . "$GITHUB_SHA" third_party/angelica)"
+            gtnhlib_new="$(pin_at third_party/angelica "$angelica_new" third_party/gtnhlib)"
+            fork_line() { # name, repository, checkout, old pin, new pin
+              local count
+              count="$(git -C "$3" rev-list --first-parent --count "$4..$5")"
+              if (( count > 0 )); then
+                echo "- $1: [$count commits](https://github.com/$2/compare/$4...$5)"
+              fi
+            }
+            forks="$(
+              fork_line Angelica fopwoc/Angelica third_party/angelica "$angelica_old" "$angelica_new"
+              fork_line GTNHLib fopwoc/GTNHLib third_party/angelica/third_party/gtnhlib "$gtnhlib_old" "$gtnhlib_new"
+            )"
+            if [[ -n "$forks" ]]; then
+              printf '\n## Renderer forks\n%s\n' "$forks"
             fi
             cat <<NOTES
 
