@@ -31,6 +31,26 @@ For a build with every platform, run `./tools/build-universal.sh` from the repos
 running. It builds the macOS libraries with the Apple SDK and the Linux and Windows ones in a container, runs the
 checks, and packages both jars under `java/modules/{preload,agent}/build/libs/`.
 
+## Testing your changes
+
+Release jars are signed only by the release workflow, and pull-request and branch builds stay unsigned. ZombieBuddy
+refuses to preload an unsigned jar, so test your build one of two ways.
+
+**Standalone agent**: no signature needed. Build `:agent:jar` and follow the
+[standalone agent](README.md#standalone-agent) steps with your `julia-agent.jar`.
+
+**ZombieBuddy, with your own key**: ZombieBuddy checks a jar against the key on its signer's Steam profile, so you can
+sign builds for yourself:
+
+1. Run `./gradlew :preload:generateSigningKey`. It writes `signing/ed25519-private.der` (Git ignores it) and prints a
+   `JavaModZBS:` line. Add that line to your Steam profile summary.
+2. Put your SteamID64 in `~/.gradle/gradle.properties` as `zbsSteamID64=<your id>`. It overrides the maintainer's ID in
+   the project's `gradle.properties`.
+3. Run `tools/deploy-dev.sh`. It installs a signed `Julia (local dev)` mod into `~/Zomboid/mods`, next to any Workshop
+   subscription.
+
+That build is trusted only through your Steam profile, so keep it for your own testing.
+
 ## GPU probes
 
 Windowless GPU checks run only on request. They create a real device but open no window:
