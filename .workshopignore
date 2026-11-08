@@ -18,6 +18,7 @@ bin/
 .idea/
 *.iml
 work/
+signing/
 local-test.sh
 local.properties
 
