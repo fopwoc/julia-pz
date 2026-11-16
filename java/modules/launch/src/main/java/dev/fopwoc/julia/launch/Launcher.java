@@ -21,6 +21,10 @@ public final class Launcher {
      */
     public static void activate(String arguments, Instrumentation instrumentation, Path archive) throws Exception {
         LogConfiguration.configure();
+        // Steam launch options can set environment variables but not JVM properties for a preload mod. This must run
+        // before any renderer class reads its configuration.
+        if (Boolean.parseBoolean(System.getenv("GPU_DEBUG")) || "1".equals(System.getenv("GPU_DEBUG")))
+            System.setProperty("angelica.sdlgpu.debug", "true");
         Path output;
         if (arguments.equals("activate")) {
             Path root = Path.of(System.getProperty("user.home"), "Zomboid", "julia");
