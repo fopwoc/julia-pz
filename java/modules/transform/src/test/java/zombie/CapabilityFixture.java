@@ -20,4 +20,9 @@ public final class CapabilityFixture {
         if (capabilities.GL_NVX_gpu_memory_info) result += 16;
         return result;
     }
+
+    public static boolean programBinaries() {
+        var capabilities = GL.getCapabilities();
+        return capabilities.OpenGL33 && capabilities.glProgramBinary != 0L;
+    }
 }

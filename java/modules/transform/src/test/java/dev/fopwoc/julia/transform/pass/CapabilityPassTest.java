@@ -43,6 +43,7 @@ class CapabilityPassTest {
             assertEquals(11, type.getMethod("flags", boolean.class).invoke(null, true));
             assertEquals(10, type.getMethod("flags", boolean.class).invoke(null, false));
             assertEquals(true, type.getMethod("displayFlag").invoke(null));
+            assertEquals(false, type.getMethod("programBinaries").invoke(null));
             var flags = CompletableFuture.supplyAsync(() -> {
                 try {
                     return type.getMethod("flags", boolean.class).invoke(null, true);
@@ -65,9 +66,12 @@ class CapabilityPassTest {
         node.methods.add(method);
         var pointer = new FieldInsnNode(Opcodes.GETFIELD, "org/lwjgl/opengl/GLCapabilities", "glGenTextures", "J");
         method.instructions.add(pointer);
+        // Compared against something other than zero, the pointer value itself would matter.
+        method.instructions.add(new InsnNode(Opcodes.LCONST_1));
+        method.instructions.add(new InsnNode(Opcodes.LCMP));
         assertThrows(IllegalArgumentException.class, () -> CapabilityPass.adapt(node));
         assertEquals("org/lwjgl/opengl/GLCapabilities", pointer.owner);
-        assertEquals(1, method.instructions.size());
+        assertEquals(3, method.instructions.size());
     }
 
     @Test

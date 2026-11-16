@@ -12,6 +12,7 @@ import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -67,6 +68,13 @@ public final class CapabilityPass {
                         method.instructions.set(
                                 field,
                                 new MethodInsnNode(Opcodes.INVOKESTATIC, OWNER, "current", "()Ljava/util/Set;", false));
+                    } else if (field.owner.equals(CAPS) && isPresenceCheck(field)) {
+                        // Mod code never reaches a native GL entry point, so every function reads as absent. Only the
+                        // bare comparison with zero is rewritten: any other pointer use could call through it.
+                        var compare = field.getNext().getNext();
+                        method.instructions.remove(field.getNext());
+                        method.instructions.set(compare, new InsnNode(Opcodes.ICONST_0));
+                        method.instructions.set(field, new InsnNode(Opcodes.POP));
                     } else if (field.owner.equals(CAPS)) {
                         if (field.getOpcode() != Opcodes.GETFIELD
                                 || !field.desc.equals("Z")
@@ -105,6 +113,17 @@ public final class CapabilityPass {
             }
         }));
         return mapped;
+    }
+
+    /** {@code capabilities.glFoo != 0L}, as javac emits it: GETFIELD J, LCONST_0, LCMP. */
+    private static boolean isPresenceCheck(FieldInsnNode field) {
+        return field.getOpcode() == Opcodes.GETFIELD
+                && field.desc.equals("J")
+                && field.name.startsWith("gl")
+                && field.getNext() != null
+                && field.getNext().getOpcode() == Opcodes.LCONST_0
+                && field.getNext().getNext() != null
+                && field.getNext().getNext().getOpcode() == Opcodes.LCMP;
     }
 
     private static String pkg(String internalName) {
