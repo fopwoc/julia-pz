@@ -6,7 +6,6 @@ import com.gtnewhorizons.angelica.glsm.backend.RenderBackend;
 import com.gtnewhorizons.angelica.glsm.hooks.GLSMInitConfig;
 import com.gtnewhorizons.angelica.sdlgpu.HostedBackend;
 import com.gtnewhorizons.angelica.sdlgpu.SDLGPUGate;
-import com.gtnewhorizons.angelica.sdlgpu.SDLGPURenderBackend;
 import com.gtnewhorizons.angelica.sdlgpu.device.Device;
 import dev.fopwoc.julia.runtime.CapabilitySnapshot;
 import java.util.function.Supplier;
@@ -78,7 +77,7 @@ public final class GlsmSession implements AutoCloseable {
                 .build());
         GLStateManager.setRunningSplash(false);
         GLStateManager.markSplashComplete(label);
-        capabilities = CapabilitySnapshot.publish(SDLGPURenderBackend.advertisedCapabilities());
+        capabilities = CapabilitySnapshot.publish(HostedBackend.applicationCapabilities());
         LOG.log(
                 System.Logger.Level.INFO,
                 "GLSM ready on {0} at {1}x{2} ({3})",
