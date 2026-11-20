@@ -15,9 +15,13 @@ import org.gradle.kotlin.dsl.register
 fun Project.entryJar(archive: String, exposed: List<String>, attributes: Map<String, String>) {
     val classes = extensions.getByType<SourceSetContainer>()["main"].output
     val packaged = compactRuntime(configurations["runtimeClasspath"], classes)
+    // `-Pdebug` builds the only jars that honour GPU debug requests; release jars never run its diagnostics.
+    val debug = providers.gradleProperty("debug").isPresent
     val jar = tasks.named<Jar>("jar") {
         archiveFileName.set(archive)
-        manifest.attributes(attributes + ("Implementation-Version" to project.version.toString()))
+        manifest.attributes(
+            attributes + ("Implementation-Version" to project.version.toString()) + ("Julia-Debug" to debug.toString())
+        )
         from(packaged) { into("lib") }
         for (path in exposed) from(project(path).extensions.getByType<SourceSetContainer>()["main"].output)
     }

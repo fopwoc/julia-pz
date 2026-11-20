@@ -22,11 +22,23 @@ public final class Launcher {
     public static void activate(String arguments, Instrumentation instrumentation, Path archive) throws Exception {
         LogConfiguration.configure();
         Path root = Path.of(System.getProperty("user.home"), "Zomboid", "julia");
+        boolean debugBuild;
+        try (var jar = new JarFile(archive.toFile())) {
+            var attributes = jar.getManifest().getMainAttributes();
+            var version = attributes.getValue("Implementation-Version");
+            if (version != null) System.setProperty("julia.version", version);
+            debugBuild = Boolean.parseBoolean(attributes.getValue("Julia-Debug"));
+        }
         // A preload mod gets no JVM properties, and Steam on macOS cannot prefix environment variables, so a flag file
         // also works. This must run before any renderer class reads its configuration.
         String debug = System.getenv("GPU_DEBUG");
-        if (Boolean.parseBoolean(debug) || "1".equals(debug) || Files.exists(root.resolve("gpu-debug")))
-            System.setProperty("angelica.sdlgpu.debug", "true");
+        if (Boolean.parseBoolean(debug) || "1".equals(debug) || Files.exists(root.resolve("gpu-debug"))) {
+            if (debugBuild) System.setProperty("angelica.sdlgpu.debug", "true");
+            else
+                LOG.log(
+                        System.Logger.Level.WARNING,
+                        "GPU debug mode needs a debug build (-Pdebug); ignoring the request");
+        }
         Path output;
         if (arguments.equals("activate")) {
             Files.createDirectories(root);
@@ -37,10 +49,6 @@ public final class Launcher {
         }
         LOG.log(System.Logger.Level.INFO, "Preparing live renderer; output={0}", output);
         System.setProperty("julia.archive", archive.toRealPath().toString());
-        try (var jar = new JarFile(archive.toFile())) {
-            var version = jar.getManifest().getMainAttributes().getValue("Implementation-Version");
-            if (version != null) System.setProperty("julia.version", version);
-        }
         var loader = NestedLibraries.open(archive, output.resolve("runtime"), Launcher.class.getClassLoader());
         Path[] inputs = StartupArchives.collect(
                         System.getProperty("java.class.path"),

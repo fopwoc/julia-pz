@@ -11,7 +11,7 @@ if pgrep -f ProjectZomboid >/dev/null; then
     exit 1
 fi
 
-(cd "$root/java" && ./gradlew --console=plain --quiet :workshop:modZip)
+(cd "$root/java" && ./gradlew --console=plain --quiet -Pdebug :workshop:modZip)
 
 staging="$(mktemp -d)"
 trap 'rm -rf "$staging"' EXIT
