@@ -39,6 +39,8 @@ public final class Launcher {
                 System.setProperty(
                         "angelica.debug.frameCapture",
                         root.resolve("capture-frame").toString());
+                // Per-draw CPU snapshots; request files in the run folder restart them and dump buffers or textures.
+                System.setProperty("julia.drawTrace", "true");
             } else
                 LOG.log(
                         System.Logger.Level.WARNING,

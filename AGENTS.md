@@ -38,6 +38,8 @@
   (renderer GPU debug mode and its traces). `tools/deploy-dev.sh` builds debug; release builds never pass it. In
   debug mode, creating `~/Zomboid/julia/capture-frame` captures the next frame to a Metal `.gputrace` in the run folder,
   when the game started with `MTL_CAPTURE_ENABLED=1` (`launchctl setenv MTL_CAPTURE_ENABLED 1`, then restart Steam).
+  Debug builds also run the renderer draw trace: `draw-trace.request`, `buffer-capture.request` (GL buffer, offset,
+  bytes per line) and `texture-capture.request` (texture, level) in the run folder take effect at the next frame.
 - Keep game binaries, saves, Workshop files, extracted proprietary sources, and local machine paths out of Git.
 
 - Julia wires into the game two ways over the shared `:launch` startup, and neither jar carries the other's entry.
