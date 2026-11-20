@@ -35,7 +35,8 @@
   and generated `.source-info.properties` for Git-free builds. `BuildInfo` reads that identity only without `.git`.
   Test packaging changes with `python3 -m unittest discover -s tools/tests` and `:buildSrc:test`.
 - `-Pdebug` stamps entry jars `Julia-Debug: true`; only those honour `GPU_DEBUG` or `~/Zomboid/julia/gpu-debug`
-  (renderer GPU debug mode and its traces). `tools/deploy-dev.sh` builds debug; release builds never pass it.
+  (renderer GPU debug mode and its traces). `tools/deploy-dev.sh` builds debug; release builds never pass it. In
+  debug mode, creating `~/Zomboid/julia/capture-frame` captures the next frame to a Metal `.gputrace` in the run folder.
 - Keep game binaries, saves, Workshop files, extracted proprietary sources, and local machine paths out of Git.
 
 - Julia wires into the game two ways over the shared `:launch` startup, and neither jar carries the other's entry.

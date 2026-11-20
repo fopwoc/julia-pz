@@ -33,8 +33,13 @@ public final class Launcher {
         // also works. This must run before any renderer class reads its configuration.
         String debug = System.getenv("GPU_DEBUG");
         if (Boolean.parseBoolean(debug) || "1".equals(debug) || Files.exists(root.resolve("gpu-debug"))) {
-            if (debugBuild) System.setProperty("angelica.sdlgpu.debug", "true");
-            else
+            if (debugBuild) {
+                System.setProperty("angelica.sdlgpu.debug", "true");
+                // Creating this file mid-game captures the next frame to a .gputrace in the run directory.
+                System.setProperty(
+                        "angelica.debug.frameCapture",
+                        root.resolve("capture-frame").toString());
+            } else
                 LOG.log(
                         System.Logger.Level.WARNING,
                         "GPU debug mode needs a debug build (-Pdebug); ignoring the request");
